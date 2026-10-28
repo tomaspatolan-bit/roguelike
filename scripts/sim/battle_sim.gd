@@ -1008,6 +1008,9 @@ func _think_healer(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		return
 	var mate := _engaged_ally(u)
 	var anchor: Vector2
+	if close != null and u.pos.distance_to(close.pos) <= 3.0 and (mate == null or mate.ranged):
+		_engage(u, close, dt)   # nemá se za kým schovat: brání se
+		return
 	if mate != null:
 		var fn := _nearest(foes, mate.pos)
 		anchor = mate.pos + (mate.pos - fn.pos).normalized() * behind
@@ -1024,7 +1027,13 @@ func _think_healer(u: Unit, dt: float, foes: Array[Unit]) -> void:
 func _think_archer(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	var close := _nearest(foes, u.pos)
 	var kite := _bparam(u, "kite", 3.0)
-	if close != null and u.pos.distance_to(close.pos) < kite and not _no_retreat(u):
+	# couvá jen tehdy, když má za kým se schovat (spojenec, který bojuje zblízka, do 6 m)
+	var cover := false
+	for k in living(SIDE_KNIGHT):
+		if k != u and not k.ranged and k.pos.distance_to(u.pos) <= 6.0:
+			cover = true
+			break
+	if close != null and cover and u.pos.distance_to(close.pos) < kite and not _no_retreat(u):
 		var away := u.pos + (u.pos - close.pos).normalized() * _bparam(u, "kite_step", 4.0)
 		if not _in_water(away):
 			_walk(u, away, dt, 0.2)
