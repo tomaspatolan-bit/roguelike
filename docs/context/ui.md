@@ -8,7 +8,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 
 ## Invarianty
 1. **Žádná herní logika.** UI nemění simulaci, jen emituje signály, které zpracuje `battle.gd`.
-2. **Signály:** `knight_clicked`, `ability_pressed`, `passive_toggled`, `scenario_changed`, `route_draw_pressed`, `route_clear_pressed`, `signals_count_changed`, `start_pressed`, `signal_pressed`, `charge_pressed`, `resume_pressed`, `speed_changed`, `continue_pressed`, `retry_pressed`, `redeploy_pressed`.
+2. **Signály:** `knight_clicked`, `ability_pressed`, `passive_toggled`, `scenario_changed`, `route_draw_pressed`, `route_clear_pressed`, `signals_count_changed`, `start_pressed`, `signal_pressed`, `charge_pressed`, `resume_pressed`, `speed_changed`, `continue_pressed`, `retry_pressed`, `redeploy_pressed`, `run_continue_pressed`.
 3. **Rozvržení:** nahoře uprostřed lišta velení (`top_row`: v rozestavení signály a Začít bitvu; v bitvě čas, sláva, signál, Do boje!, rychlost), vlevo nahoře karta bitvy (`info_box`), dole karty hrdinů (`cards_row`), vpravo nahoře sbalitelný deník. Přestavuje se jen při změně stavu (`show_deploy`, `show_battle`); plynulé věci aktualizuje `update_dynamic` (každých 0,1 s) a `update_hp_bars` (každý snímek). Ikonky se mění jen při změně podpisu (`_sig`).
 4. **Hráč se soustředí na hrdiny:** žádné bonusy pro celý oddíl v UI. Musí vždy vidět: slávu, použití schopností na kartách, zbývající signály, stav úkolu, zda čas stojí.
 5. **Texty česky,** krátce. Zkratky kláves na tlačítkách odpovídají `battle.gd`.
@@ -20,11 +20,14 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 11. **Ikonky** (`ui_icon.gd`, vektorově, zástupné; finální navrhne Tom): třída, schopnosti (`ABILITY_ICONS`), stav z `_status_icons` (přísaha/zlomená, Výzva, drží místo z rozkazu, trasa; u nepřátel omráčený, drží pozici, zoufalý, prchá, Fanatik, Zbabělec, kopí). Každá má popisek.
 12. **`flash_hint`:** krátká nápověda nahoře uprostřed (např. proč cíl nejde), sama zmizí.
 
+13. **Režim běhu** (`run_mode`): bez výběru bitvy a volby počtu signálů, menu Pasivky jen ukazuje, co hrdina má, nad názvem bitvy `run_label` („Zkušební běh · bitva 2 ze 3“), výsledek má jediné tlačítko „Pokračovat v běhu“ / „Kronika rodu“.
+
 ## Úskalí
 - Kořenový `Control` má `mouse_filter = IGNORE`, jinak spolkne kliky do scény.
 - Místní proměnná se nesmí jmenovat jako metoda `CanvasLayer` (`hide`, `show`).
 
 ## Historie významných změn
+- 28.10.2026: režim běhu (`run_mode`, `run_label`, `run_continue_pressed`).
 - 28.10.2026: přestavba na hrdiny: pryč pokřiky, postoje a prapor; schopnost na kartě s použitími a cenou ve slávě, cílení, nápověda.
 - 28.10.2026: nové rozvržení (lišta velení, karty rytířů dole, deník vpravo nahoře), vektorové ikonky stavu nad hlavami a na kartách. Tom si UI převezme a navrhne.
 - 28.10.2026: tlačítko Do boje! po zlomení morálky.

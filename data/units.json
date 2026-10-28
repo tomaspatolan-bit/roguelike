@@ -10,7 +10,8 @@
   "foes": {
     "lapka": {"name": "Lapka", "role": "Lapka", "hp": 120, "dmg": 7, "reach": 1.3, "speed": 2.5, "cd": 1.1, "armor": 0.0, "radius": 0.4, "on_break": "desperate", "traits": ["zoufalec"]},
     "kopinik": {"name": "Kopiník", "role": "Kopiník", "hp": 150, "dmg": 8, "reach": 2.2, "speed": 2.2, "cd": 1.3, "armor": 0.15, "radius": 0.4, "on_break": "desperate", "dmg_vs_mounted": 2.0, "traits": ["fanatik"]},
-    "strelec": {"name": "Střelec", "role": "Střelec", "hp": 90, "dmg": 5, "reach": 8.0, "speed": 2.4, "cd": 1.6, "armor": 0.0, "radius": 0.4, "ranged": true, "on_break": "flee"}
+    "strelec": {"name": "Střelec", "role": "Střelec", "hp": 90, "dmg": 5, "reach": 8.0, "speed": 2.4, "cd": 1.6, "armor": 0.0, "radius": 0.4, "ranged": true, "on_break": "flee"},
+    "vudce": {"name": "Hejtman Kuno", "role": "Vůdce", "hp": 400, "dmg": 12, "reach": 1.6, "speed": 2.3, "cd": 1.2, "armor": 0.3, "radius": 0.5, "on_break": "desperate", "leader": true, "traits": ["fanatik"]}
   },
   "behaviors": {
     "_info": "Výchozí chování tříd hrdinů. _common: help_window = jak dlouho (s) po útoku nebo zásahu se hrdina počítá jako bojující; decided_ratio = když síla jedné strany klesne pod tento podíl síly druhé, hrdinové dobojují sami.",

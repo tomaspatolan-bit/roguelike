@@ -19,6 +19,8 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 | --- | --- | --- |
 | `test_battle_sim.gd` | invarianty simulace, balanc každého scénáře (bez schopností / se schopnostmi podle `ability_hint`), schopnosti, sláva za použití navíc, výchozí chování tříd, rozkaz přesunu, přísaha, morálka, Do boje!, terén, trasy, kopiníci, vlastnosti, nepřátelé na pozici | kód 0, „OK: všechny testy prošly“ |
 | `passives_ingame.gd` | pasivky a přísahy ve skutečné hře: zapnutí přes menu na kartě (`_on_passive`), hodnoty v bitvě, ikonky, hořící zem, omráčení, Úkryt, deník (Druhý dech, Poslední pomazání), Probodnutí, Mstitel; sada A = Most, B = Brod; spouští se s oknem: `--script res://tests/passives_ingame.gd -- <složka> <A\|B>` | „VÝSLEDEK: OK“, snímky `pasivky_<sada>_*.png` |
+| `test_run.gd` | pravidla běhu na podvržených výsledcích (nástupci, dědictví přísahy, nabídky odměn, přenos slávy, uprchlíci a jejich návrat, porážka, porušená přísaha), vůdce nepřátel, 20 celých běhů s auto-hraním a náhodnými odměnami (nic neuvízne, aspoň polovina vítězných) | „VÝSLEDEK: OK“ |
+| `screenshot_run.gd` | běh přes obrazovky: start → 3 bitvy (auto) → tábory (dědictví, odměna) → kronika; s oknem: `--script res://tests/screenshot_run.gd -- <složka>` | „VÝSLEDEK: OK“, snímky `beh_*.png` |
 | `screenshot_battle.gd` | scéna se načte, drag & drop prohodí rytíře tam i zpět, po zlomení morálky jde dát povel Do boje!, bitva doběhne bez chyb | „Drag & drop … OK“, „povel Do boje!: OK“, „Kreslení trasy: OK“ (trasa se pak smaže), schopnosti jako v testu simulace, cílené přes klik („Cílená schopnost přes klik: OK“), u mostu „Bitva skončila: win“ (u jiných scénářů jen doběhne), žádné ERROR v logu |
 
 ## Invarianty
@@ -28,6 +30,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 4. **Nový invariant v kontextovém souboru** = ideálně i nový test, který ho hlídá.
 
 ## Historie významných změn
+- 28.10.2026: `test_run.gd` a `screenshot_run.gd` (zkušební běh). Test balancu běží i na Táboře na Vraní skále.
 - 28.10.2026: `passives_ingame.gd` (pasivky ve hře); odhalil, že oheň dával slávu za každý zásah v každém snímku.
 - 28.10.2026: testy přepsané na hrdiny a schopnosti.
 - 28.10.2026: testy nositele praporu a asasína. Dlouhé běhy Godotu spouštět přes `Popen` s logem do souboru (volání Blenderu má limit 60 s).

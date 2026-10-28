@@ -45,6 +45,12 @@ var _route_id := ""          # rytíř, kterému se kreslí trasa (režim kresle
 var _route_drawing := false
 var _route_raw: Array[Vector2] = []
 var _acc := 0.0
+## Běh (scripts/run/run_state.gd), když je bitva jeho součástí; jinak null (volná bitva).
+## Nastavuje run_main.gd před přidáním do stromu.
+var run: RefCounted = null
+
+## Bitva v běhu skončila a hráč pokračuje: výsledek ze sim.result().
+signal battle_done(result: Dictionary)
 var _ui_t := 0.0
 
 # drag & drop rytířů (rozestavení a rozkazy při signálu)
@@ -60,8 +66,13 @@ var _drag_target_raw := Vector2.ZERO
 
 
 func _ready() -> void:
-	data = Sim.load_data(scenario_id)
-	setup = Sim.default_setup(data, 1)
+	if run != null:
+		scenario_id = run.stage_key()
+		data = run.load_stage_data()
+		setup = run.battle_setup(data)
+	else:
+		data = Sim.load_data(scenario_id)
+		setup = Sim.default_setup(data, 1)
 	field_root = Node3D.new()
 	add_child(field_root)
 	Field.build(field_root, data["scenario"])
@@ -98,7 +109,11 @@ func _ready() -> void:
 	add_child(order_line)
 
 	ui = BattleUI.new()
+	if run != null:
+		ui.run_mode = true
+		ui.run_label = "Zkušební běh · bitva %d ze %d" % [run.stage + 1, run.stage_count()]
 	add_child(ui)
+	ui.run_continue_pressed.connect(func() -> void: battle_done.emit(sim.result()))
 	ui.knight_clicked.connect(_select)
 	ui.ability_pressed.connect(_ability)
 	ui.passive_toggled.connect(_on_passive)
@@ -108,7 +123,7 @@ func _ready() -> void:
 		_refresh_panel())
 	ui.route_clear_pressed.connect(_clear_route)
 	var choices: Array = []
-	for sid: String in Sim.scenario_list():
+	for sid: String in ([] if run != null else Sim.scenario_list()):
 		choices.append([sid, String(Sim._read_json("res://data/scenarios/%s.json" % sid).get("name", sid))])
 	ui.scenario_choices = choices
 	ui.signals_count_changed.connect(func(n: int) -> void:
@@ -250,6 +265,8 @@ func _set_selected(id: String) -> void:
 
 ## Pasivka zapnutá nebo vypnutá v rozestavení (na zkoušku; ve hře budou odměnou v běhu).
 func _on_passive(id: String, key: String, on: bool) -> void:
+	if run != null:
+		return   # v běhu se pasivky získávají jen jako odměna
 	if phase != Phase.DEPLOY:
 		return
 	if on:

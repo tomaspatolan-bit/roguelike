@@ -2,6 +2,13 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 28.10.2026 – Zkušební běh
+- **Nástupce nastoupí za každého padlého** (stejná třída, nové jméno, bez pasivek). Smrt tedy stojí získané pasivky a příběh hrdiny, ne místo v sestavě. Běh končí, až padnou všichni v jedné bitvě.
+- **Přísaha padlého** přechází na hrdinu bez přísahy podle volby hráče, nebo zanikne. Porušená přísaha po bitvě zmizí.
+- **Vůdce nepřátel:** když padne, morálka jeho oddílu se zlomí. Závěrečná bitva má úkol „Hejtman Kuno padne“.
+- **Uprchlíci se vrátí** v závěrečné bitvě (u vůdce).
+- Hra startuje do menu (Zkušební běh / Volná bitva).
+
 ## 28.10.2026 – Pasivky a přísahy
 - **15 pasivek** (2–3 na třídu + Veterán a Mstitel pro kohokoli) a **3 přísahy** (Nikdy neustoupí, Přísaha pomsty, Slib chudoby). Pasivky jsou čitelné efekty a obohacují mířené schopnosti (Ohnivá salva, Drtivý nájezd, Druhý nájezd), pohyb hrdiny nemění.
 - **Získávají se po bitvě volbou 1 ze 3** (pasivka nebo přísaha pro konkrétního hrdinu). Hrdina má nejvýš 1 přísahu.

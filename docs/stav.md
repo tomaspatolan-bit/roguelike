@@ -3,11 +3,10 @@
 Aktualizováno: 28.10.2026
 
 ## Aktuální cíl
-**Změna směru (28.10.2026):** prapor, pokřiky a postoje z bitvy zmizely, místo nich výchozí chování tříd a schopnosti hrdinů (viz `rozhodnuti.md` a dokument „Rod Vlka a jeho hrdinové“). Další: zkušební běh (1.7) s odměnami 1 ze 3.
-
-Fáze 1, krok 1.2 (viz `docs/plan.md`). První hratelný build v Godotu: jedna bitva (Most přes řeku) a otázka, jestli nás baví ji hrát opakovaně.
+**Zkušební běh (1.7) je hratelný.** Hra se spouští do menu: Zkušební běh (3 bitvy, tábor s odměnou 1 ze 3, dědictví přísah, kronika) nebo Volná bitva (jako dřív). Další: playtest běhu (1.8) a Brána 1.
 
 ## Hotovo
+- Zkušební běh (1.7): Most přes řeku → Brod a les → Tábor na Vraní skále (vůdce Hejtman Kuno, smrt vůdce zlomí morálku). Po bitvě odměna 1 ze 3 (pasivka nebo přísaha pro konkrétního hrdinu), padlí zůstanou padlí a nastoupí nástupce bez pasivek, přísahu padlého může převzít hrdina bez přísahy, porušená přísaha zmizí, sláva se přenáší, uprchlíci z bitev 1–2 se vrátí v závěrečné bitvě, prohra = padli všichni, kronika rodu. Opraveny dva paty (lučištník couval donekonečna, kněz, který zbyl sám, utíkal). Testy: 20 auto-běhů 17 vítězných; Tábor 0/40 bez schopností, 40/40 se schopnostmi.
 - Test pasivek ve hře (`passives_ingame.gd`): všech 18 pasivek a přísah se ve hře projevuje (sady A a B prošly). Oprava: oheň z Ohnivé salvy dával slávu za zásah v každém snímku.
 - Pasivky a přísahy: 15 pasivek a 3 přísahy v datech i simulaci, v rozestavení jdou zapnout na zkoušku (menu Pasivky na kartě). Testy prošly.
 - Přestavba bitvy na hrdiny: výchozí chování tříd (Drží frontu, Léčí frontu, Střílí zezadu, Výpady, Loví střelce), schopnost na kartě (Výzva, Požehnání, Salva, Nájezd, Úder ze stínu) s použitími za bitvu, sláva platí použití navíc (40), cílení kruhem a klikem, klávesy 1–5. Most +2 lapkové. Testy obou map prošly.
@@ -29,6 +28,8 @@ Fáze 1, krok 1.2 (viz `docs/plan.md`). První hratelný build v Godotu: jedna b
 - Žádný zvuk.
 
 ## Čeká na Toma
+- **Zahrát zkušební běh** (spustí se rovnou menu) a říct k Bráně 1: chceš hned další běh? pamatuješ si příběh? rozhodoval ses mezi odměnami? Obrazovky tábora a kroniky jsou zástupné, na UI se podívej s tím, že je převezmeš.
+- Smazat na GitHubu větev `hrdinove-wip`.
 - Projít nové UI a navrhnout vlastní podobu (rozvržení, ikonky). Kód UI je v `scripts/battle/battle_ui.gd` a `ui_icon.gd`.
 - Vyzkoušet postoje podle třídy: dávají v automatické bitvě smysl?
 - Zahrát Brod a les: výběr bitvy nahoře v panelu rozestavení, trasa tlačítkem Kreslit trasu u vybraného rytíře. Simulace: nejlíp vychází sevřená obrana uprostřed s knězem jako nositelem (bez ztrát); nepřátelé jdou k nám, takže trasy zatím nejsou nutné.

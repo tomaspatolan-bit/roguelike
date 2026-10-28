@@ -30,6 +30,8 @@ func setup(u: Sim.Unit) -> void:
 		_build_knight(u)
 	else:
 		_build_foe(u)
+		if u.leader:
+			scale = Vector3.ONE * 1.3   # vůdce nepřátel je vidět z dálky (zástupné, finální vzhled ve fázi 3)
 
 
 func _build_knight(u: Sim.Unit) -> void:

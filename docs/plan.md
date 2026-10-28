@@ -47,14 +47,14 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [x] Pevné výchozí chování tříd
   - [x] Balanc obou map, testy
   - [x] Pasivky a přísahy (15 + 3) v datech a simulaci, na zkoušku v rozestavení
-- [ ] 1.7 Zkušební běh (celý loop v malém)
-  - [ ] 3 bitvy za sebou: Most přes řeku → druhá mapa → závěrečná bitva s vůdcem nepřátel
-  - [ ] Mezi bitvami odměna 1 ze 3: pasivka nebo přísaha pro konkrétního hrdinu (15 + 3 hotové)
-  - [ ] Následky: padlí zůstanou mrtví, zranění se vyléčí, sláva se přenáší, nástupce a dědictví přísahy padlého hrdiny
-  - [ ] Uprchlíci z bitev 1 a 2 se vrátí v závěrečné bitvě
-  - [ ] Prohra: ztráty a pokračuje se; běh končí, až padnou všichni rytíři
-  - [ ] Kronika rodu na konci běhu (kdo padl, kdo co přísahal, kdo utekl a vrátil se)
-  - [ ] Bez výběru rodu, meta progrese, ukládání a finální grafiky
+- [x] 1.7 Zkušební běh (celý loop v malém)
+  - [x] 3 bitvy za sebou: Most přes řeku → Brod a les → Tábor na Vraní skále s vůdcem (Hejtman Kuno)
+  - [x] Mezi bitvami odměna 1 ze 3: pasivka nebo přísaha pro konkrétního hrdinu (15 + 3 hotové)
+  - [x] Následky: padlí zůstanou mrtví, zranění se vyléčí, sláva se přenáší, nástupce a dědictví přísahy padlého hrdiny
+  - [x] Uprchlíci z bitev 1 a 2 se vrátí v závěrečné bitvě
+  - [x] Prohra: bitva se prohrává, jen když padnou všichni, a tím běh končí (ztráty po vítězství nahradí nástupci)
+  - [x] Kronika rodu na konci běhu (kdo padl, kdo co přísahal, kdo utekl a vrátil se)
+  - [x] Bez výběru rodu, meta progrese, ukládání a finální grafiky
 - [ ] 1.8 Playtest běhu: Tom + aspoň jeden hráč mimo nás
 - [ ] (podle 1.8) Podmíněné instrukce a úmysly nepřátel, jen když postoje na míru nestačí
 **Hotovo, když:** Tom řekne, že bitvy baví hrát opakovaně, a aspoň jeden člověk mimo nás to potvrdí.

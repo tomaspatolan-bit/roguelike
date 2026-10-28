@@ -1,0 +1,13 @@
+{
+  "_info": "Zkušební běh (krok 1.7): tři bitvy za sebou. stages = klíče scénářů v pořadí. offers = kolik odměn se nabídne po bitvě (vybírá se jedna). successors = jména nástupců podle třídy (berou se popořadě). Uprchlíci z bitev se vrátí v té, která má ve scénáři returnees.",
+  "name": "Zkušební běh",
+  "stages": ["most_pres_reku", "brod_a_les", "zaverecna_bitva"],
+  "offers": 3,
+  "successors": {
+    "tank": ["Sir Vítek", "Sir Ctibor", "Sir Hynek"],
+    "knez": ["Bratr Prokop", "Otec Havel", "Bratr Lukáš"],
+    "lucistnik": ["Ondřej", "Mikuláš", "Šimon"],
+    "jezdec": ["Sir Zbyněk", "Sir Oldřich", "Sir Bušek"],
+    "asasin": ["Jakub", "Vavřinec", "Štěpán"]
+  }
+}

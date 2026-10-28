@@ -23,6 +23,7 @@ signal speed_changed(value: float)
 signal continue_pressed
 signal retry_pressed
 signal redeploy_pressed
+signal run_continue_pressed
 
 const INK := Color("#e7e9ec")
 const MUTED := Color("#9aa3ad")
@@ -51,6 +52,8 @@ var toast_label: Label
 var result_box: PanelContainer
 var oath_dialog: ConfirmationDialog
 var scenario_choices: Array = []   # [[klíč, název], ...] pro výběr bitvy
+var run_mode := false              # bitva je součástí běhu: bez výběru bitvy, pasivky jen ke čtení
+var run_label := ""                # např. "Bitva 2 ze 3"
 
 var _overhead: Dictionary = {}     # id -> {"root", "fill", "bg", "icons", "sig"}
 var _cards: Dictionary = {}        # id -> {"hp": ProgressBar, "icons": HBoxContainer, "sig": String}
@@ -367,11 +370,11 @@ func show_deploy(sim: Sim, setup: Dictionary, selected: String, scenario_id: Str
 	var si := Icon.make("signal", MUTED, 20, "Signál praporu zastaví čas: kolik jich na bitvu (experiment)")
 	si.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	top_row.add_child(si)
-	var sl := _label("Signály", 14, MUTED)
+	var sl := _label("Signály: %d" % int(setup["signals"]) if run_mode else "Signály", 14, MUTED)
 	sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	top_row.add_child(sl)
 	var group := ButtonGroup.new()
-	for n in 3:
+	for n in (0 if run_mode else 3):
 		var b := Button.new()
 		b.text = str(n)
 		b.toggle_mode = true
@@ -406,7 +409,7 @@ func _fill_info(sim: Sim, deploy: bool, scenario_id: String) -> void:
 			i += 1
 		pick.item_selected.connect(func(index: int) -> void: scenario_changed.emit(String(pick.get_item_metadata(index))))
 		info_box.add_child(pick)
-	info_box.add_child(_label("%s · %s" % [sc["stage_label"], sim.house["name"]], 12, MUTED))
+	info_box.add_child(_label("%s · %s" % [run_label if run_mode and run_label != "" else sc["stage_label"], sim.house["name"]], 12, MUTED))
 	info_box.add_child(_label(sc["name"], 24 if deploy else 20))
 	if deploy:
 		info_box.add_child(_label(sc["subtitle"], 13, MUTED, true))
@@ -554,19 +557,23 @@ func _build_cards(sim: Sim, selected: String, editable: bool, in_battle: bool, r
 			mb.text = "Pasivky (%d)" % u.passives.size()
 			mb.flat = false
 			mb.add_theme_font_size_override("font_size", 13)
-			mb.tooltip_text = "Na zkoušku: ve hře budou pasivky a přísahy odměnou v běhu."
+			mb.tooltip_text = "Pasivky a přísahy hrdiny (získávají se po bitvě)." if run_mode else "Na zkoušku: ve hře budou pasivky a přísahy odměnou v běhu."
 			mb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			var pm := mb.get_popup()
 			var pi := 0
-			for pk: String in sim.passives_for(u.id):
+			var pkeys: Array = u.passives.duplicate() if run_mode else sim.passives_for(u.id)
+			for pk: String in pkeys:
 				var pd: Dictionary = sim.units_data["passives"][pk]
 				pm.add_check_item(("Přísaha: " if pd.get("kind", "") == "oath" else "") + String(pd["name"]))
 				pm.set_item_checked(pi, u.passives.has(pk))
 				pm.set_item_metadata(pi, pk)
 				pm.set_item_tooltip(pi, String(pd["desc"]))
 				pi += 1
-			pm.index_pressed.connect(func(index: int) -> void:
-				passive_toggled.emit(id, String(pm.get_item_metadata(index)), not pm.is_item_checked(index)))
+			if run_mode:
+				mb.disabled = u.passives.is_empty()
+			else:
+				pm.index_pressed.connect(func(index: int) -> void:
+					passive_toggled.emit(id, String(pm.get_item_metadata(index)), not pm.is_item_checked(index)))
 			v.add_child(mb)
 			var drawing := route_id == u.id
 			var rb := _icon_button("route", "Kreslím" if drawing else "Trasa", Color(1.0, 0.92, 0.55))
@@ -759,6 +766,15 @@ func show_result(sim: Sim, setup: Dictionary) -> void:
 	v.add_child(g)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_END
+	if run_mode:
+		var cont := _primary(Button.new())
+		cont.text = "Pokračovat v běhu" if win else "Kronika rodu"
+		cont.pressed.connect(func() -> void: run_continue_pressed.emit())
+		row.add_child(cont)
+		v.add_child(row)
+		_no_focus(result_box)
+		result_box.visible = true
+		return
 	var again := Button.new()
 	again.text = "Znovu stejně"
 	again.pressed.connect(func() -> void: retry_pressed.emit())

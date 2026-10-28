@@ -1,0 +1,35 @@
+{
+  "_info": "Závěrečná bitva zkušebního běhu. Za potokem tábor lapků, vzadu jejich vůdce (Hejtman Kuno) se stráží. Když vůdce padne, morálka nepřátel se zlomí. returnees = kde se objeví uprchlíci z předchozích bitev běhu (pos = střed, spread = rozestup v metrech).",
+  "name": "Tábor na Vraní skále",
+  "subtitle": "Hejtman Kuno a jeho tlupa · 7 pěšáků, 4 kopiníci, 3 střelci, vůdce",
+  "stage_label": "Zkušební běh · Závěrečná bitva",
+  "win_title": "Hejtman Kuno je poražen",
+  "river": {"y0": 5.0, "y1": 7.5, "crossings": [
+    {"x0": -1.5, "x1": 1.5, "kind": "most", "speed": 1.0},
+    {"x0": 6.0, "x1": 9.5, "kind": "brod", "speed": 0.6}
+  ]},
+  "forests": [
+    {"x0": -12.0, "x1": -5.0, "y0": 9.0, "y1": 15.0, "speed": 0.45, "path": [-9.0, -8.0]}
+  ],
+  "trees": [[-14, -3, 4.5], [14, -2, 4.2], [-16, 5, 4.0], [16, 6, 4.4], [-13, 21, 4.4], [13, 22, 4.2]],
+  "rocks": [[11, 16, 1.6, 15], [12.5, 17.5, 1.0, 40], [-3, 21, 1.2, 70]],
+  "deploy_zone": {"x0": -9, "x1": 9, "y0": -7, "y1": 1.5},
+  "deploy": {
+    "tank": {"pos": [0, 0.5]},
+    "knez": {"pos": [-1.2, -2.5]},
+    "lucistnik": {"pos": [-3.0, -3.5]},
+    "jezdec": {"pos": [4.0, -1.5]},
+    "asasin": {"pos": [2.0, -0.5]}
+  },
+  "optional_task": {"text": "Hejtman Kuno padne.", "reward": "vzácné znamení", "kill": "vudce"},
+  "returnees": {"pos": [0.0, 19.0], "spread": 1.2},
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 26.0},
+  "enemies": [
+    ["lapka", -3.0, 10.0], ["lapka", -1.5, 9.6], ["lapka", 0.0, 10.2], ["lapka", 1.5, 9.6], ["lapka", 3.0, 10.0],
+    ["lapka", -2.0, 11.6], ["lapka", 2.0, 11.6],
+    ["kopinik", 6.5, 10.0, {"hold": true, "engage": 4.0, "hold_time": 25}], ["kopinik", 8.5, 10.0, {"hold": true, "engage": 4.0, "hold_time": 25}],
+    ["strelec", -3.0, 14.0], ["strelec", 0.0, 14.5], ["strelec", 3.0, 14.0],
+    ["kopinik", -1.2, 16.5, {"hold": true, "engage": 5.0, "hold_time": 40}], ["kopinik", 1.2, 16.5, {"hold": true, "engage": 5.0, "hold_time": 40}],
+    ["vudce", 0.0, 17.5, {"hold": true, "engage": 6.0, "hold_time": 40}]
+  ]
+}

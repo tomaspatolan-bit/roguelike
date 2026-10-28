@@ -39,6 +39,7 @@ Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, 
 - Krok simulace je pevný (1/60 s ze scény, 1/30 s v testu). Logika nesmí záviset na velikosti kroku víc, než je nutné.
 
 ## Historie významných změn
+- 28.10.2026: běh: setup `glory`, `names` (nástupci), `extra_enemies` (vrácení uprchlíci); `result()` pro běh; vůdce nepřátel (`leader`: jeho smrt zlomí morálku); úkol `kill` (klíč nepřítele, který musí padnout). Opravy patů: lučištník necouvá dál než `kite_limit` (6 m) za výchozí místo a kněz za krytí nepovažuje; kněz, který zbyl sám, bojuje. Tábor na Vraní skále: 0/40 bez schopností, 40/40 se schopnostmi (79 s, přeživší 2,9).
 - 28.10.2026: pasivky a přísahy (18 v datech), přísaha na hrdinu místo rodu, hořící zem, Úkryt, Probodnutí. Balanc beze změny (bez pasivek kromě přísahy tanka).
 - 28.10.2026: přestavba na hrdiny: zrušen prapor, aura, pokřiky a postoje; výchozí chování tříd, schopnosti s použitími, sláva jako použití navíc, rozkaz přesunu drží místo. Balanc: Most (+2 lapkové) bez schopností 0/40, se schopnostmi 40/40 (34 s), Brod 0/40 a 40/40 (53 s).
 - 28.10.2026: postoje podle třídy (Výpad, Záloha/Číhat, Léčit frontu…), nepřátelé držící pozici, klouzání u břehu (oprava zaseknutí). Most 0/40 a 40/40 (přeživší 2,0), Brod 0/40 a 40/40.

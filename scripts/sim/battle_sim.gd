@@ -67,6 +67,7 @@ class Unit:
 	var shield: float = 1.0
 	var avenger: bool = false     # Mstitel: padl spojenec
 	var target_id: String = ""    # nepřítel: na koho právě útočí
+	var leader: bool = false      # vůdce nepřátel: když padne, zlomí se morálka
 	var mounted: bool = false
 	var vs_mounted: float = 1.0   # násobek poškození proti jízdě
 	var ignores: Array = []       # druhy terénu, které jednotku nezpomalují ("les")
@@ -125,7 +126,9 @@ var _rng := RandomNumberGenerator.new()
 
 
 ## setup = {"signals": int, "pos": {key: Vector2}, "routes": {key: Array[Vector2]} (nepovinné),
-##          "passives": {key: [klíče pasivek]} (nepovinné, jinak výchozí pasivky rodu)}
+##          "passives": {key: [klíče pasivek]} (nepovinné, jinak výchozí pasivky rodu),
+##          "glory": počáteční sláva (běh ji přenáší), "names": {key: jméno} (nástupci),
+##          "extra_enemies": [řádky nepřátel navíc] (uprchlíci, kteří se vrátili)}
 func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	units_data = data["units"]
 	house = data["house"]
@@ -139,8 +142,9 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	river_hi = river["y1"]
 	crossings = river["crossings"]
 	forests = scenario.get("forests", [])
-	glory = house["glory"]["start"]
+	glory = float(setup.get("glory", house["glory"]["start"]))
 	signals = setup.get("signals", 1)
+	task_ok = not scenario["optional_task"].has("kill")
 
 	var knights_data: Dictionary = units_data["knights"]
 	for key: String in knights_data:
@@ -156,10 +160,15 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		var pas: Dictionary = setup.get("passives", house.get("start_passives", {}))
 		u.passives = (pas.get(key, []) as Array).duplicate()
 		_apply_passives(u)
+		var names: Dictionary = setup.get("names", {})
+		if names.has(key):
+			u.name = names[key]
 
 	var foes_data: Dictionary = units_data["foes"]
 	var i := 0
-	for row: Array in scenario["enemies"]:
+	var rows: Array = (scenario["enemies"] as Array).duplicate()
+	rows.append_array(setup.get("extra_enemies", []))
+	for row: Array in rows:
 		var fkey: String = row[0]
 		var u := _make_unit(fkey, SIDE_FOE, foes_data[fkey])
 		u.id = "e%d" % i
@@ -231,6 +240,7 @@ static func _read_json(path: String) -> Dictionary:
 func _make_unit(key: String, side: String, d: Dictionary) -> Unit:
 	var u := Unit.new()
 	u.id = key
+	u.leader = d.get("leader", false)
 	u.side = side
 	u.key = key
 	u.name = d["name"]
@@ -1019,6 +1029,11 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 	if tg.side == SIDE_FOE:
 		if att != null and att.side == SIDE_KNIGHT:
 			_gain_glory(float(house["glory"]["per_kill"]), att)
+		if tg.key == str(scenario["optional_task"].get("kill", "")):
+			task_ok = true
+		if tg.leader:
+			_log("%s padl!" % tg.name, true)
+			_break_morale()
 		return
 	# Poslední pomazání: kněz poblíž jednou za bitvu zvedne padlého
 	for k in living(SIDE_KNIGHT):
@@ -1034,7 +1049,7 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 	for k in living(SIDE_KNIGHT):
 		if not _pas(k, "mstitel").is_empty():
 			k.avenger = true
-	var protect: String = scenario["optional_task"]["protect"]
+	var protect: String = scenario["optional_task"].get("protect", "")
 	if tg.id == protect or protect == "all":
 		task_ok = false
 
@@ -1197,8 +1212,9 @@ func _think_healer(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		return
 	var mate := _engaged_ally(u)
 	var anchor: Vector2
-	if close != null and u.pos.distance_to(close.pos) <= 3.0 and (mate == null or mate.ranged):
-		_engage(u, close, dt)   # nemá se za kým schovat: brání se
+	var alone := living(SIDE_KNIGHT).size() == 1
+	if close != null and (alone or (u.pos.distance_to(close.pos) <= 3.0 and (mate == null or mate.ranged))):
+		_engage(u, close, dt)   # nemá se za kým schovat (nebo zbyl sám): brání se
 		return
 	if mate != null:
 		var fn := _nearest(foes, mate.pos)
@@ -1219,12 +1235,13 @@ func _think_archer(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	# couvá jen tehdy, když má za kým se schovat (spojenec, který bojuje zblízka, do 6 m)
 	var cover := false
 	for k in living(SIDE_KNIGHT):
-		if k != u and not k.ranged and k.pos.distance_to(u.pos) <= 6.0:
+		if k != u and not k.ranged and k.behavior != "healer" and k.pos.distance_to(u.pos) <= 6.0:
 			cover = true
 			break
 	if close != null and cover and u.pos.distance_to(close.pos) < kite and not _no_retreat(u):
 		var away := u.pos + (u.pos - close.pos).normalized() * _bparam(u, "kite_step", 4.0)
-		if not _in_water(away):
+		# necouvá donekonečna: nejdál pár metrů za místo, kde začínal
+		if not _in_water(away) and away.y >= u.home.y - _bparam(u, "kite_limit", 6.0):
 			_walk(u, away, dt, 0.2)
 			if u.moving:
 				return
@@ -1438,6 +1455,12 @@ func _check_morale() -> void:
 				lost += 1
 	if total == 0 or float(lost) / total < float(_enemy_morale()["break_losses"]):
 		return
+	_break_morale()
+
+
+func _break_morale() -> void:
+	if foes_broken:
+		return
 	foes_broken = true
 	for u in living(SIDE_FOE):
 		if bool(_trait_value(u, "never_breaks", false)):
@@ -1546,3 +1569,22 @@ func step(dt: float) -> void:
 	elif living(SIDE_KNIGHT).is_empty():
 		over = "lose"
 		events.append({"type": "end"})
+
+
+
+## Výsledek bitvy pro běh: kdo padl, kdo utekl, sláva.
+func result() -> Dictionary:
+	var dead: Array = []
+	var glory_by := {}
+	var broken: Array = []
+	for k in knights():
+		if not k.alive():
+			dead.append(k.id)
+		glory_by[k.id] = k.glory_earned
+		if k.oath_broken:
+			broken.append(k.id)
+	var fled: Array = []
+	for u in units:
+		if u.side == SIDE_FOE and u.fled:
+			fled.append(u.key)
+	return {"over": over, "t": t, "dead": dead, "fled": fled, "glory": glory, "glory_by": glory_by, "oaths_broken": broken, "task_ok": task_ok}
