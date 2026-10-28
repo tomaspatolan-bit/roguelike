@@ -2,10 +2,36 @@
 
 Rytířský roguelike pro Steam. Tým: **Tom** (ředitel, designér, tester, art direction, business) a **Claude** (kód, data, simulace balancu, 3D v Blenderu, dokumentace). Engine **Godot 4.7** (GDScript). Texty ve hře i dokumentace jsou česky, identifikátory v kódu anglicky.
 
-## Na začátku a na konci každého sezení
+## Na začátku každého sezení
 
-1. Přečti `docs/stav.md` (co se teď dělá) a `docs/rozhodnuti.md` (co platí).
-2. Na konci aktualizuj `docs/stav.md`; každé nové rozhodnutí zapiš do `docs/rozhodnuti.md` (nejnovější nahoře, s datem a důvodem). Stejný deník je i v projektu Roguelike v Claude (`claude/rozhodnuti.md`), drž je v souladu.
+Přečti `docs/stav.md` (co se teď dělá), `docs/plan.md` (kde jsme ve stepperu) a `docs/rozhodnuti.md` (co platí).
+
+## Postup u každé změny (povinný)
+
+1. **Najdi dotčené oblasti** v mapě níže a **přečti jejich kontextové soubory** v `docs/context/`. Vždy, i u malé změny.
+2. **Zkontroluj požadavek proti invariantům a pilířům.** Když by ho porušil, **neprováděj ho**: řekni Tomovi, který invariant by se rozbil a proč, a navrhni alternativu. Tom rozhodne; když invariant změní, zapiš to do `docs/rozhodnuti.md`.
+3. **Proveď změnu.** Pravidla hry patří do simulace, čísla do dat.
+4. **Ověř:** `gdparse` a testy podle `docs/context/testy.md`. Neprošlé testy se nepushují.
+5. **Aktualizuj ve stejném commitu:** kontextový soubor (invarianty, rozhraní, historie), `docs/stav.md`, případně `docs/plan.md` a deník rozhodnutí. Stejný deník je i v projektu Roguelike v Claude (`claude/rozhodnuti.md`), drž je v souladu.
+6. Nový nápad, který není v plánu, nezapracovávej rovnou: zapiš ho do `docs/napady.md`.
+
+## Mapa oblastí → kontextové soubory
+
+| Měníš | Přečti |
+| --- | --- |
+| `scripts/sim/` | `docs/context/simulace.md`, `docs/context/data.md` |
+| `data/` | `docs/context/data.md`, `docs/context/simulace.md` |
+| `scripts/battle/battle.gd`, `unit_view.gd`, `battlefield.gd`, `orbit_camera.gd`, `scenes/` | `docs/context/scena-bitvy.md`, `docs/context/simulace.md` (rozhraní) |
+| `scripts/battle/battle_ui.gd` | `docs/context/ui.md`, `docs/context/scena-bitvy.md` |
+| `art/`, Blender | `docs/context/grafika.md` |
+| `tests/` | `docs/context/testy.md` |
+| nová oblast | založ pro ni kontextový soubor podle vzoru ostatních a přidej ji sem |
+
+## Ostatní dokumenty
+
+- `docs/plan.md` – stepper fází a kroků s kritérii „hotovo, když“.
+- `docs/playtesty.md` – Tomova zpětná vazba z hraní. Po každém playtestu z ní vyvoď úkoly.
+- `docs/napady.md` – parkoviště nápadů.
 
 ## Pilíře (každá nová funkce musí aspoň jeden podporovat)
 
@@ -32,15 +58,7 @@ Rytířský roguelike pro Steam. Tým: **Tom** (ředitel, designér, tester, art
 
 ## Testy
 
-Claude nemá Godot v cloudu (stahování blokuje síťová politika). Testy se pouštějí na Tomově počítači přes Blender MCP (Python v Blenderu volá Godot):
-
-- Godot: `C:\Users\sirko\Desktop\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe`
-- Pracovní kopie projektu: `C:\Users\sirko\Documents\roguelike`
-- Import: `godot --headless --path . --import`
-- Simulace: `godot --headless --path . --script res://tests/test_battle_sim.gd` (kód 0 = prošlo)
-- Scéna a snímky: `godot --path . --script res://tests/screenshot_battle.gd -- C:\Users\sirko\Blender\Roguelike\godot_shots`
-
-Syntaxi jde ověřit i v cloudu: `gdparse <soubor>` (balíček gdtoolkit).
+Claude nemá Godot v cloudu; testy běží na Tomově počítači přes Blender MCP. Cesty, příkazy a co který test hlídá: `docs/context/testy.md`. Syntaxi jde ověřit i v cloudu: `gdparse <soubor>` (balíček gdtoolkit).
 
 ## Git
 
