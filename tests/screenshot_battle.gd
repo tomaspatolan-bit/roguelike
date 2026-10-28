@@ -55,7 +55,13 @@ func _process(_delta: float) -> bool:
 			print("Bitva skončila: %s za %.0f s" % [sim.get("over"), sim.get("t")])
 			_shot("05_konec.png")
 			return true
-		if frame > started_at + 6000:
-			print("Bitva neskončila do limitu")
+		if sim != null and float(sim.get("t")) > 300.0:
+			var alive_k: int = sim.call("living", "k").size()
+			var alive_e: int = sim.call("living", "e").size()
+			print("Bitva neskončila do 300 s (rytíři %d, nepřátelé %d)" % [alive_k, alive_e])
+			for u: Variant in sim.get("units"):
+				if u.call("alive"):
+					print("  %s %s pos=%s posture=%s moving=%s" % [u.get("id"), u.get("key"), u.get("pos"), u.get("posture"), u.get("moving")])
+			_shot("05_konec.png")
 			return true
 	return false
