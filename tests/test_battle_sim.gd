@@ -22,6 +22,7 @@ func _init() -> void:
 
 	_test_abilities(data)
 	_test_glory_extra_use(data)
+	_test_passives(data)
 	_test_behaviors(data)
 	_test_order_hold(data)
 	_test_target_priority(data)
@@ -412,8 +413,8 @@ func _test_oath_and_signal(data: Dictionary) -> void:
 	_check(s.is_retreat("tank", tank.pos + Vector2(0, -5)), "přesun od nepřítele je ústup")
 	_check(not s.is_retreat("tank", tank.pos + Vector2(0, 2)), "přesun k nepříteli není ústup")
 	s.glory = 50.0
-	s.break_oath()
-	_check(not s.oath_kept and is_equal_approx(s.glory, 30.0), "porušení přísahy stojí 20 slávy")
+	s.break_oath("tank")
+	_check(not s.has_oath("tank") and s.oaths_broken() == 1 and is_equal_approx(s.glory, 30.0), "porušení přísahy stojí 20 slávy")
 
 
 ## Asasín si z dosažitelných nepřátel vybírá střelce.
@@ -425,3 +426,72 @@ func _test_target_priority(data: Dictionary) -> void:
 	var tank := s.by_id("tank")
 	var tg2 := s._choose_target(tank, s.living(Sim.SIDE_FOE))
 	_check(tg2 != null and not tg2.ranged, "ostatní cílí na nejbližšího")
+
+
+
+## Pasivky a přísahy: pravidla přidávání a jejich efekty.
+func _test_passives(data: Dictionary) -> void:
+	var s := Sim.new(data, Sim.default_setup(data, 0), 61)
+	var tank := s.by_id("tank")
+	var knez := s.by_id("knez")
+	var luc := s.by_id("lucistnik")
+	var jezdec := s.by_id("jezdec")
+	var asasin := s.by_id("asasin")
+	_check(s.has_oath("tank") and s.oath_of("tank")["name"] == "Nikdy neustoupí", "tank má na zkoušku přísahu z rodu")
+	_check(not s.set_passive("tank", "rychle_ruce", true), "pasivka jiné třídy nejde")
+	_check(not s.set_passive("tank", "pomsta", true), "hrdina má nejvýš jednu přísahu")
+	_check(s.set_passive("tank", "veteran", true) and is_equal_approx(tank.maxhp, 375.0 * 1.15), "Veterán: +15 % zdraví")
+	_check(s.set_passive("knez", "milosrdenstvi", true) and is_equal_approx(knez.heal, 14.0 * 1.5), "Milosrdenství: léčení +50 %")
+	_check(s.set_passive("lucistnik", "rychle_ruce", true) and is_equal_approx(luc.cd, 1.3 * 0.8), "Rychlé ruce: rychlejší střelba")
+	_check(s.set_passive("jezdec", "druhy_najezd", true) and jezdec.uses == 3, "Druhý nájezd: 3 použití")
+	_check(s.set_passive("tank", "hlasita_vyzva", true) and is_equal_approx(float(s.ability_of("tank")["radius"]), 9.0), "Hlasitá výzva: dosah 9 m")
+	_check(s.set_passive("asasin", "chudoba", true) and asasin.uses == 3, "Slib chudoby: použití navíc")
+	var g0 := s.glory
+	var foe := s.by_id("e0")
+	s._hurt(asasin, foe, 1.0)
+	_check(is_equal_approx(s.glory, g0), "Slib chudoby: hrdina nepřináší slávu")
+	_check(s.set_passive("asasin", "lovec", true) and is_equal_approx(s._dmg_mult(asasin, s.by_id("e12")), 1.3), "Lovec: +30 % proti střelcům")
+	_check(s.set_passive("tank", "ochrance", true), "Ochránce jde tankovi")
+	luc.pos = tank.pos + Vector2(1.0, 0.0)
+	_check(is_equal_approx(s._taken_mult(luc), (1.0 - luc.armor) * 0.8), "Ochránce: spojenec u tanka dostává méně")
+	s.set_passive("tank", "druhy_dech", true)
+	tank.hp = tank.maxhp * 0.32
+	s._hurt(foe, tank, 30.0)
+	_check(tank.second_wind_used and tank.hp > tank.maxhp * 0.4, "Druhý dech: pod 30 % se tank vzchopí")
+	_check(s.order_problem("tank") == "", "bez přísahy pomsty rozkaz platí")
+	s.set_passive("knez", "posledni_pomazani", true)
+	knez.pos = luc.pos + Vector2(1.0, 0.0)
+	s._hurt(foe, luc, 99999.0)
+	_check(luc.alive() and knez.revive_used, "Poslední pomazání: kněz zvedne padlého")
+	s.set_passive("jezdec", "mstitel", true)
+	s._hurt(foe, luc, 99999.0)
+	_check(not luc.alive() and jezdec.avenger, "Mstitel: po smrti spojence silnější")
+
+	var s2 := Sim.new(data, Sim.default_setup(data, 0), 62)
+	s2.set_passive("lucistnik", "ohniva_salva", true)
+	var l2 := s2.by_id("lucistnik")
+	var spot := l2.pos + Vector2(0, 8)
+	for f in s2.living(Sim.SIDE_FOE):
+		f.pos = spot
+		f.hold = true
+		f.speed = 0.0
+	s2.use_ability("lucistnik", spot)
+	_check(s2.zones.size() == 1, "Ohnivá salva zapálí zem")
+	var hp_a := s2.by_id("e5").hp
+	for i in 30:
+		s2.step(DT)
+		s2.events.clear()
+	_check(s2.by_id("e5").hp < hp_a, "oheň pálí nepřátele")
+	s2.set_passive("tank", "ochrance", false)
+	var s3 := Sim.new(data, Sim.default_setup(data, 0), 63)
+	s3.set_passive("tank", "nikdy_neustoupi", false)
+	_check(s3.set_passive("tank", "pomsta", true), "přísahu jde vyměnit")
+	s3._hurt(s3.by_id("e0"), s3.by_id("knez"), 5.0)
+	_check(s3.order_problem("tank") != "" and not s3.order_move("tank", Vector2.ZERO), "Přísaha pomsty: neposlechne rozkaz, dokud viník žije")
+	_check(is_equal_approx(s3._dmg_mult(s3.by_id("tank"), s3.by_id("e0")), 1.4), "Přísaha pomsty: +40 % proti viníkovi")
+	s3.set_passive("asasin", "ukryt", true)
+	var a3 := s3.by_id("asasin")
+	var v3 := s3.by_id("e1")
+	v3.pos = a3.pos + Vector2(0, 4)
+	s3.use_ability("asasin", v3.id)
+	_check(a3.hidden_t > 0.0 and not s3._visible_knights().has(a3), "Úkryt: po úderu ho nikdo necílí")

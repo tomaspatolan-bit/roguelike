@@ -2,6 +2,12 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 28.10.2026 – Pasivky a přísahy
+- **15 pasivek** (2–3 na třídu + Veterán a Mstitel pro kohokoli) a **3 přísahy** (Nikdy neustoupí, Přísaha pomsty, Slib chudoby). Pasivky jsou čitelné efekty a obohacují mířené schopnosti (Ohnivá salva, Drtivý nájezd, Druhý nájezd), pohyb hrdiny nemění.
+- **Získávají se po bitvě volbou 1 ze 3** (pasivka nebo přísaha pro konkrétního hrdinu). Hrdina má nejvýš 1 přísahu.
+- Do zkušebního běhu jdou všechny. Do té doby je jde zapnout na zkoušku v rozestavení.
+- Playtest bitvy na hrdiny: Tomovi se líbí mířené schopnosti (Salva, Nájezd s omráčením). Další schopnosti a pasivky mají stavět na mířeném rozhodnutí.
+
 ## 28.10.2026 – Rody a hrdinové před pasivkami
 - **Nejdřív rody a hrdinové, pak pasivky a jejich bonusy.**
 - **Hrdina je konkrétní postava** (jméno, třída, povaha), ne jen třída. Když padne, nastoupí nástupce a může zdědit jeho přísahu.

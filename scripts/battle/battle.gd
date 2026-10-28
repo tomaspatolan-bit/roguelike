@@ -29,6 +29,7 @@ var aim_ring: MeshInstance3D      # cílení schopnosti: kruh pod kurzorem
 var _fx: Array = []                # krátké efekty schopností [MeshInstance3D, zbývající čas]
 var _aim_id := ""                  # hrdina, jehož schopnost se právě cílí
 var _aim_point := Vector2.ZERO
+var _zone_meshes: Array = []      # hořící zem ze simulace (sim.zones)
 var select_ring: MeshInstance3D
 var hold_marker: MeshInstance3D
 var hover_ring: MeshInstance3D
@@ -100,6 +101,7 @@ func _ready() -> void:
 	add_child(ui)
 	ui.knight_clicked.connect(_select)
 	ui.ability_pressed.connect(_ability)
+	ui.passive_toggled.connect(_on_passive)
 	ui.scenario_changed.connect(_load_scenario)
 	ui.route_draw_pressed.connect(func(id: String) -> void:
 		_route_id = id if _route_id != id else ""
@@ -246,6 +248,19 @@ func _set_selected(id: String) -> void:
 		_refresh_panel()
 
 
+## Pasivka zapnutá nebo vypnutá v rozestavení (na zkoušku; ve hře budou odměnou v běhu).
+func _on_passive(id: String, key: String, on: bool) -> void:
+	if phase != Phase.DEPLOY:
+		return
+	if on:
+		var problem := sim.passive_problem(id, key)
+		if problem != "":
+			ui.flash_hint(problem)
+	if sim.set_passive(id, key, on):
+		setup["passives"][id] = sim.passives_of(id).duplicate()
+	_refresh_panel()
+
+
 ## Schopnost hrdiny (karta nebo klávesa 1–5). Bez cíle se použije hned, jinak začne cílení.
 func _ability(id: String) -> void:
 	if (phase != Phase.BATTLE and phase != Phase.SIGNAL) or paused:
@@ -344,15 +359,19 @@ func _resume_pause() -> void:
 func _order_move(u: Sim.Unit, target: Vector2) -> void:
 	if sim._in_water(target):
 		return
+	var problem := sim.order_problem(u.id)
+	if problem != "":
+		ui.flash_hint(problem)
+		return
 	var apply := func() -> void:
 		sim.order_move(u.id, target)
 		paused = false
 		_flush_events()
 		_refresh_panel()
-	if sim.has_oath(u.id) and sim.is_retreat(u.id, target):
+	if bool(sim.oath_of(u.id).get("no_retreat", false)) and sim.is_retreat(u.id, target):
 		paused = true
 		var on_break := func() -> void:
-			sim.break_oath()
+			sim.break_oath(u.id)
 			apply.call()
 		var on_keep := func() -> void:
 			paused = false
@@ -651,6 +670,18 @@ func _sync_markers() -> void:
 		if float(fx[1]) <= 0.0:
 			mi.queue_free()
 			_fx.remove_at(i)
+	# hořící zem (Ohnivá salva)
+	while _zone_meshes.size() < sim.zones.size():
+		var zd := Field.disc(1.0, Color(1.0, 0.45, 0.1, 0.35))
+		add_child(zd)
+		_zone_meshes.append(zd)
+	for i in _zone_meshes.size():
+		var zm: MeshInstance3D = _zone_meshes[i]
+		zm.visible = i < sim.zones.size()
+		if zm.visible:
+			var z: Dictionary = sim.zones[i]
+			zm.position = Field.to_world(z["pos"], 0.05)
+			zm.scale = Vector3(float(z["r"]), 1.0, float(z["r"]))
 	# cílení schopnosti: kruh pod kurzorem (velikost podle schopnosti), červený mimo dosah
 	aim_ring.visible = _aim_id != "" and sim.by_id(_aim_id) != null
 	if aim_ring.visible:

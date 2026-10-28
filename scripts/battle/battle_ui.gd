@@ -10,6 +10,7 @@ const Icon := preload("res://scripts/battle/ui_icon.gd")
 
 signal knight_clicked(id: String)
 signal ability_pressed(id: String)
+signal passive_toggled(id: String, key: String, on: bool)
 signal scenario_changed(id: String)
 signal route_draw_pressed(id: String)
 signal route_clear_pressed(id: String)
@@ -308,10 +309,12 @@ static func class_icon(u: Sim.Unit) -> String:
 func _status_icons(sim: Sim, u: Sim.Unit, in_battle: bool) -> Array:
 	var out: Array = []
 	if u.side == Sim.SIDE_KNIGHT:
-		for k: String in sim.house["oaths"]:
-			var o: Dictionary = sim.house["oaths"][k]
-			if o["knight"] == u.id:
-				out.append(["oath", GLORY, not sim.oath_kept, ("Přísaha %s" % o["name"]) + ("" if sim.oath_kept else " (zlomena)")])
+		for k: String in u.passives:
+			var pd: Dictionary = sim.units_data["passives"][k]
+			if pd.get("kind", "") == "oath":
+				out.append(["oath", GLORY, u.oath_broken, "Přísaha %s%s: %s" % [pd["name"], " (zlomena)" if u.oath_broken else "", pd["desc"]]])
+			else:
+				out.append(["glory", Color(STEEL, 0.9), false, "%s: %s" % [pd["name"], pd["desc"]]])
 		if in_battle and u.alive():
 			if u.taunt_t > 0.0:
 				out.append(["hradba", STEEL, false, "Výzva: nepřátelé útočí na něj, poloviční zranění"])
@@ -547,6 +550,24 @@ func _build_cards(sim: Sim, selected: String, editable: bool, in_battle: bool, r
 		if not in_battle:
 			var row := HBoxContainer.new()
 			row.add_theme_constant_override("separation", 4)
+			var mb := MenuButton.new()
+			mb.text = "Pasivky (%d)" % u.passives.size()
+			mb.flat = false
+			mb.add_theme_font_size_override("font_size", 13)
+			mb.tooltip_text = "Na zkoušku: ve hře budou pasivky a přísahy odměnou v běhu."
+			mb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var pm := mb.get_popup()
+			var pi := 0
+			for pk: String in sim.passives_for(u.id):
+				var pd: Dictionary = sim.units_data["passives"][pk]
+				pm.add_check_item(("Přísaha: " if pd.get("kind", "") == "oath" else "") + String(pd["name"]))
+				pm.set_item_checked(pi, u.passives.has(pk))
+				pm.set_item_metadata(pi, pk)
+				pm.set_item_tooltip(pi, String(pd["desc"]))
+				pi += 1
+			pm.index_pressed.connect(func(index: int) -> void:
+				passive_toggled.emit(id, String(pm.get_item_metadata(index)), not pm.is_item_checked(index)))
+			v.add_child(mb)
 			var drawing := route_id == u.id
 			var rb := _icon_button("route", "Kreslím" if drawing else "Trasa", Color(1.0, 0.92, 0.55))
 			rb.tooltip_text = "Táhni myší po zemi, kudy má hrdina jít (nejvýš 4 body). Esc zruší." if drawing else "Nakreslit trasu: klikni a pak táhni myší po zemi, kudy má hrdina jít."
@@ -727,7 +748,7 @@ func show_result(sim: Sim, setup: Dictionary) -> void:
 		["Padlí", ", ".join(fallen) if not fallen.is_empty() else "nikdo"],
 		["Uprchlí nepřátelé", str(fled)],
 		["Volitelný úkol", "splněn, %s" % sim.scenario["optional_task"]["reward"] if win and sim.task_ok else "nesplněn"],
-		["Přísaha", "dodržena" if sim.oath_kept else "zlomena"],
+		["Přísahy", "dodrženy" if sim.oaths_broken() == 0 else "zlomeno %d" % sim.oaths_broken()],
 		["Signály", "%d z %d" % [sim.signals_used, int(setup["signals"])]],
 		["Schopnosti", "%d×" % sim.abilities_used],
 		["Sláva", str(int(sim.glory))],

@@ -7,7 +7,7 @@ Hlídá: `tests/test_battle_sim.gd` (balanc), `tests/screenshot_battle.gd` (nač
 Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 
 ## Invarianty
-1. **Klíče, na které se odkazuje kód, se nepřejmenovávají** bez úpravy kódu: hrdinové `tank`, `knez`, `lucistnik`, `jezdec`, `asasin`; nepřátelé `lapka`, `strelec`, `kopinik`; chování `frontline`, `healer`, `archer`, `rider`, `assassin`; schopnosti `vyzva`, `pozehnani`, `salva`, `najezd`, `uder`; vlastnosti `zoufalec`, `fanatik`, `zbabelec`; scénáře `most_pres_reku`, `brod_a_les`; přísaha `nikdy_neustoupi`.
+1. **Klíče, na které se odkazuje kód, se nepřejmenovávají** bez úpravy kódu: hrdinové `tank`, `knez`, `lucistnik`, `jezdec`, `asasin`; nepřátelé `lapka`, `strelec`, `kopinik`; chování `frontline`, `healer`, `archer`, `rider`, `assassin`; schopnosti `vyzva`, `pozehnani`, `salva`, `najezd`, `uder`; vlastnosti `zoufalec`, `fanatik`, `zbabelec`; scénáře `most_pres_reku`, `brod_a_les`; pasivky a přísahy podle `passives` (klíče, na které se odkazuje kód: `ochrance`, `druhy_dech`, `posledni_pomazani`, `probodnuti`, `rozbeh`, `ze_stinu`, `ukryt`, `lovec`, `mstitel`, `pomsta`).
 2. **Jednotky:** vzdálenosti v metrech, čas v sekundách, rychlost v m/s, `armor` je podíl 0–1, bonusy jsou podíly (0.5 = +50 %).
 3. **`palette_row`** odpovídá řádku paletové textury: 0 rod Vlka, 1 tank, 2 lučištník, 3 kněz, 4 jezdec, 5 asasín (6–7 volné).
 4. **Každá změna čísla v bitvě = spustit test balancu** a výsledek zapsat do commitu.
@@ -16,7 +16,8 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 7. **Jádro tříd Rodu Vlka je pevné:** tank, kněz, lučištník, jezdec, asasín. Přidat nebo odebrat třídu jde jen po rozhodnutí v deníku (Tom).
 8. **Chování** (`behaviors`): `name`, `desc` a čísla (`engage`, `guard`, `ahead`, `behind`, `kite`, `kite_step`); `_common`: `help_window`, `decided_ratio`.
 9. **Schopnosti** (`abilities`): `name`, `desc`, `uses`, `target` (none/point/enemy), `range` a čísla podle schopnosti (`radius`, `duration`, `damage_taken`, `heal_frac`, `arrows`, `dmg`, `stun`, `width`, `speed_mult`, `land`, `mult`). Nová schopnost = nový záznam + kód v `use_ability`; nová čísla = jen data.
-10. **Rod** (`rod_vlka.json`): `glory` (`start`, `max`, `per_hit`, `per_kill`, `oath_per_second`, `extra_use_cost`) a `oaths`. Přísaha: `knight`, `dmg_bonus`, `break_glory_cost`, `no_retreat`, `desc`. Přísaha u tanka je v prototypu jen na zkoušku.
+10. **Rod** (`rod_vlka.json`): `glory` (`start`, `max`, `per_hit`, `per_kill`, `oath_per_second`, `extra_use_cost`) a `start_passives` (pasivky hrdinů na začátku; přísaha tanka je v prototypu jen na zkoušku).
+16. **Pasivky a přísahy** (`passives` v `units.json`): `name`, `class` (klíč hrdiny nebo `any`), `kind` (`passive` / `oath`), `desc` a efekty: `stat_mult` (`hp`, `heal`, `cd`), `ability_mod` (čísla schopnosti), `extra_uses`, `dmg_bonus`, `no_retreat`, `break_glory_cost`, `vs_grudge`, `ignores_orders`, `no_glory`, `vs_ranged`, `mult`, `hidden_t`, `guard_radius`/`guard_taken`, `at`/`heal_frac`, `radius`/`revive_frac`, `pierce_radius`/`pierce_frac`. Nová kombinace čísel = data; nový druh efektu = kód v simulaci.
 11. **Morálka** (`morale` v `units.json`): `break_losses`, `desperate_dmg_bonus`; nepřítel má `on_break` (`flee` / `desperate`). Scénář: `enemy_morale` (`break_losses`, `flee_y`).
 12. **Terén ve scénáři:** `river` {`y0`, `y1`, `crossings`: [{`x0`, `x1`, `kind`: most/brod/lavka, `speed`}]}, `forests`: [{`x0`, `x1`, `y0`, `y1`, `speed`, `path`: [x0, x1]}], volitelně `trees`, `rocks`. Rozestavení: `deploy.<klíč>` = `pos` (+ volitelně `route`).
 13. **Nový scénář = nový soubor** v `data/scenarios/` a zápis do `index.json`. Scénář má `win_title`, `optional_task.protect` je id hrdiny nebo `"all"`.
@@ -28,6 +29,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 - Při exportu hry je potřeba přidat `*.json` do filtru exportovaných souborů (zatím neřešeno).
 
 ## Historie významných změn
+- 28.10.2026: `passives` (15 pasivek, 3 přísahy), `start_passives` v rodu místo `oaths`.
 - 28.10.2026: přestavba na hrdiny: pryč `banner`, `postures`, `aura`, `shouts`, `banner_bearer`, postoje v rozestavení; nové `behaviors`, `abilities`, `glory.extra_use_cost`. Most: úkol Otec Jan nesmí padnout.
 - 28.10.2026: postoje jako slovníky s názvem, popisem a čísly, seznam postojů u třídy (`posture_desc` zrušeno), Brod: nepřátelé drží pozice 30 s, +1 lapka a +1 kopiník.
 - 28.10.2026: řeka s přechody místo `river_lo`/`bridge_half_width`, lesy, `index.json`, scénář Brod a les, kopiník, vlastnosti (zoufalství lapky 20 % + Zoufalec 10 % = 30 % jako dřív), `mounted`, `ignores`.

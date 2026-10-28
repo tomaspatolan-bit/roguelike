@@ -1,5 +1,5 @@
 {
-  "_info": "Rod Vlka: sestava je v units.json (knights), tady sláva a přísahy. Sláva je společná rezerva rodu: plní se činy hrdinů, extra_use_cost = cena použití schopnosti navíc. Přísaha u tanka je v prototypu jen na zkoušku (přísahy budou odměny v běhu).",
+  "_info": "Rod Vlka: sestava je v units.json (knights), tady sláva a výchozí pasivky. Sláva je společná rezerva rodu: plní se činy hrdinů, extra_use_cost = cena použití schopnosti navíc. start_passives = pasivky a přísahy hrdinů na začátku (v prototypu má tank přísahu Nikdy neustoupí jen na zkoušku; ve hře budou odměnou v běhu).",
   "name": "Rod Vlka",
   "glory": {
     "start": 25,
@@ -9,14 +9,9 @@
     "oath_per_second": 1.0,
     "extra_use_cost": 40
   },
-  "oaths": {
-    "nikdy_neustoupi": {
-      "name": "Nikdy neustoupí",
-      "knight": "tank",
-      "dmg_bonus": 0.25,
-      "break_glory_cost": 20,
-      "no_retreat": true,
-      "desc": "Bonus +25 % k útoku. Nikdy necouvne: nejde za nepřítelem dozadu, bez nepřítele stojí na místě, trasa ani rozkaz nesmí vést zpět. Rozkaz k ústupu přísahu poruší: hrdina přijde o bonus a rod o 20 slávy."
-    }
+  "start_passives": {
+    "tank": [
+      "nikdy_neustoupi"
+    ]
   }
 }

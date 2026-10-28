@@ -46,7 +46,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [x] Schopnosti hrdinů (data), cílení z karty, sláva jako použití navíc
   - [x] Pevné výchozí chování tříd
   - [x] Balanc obou map, testy
-  - [ ] Pasivky a přísahy jako odměny (návrh ke schválení)
+  - [x] Pasivky a přísahy (15 + 3) v datech a simulaci, na zkoušku v rozestavení
 - [ ] 1.7 Zkušební běh (celý loop v malém)
   - [ ] 3 bitvy za sebou: Most přes řeku → druhá mapa → závěrečná bitva s vůdcem nepřátel
   - [ ] Mezi bitvami odměna 1 ze 3 (asi 8 odměn: znamení na prapor, přísahy, posila, vyléčení)

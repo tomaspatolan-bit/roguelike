@@ -16,7 +16,7 @@ Celá pravidla bitvy bez grafiky. Scéna i testy ji jen volají. Když jde něco
 7. **Výchozí chování hrdinů** podle třídy (`behavior`, čísla v `behaviors`): `frontline` (tank: napadne nepřítele u sebe nebo u spojence, jinak stojí kus před oddílem), `healer` (kněz: drží se za bojujícím, léčí), `archer` (střílí na dostřel, před blízkým nepřítelem couvne, bez cíle jde k bojujícímu), `rider` (výpad na nepřítele do `engage` m od středu oddílu a návrat), `assassin` (střelci, jinak nejslabší). Nikdo nestojí bez práce.
 8. **Schopnosti** (`abilities`, `use_ability`, `can_use_ability`, `ability_target_problem`): každý hrdina má jednu, s `uses` za bitvu. Bez použití se platí slávou (`house.glory.extra_use_cost`). Cíl `none` / `point` / `enemy`, dosah `range`; neplatný cíl nic nemění. Vyzva (přitáhne útoky do `radius`, menší zranění), Požehnání (léčí v `radius`), Salva (`arrows` × `dmg` náhodně mezi nepřátele v `radius`), Nájezd (jízda k bodu, každého v cestě zasáhne a omráčí; ne do vody), Úder ze stínu (skok za nepřítele, `mult` × útok). `ability_hint` je jen rada pro testy a automatické hraní.
 9. **Sláva** je společná rezerva rodu: plní se činy hrdinů (zásah, zabití, přísaha v boji) a u hrdiny se zapisuje `glory_earned` (kronika).
-10. **Přísahy** (data `oaths` v rodu): bonus jen dokud `oath_kept`. `no_retreat` = hrdina nikdy sám necouvne: nejde za nepřítelem dozadu, bez nepřítele stojí, `_go` ho nepustí tam, kde by byl dál od nepřítele; trasa ani rozkaz nesmí vést zpět (rozkaz zpět přísahu poruší, ptá se scéna). Porušení stojí slávu podle dat a je nevratné. V kódu simulace nesmí být natvrdo klíč hrdiny.
+10. **Pasivky a přísahy** (`passives` v datech, `u.passives`, `set_passive` / `passive_problem` jen při `t == 0`): třída musí sedět (`class` nebo `any`), nejvýš jedna přísaha (`kind: oath`). Statistiky se přepočítají z dat třídy (`_apply_passives`: `stat_mult`, `extra_uses`), schopnost se upraví `ability_mod` (`ability_of`). Zlomená přísaha (`break_oath(id)`, `oath_broken`) přestane platit a stojí slávu. `no_retreat` = hrdina nikdy sám necouvne (`_go`, trasa, rozkaz zpět přísahu poruší, ptá se scéna); `ignores_orders` = rozkaz přesunu neplatí, dokud žije nepřítel z `grudges` (`order_problem`); `no_glory` = hrdina nepřináší slávu. V kódu simulace nesmí být natvrdo klíč hrdiny.
 11. **Žádný pat:** každá bitva musí skončit. Nepřátelští střelci postupují na 60 % dostřelu, nepřátelé na pozici mají `hold_time`.
 12. **Balanc každého scénáře v `index.json`:** bez schopností vyhraje nejvýš čtvrtina bitev, se schopnostmi (automatické hraní podle `ability_hint`) aspoň tři čtvrtiny, bitva trvá 30–180 s.
 13. **Morálka nepřátel:** po ztrátě podílu `break_losses` jednotek (padlí i uprchlí) se nepřítel zlomí jednou: `flee` prchá k `flee_y` (`fled`, `hp = 0`, ne smrt), `desperate` útočí silněji. Vlastnosti (`traits`): `never_breaks`, `on_break`, `desperate_dmg_bonus`.
@@ -25,12 +25,12 @@ Celá pravidla bitvy bez grafiky. Scéna i testy ji jen volají. Když jde něco
 16. **Nepřátelé** cílí nejbližšího hrdinu; kdo je v dosahu Výzvy, útočí na tanka. Omráčený nepřítel nic nedělá. Nepřítel na pozici (`hold`): střelec střílí z místa, pěšák vyrazí jen do `engage` m; zasažený pěšák uvolní skupinu do 5 m.
 
 ## Rozhraní, na které spoléhá scéna a testy
-- Stav: `units`, `projectiles`, `glory`, `signals`, `signals_used`, `abilities_used`, `foes_broken`, `charging`, `decided`, `oath_kept`, `task_ok`, `over` ("", "win", "lose"), `t`, `events`.
-- Setup: `{"signals", "pos", "routes"}`.
-- Dotazy: `knights()`, `living(side)`, `by_id()`, `can_signal()`, `is_retreat()`, `oath_of()`, `has_oath()`, `behavior_name()`, `behavior_desc()`, `ability_of()`, `ability_cost()`, `can_use_ability()`, `ability_target()`, `ability_target_problem()`, `ability_hint()`, `can_charge()`, `power()`, `terrain_speed()`, `route_problem()`, `on_route()`, `has_trait()`; statické `load_data(klíč)`, `scenario_list()`, `default_setup()`, `simplify_route()`.
-- Příkazy: `step(dt)`, `use_signal()`, `use_ability(id, cíl)` (vrací bool), `order_move()`, `release()`, `charge_all()`, `set_route()`, `break_oath()`.
+- Stav: `units`, `projectiles`, `zones`, `grudges`, `glory`, `signals`, `signals_used`, `abilities_used`, `foes_broken`, `charging`, `decided`, `task_ok`, `over` ("", "win", "lose"), `t`, `events`.
+- Setup: `{"signals", "pos", "routes", "passives"}` (bez `passives` = `start_passives` rodu).
+- Dotazy: `knights()`, `living(side)`, `by_id()`, `can_signal()`, `is_retreat()`, `oath_of()`, `has_oath()`, `behavior_name()`, `behavior_desc()`, `ability_of()`, `ability_cost()`, `can_use_ability()`, `ability_target()`, `ability_target_problem()`, `ability_hint()`, `passives_of()`, `passives_for()`, `passive_problem()`, `oaths_broken()`, `order_problem()`, `can_charge()`, `power()`, `terrain_speed()`, `route_problem()`, `on_route()`, `has_trait()`; statické `load_data(klíč)`, `scenario_list()`, `default_setup()`, `simplify_route()`.
+- Příkazy: `step(dt)`, `use_signal()`, `use_ability(id, cíl)` (vrací bool), `order_move()` (vrací bool), `release()`, `charge_all()`, `set_route()`, `set_passive()`, `break_oath(id)`.
 - Události (`events`, scéna je po zpracování maže): `log`, `death`, `fled`, `decided`, `heal`, `shoot`, `ability` (`id`, `key`, `pos`), `end`.
-- Jednotka: `behavior`, `ability`, `uses`, `holding`, `taunt_t`, `stun_t`, `dashing`, `glory_earned`, `fled`, `fleeing`, `desperate`, `combat_t`, `route`, `route_i`, `hold`, `mounted`, `vs_mounted`, `ignores`, `traits`.
+- Jednotka: `behavior`, `ability`, `uses`, `passives`, `oath_broken`, `hidden_t`, `shield_t`, `avenger`, `target_id`, `holding`, `taunt_t`, `stun_t`, `dashing`, `glory_earned`, `fled`, `fleeing`, `desperate`, `combat_t`, `route`, `route_i`, `hold`, `mounted`, `vs_mounted`, `ignores`, `traits`.
 Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, `battle_ui.gd` a testy.
 
 ## Úskalí
@@ -39,6 +39,7 @@ Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, 
 - Krok simulace je pevný (1/60 s ze scény, 1/30 s v testu). Logika nesmí záviset na velikosti kroku víc, než je nutné.
 
 ## Historie významných změn
+- 28.10.2026: pasivky a přísahy (18 v datech), přísaha na hrdinu místo rodu, hořící zem, Úkryt, Probodnutí. Balanc beze změny (bez pasivek kromě přísahy tanka).
 - 28.10.2026: přestavba na hrdiny: zrušen prapor, aura, pokřiky a postoje; výchozí chování tříd, schopnosti s použitími, sláva jako použití navíc, rozkaz přesunu drží místo. Balanc: Most (+2 lapkové) bez schopností 0/40, se schopnostmi 40/40 (34 s), Brod 0/40 a 40/40 (53 s).
 - 28.10.2026: postoje podle třídy (Výpad, Záloha/Číhat, Léčit frontu…), nepřátelé držící pozici, klouzání u břehu (oprava zaseknutí). Most 0/40 a 40/40 (přeživší 2,0), Brod 0/40 a 40/40.
 - 28.10.2026: obecný terén (přechody, lesy), trasy rytířů, kopiníci a vlastnosti nepřátel, scénář Brod a les. Most beze změny: 0/40 a 40/40.
