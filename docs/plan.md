@@ -39,7 +39,13 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [x] Nepřátelé drží pozice (brody, střelci na břehu), pěšák po zásahu vyrazí i se skupinou
   - [ ] Playtest druhé mapy (Tom)
 - [x] 1.6 Postoje na míru třídám (2 na třídu, data), testy obou scénářů v testu balancu
-- [ ] 1.6b UI: lišta velení, karty rytířů, ikonky stavu (zástupné; Tom převezme návrh)
+- [x] 1.6b UI: lišta velení, karty rytířů, ikonky stavu (zástupné; Tom převezme návrh)
+- [ ] 1.6c Přestavba bitvy na hrdiny (změna směru 28.10.2026)
+  - [ ] Návrh hrdinů ke schválení: výchozí chování, schopnost, počet použití; první pasivky a přísahy
+  - [ ] Odstranit prapor, pokřiky a postoje ze simulace, dat, scény a UI
+  - [ ] Schopnosti hrdinů (data), cílení z karty, sláva jako použití navíc
+  - [ ] Pevné výchozí chování tříd
+  - [ ] Balanc obou map, testy
 - [ ] 1.7 Zkušební běh (celý loop v malém)
   - [ ] 3 bitvy za sebou: Most přes řeku → druhá mapa → závěrečná bitva s vůdcem nepřátel
   - [ ] Mezi bitvami odměna 1 ze 3 (asi 8 odměn: znamení na prapor, přísahy, posila, vyléčení)

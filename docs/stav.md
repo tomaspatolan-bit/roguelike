@@ -3,6 +3,8 @@
 Aktualizováno: 28.10.2026
 
 ## Aktuální cíl
+**Změna směru (28.10.2026):** prapor, pokřiky a postoje z bitvy mizí, místo nich schopnosti hrdinů a pasivky z běhu (viz `rozhodnuti.md`). Kód to zatím neodráží; další krok je návrh hrdinů ke schválení (plán 1.6c).
+
 Fáze 1, krok 1.2 (viz `docs/plan.md`). První hratelný build v Godotu: jedna bitva (Most přes řeku) a otázka, jestli nás baví ji hrát opakovaně.
 
 ## Hotovo

@@ -35,10 +35,12 @@ Přečti `docs/stav.md` (co se teď dělá), `docs/plan.md` (kde jsme ve stepper
 
 ## Pilíře (každá nová funkce musí aspoň jeden podporovat)
 
-1. Velíš rodu, ne vojákovi.
-2. Prapor je srdce oddílu.
-3. Přísaha má cenu.
+1. Velíš rodu: rod určuje, s kým a jak bojuješ; v bitvě ovládáš jeho hrdiny.
+2. Přísaha má cenu: síla vždy za omezení.
+3. Smrt má váhu: padlí zůstávají padlí a odkazují nástupcům.
 4. Každý run je příběh rodu.
+
+(Od 28.10.2026. Dřívější pilíř „Prapor je srdce oddílu“ je zrušený, viz `docs/rozhodnuti.md`.)
 
 ## Struktura
 

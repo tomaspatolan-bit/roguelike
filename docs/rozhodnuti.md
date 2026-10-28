@@ -2,6 +2,17 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 28.10.2026 – Změna směru: hrdinové a jejich schopnosti místo praporu
+- **Nové pilíře:** (1) Velíš rodu: rod určuje, s kým a jak bojuješ, v bitvě ovládáš jeho hrdiny. (2) Přísaha má cenu. (3) Smrt má váhu: padlí zůstávají padlí a odkazují nástupcům. (4) Každý run je příběh rodu. Pilíř „Prapor je srdce oddílu“ je zrušený.
+- **Z bitvy mizí** aura praporu, nositel praporu, pokřiky a postoje. Důvod (Tom, po playtestu): prapor byl jediné, co drželo jednotky naživu, hráč ztrácel kontrolu a bitva byla nepředvídatelná; simulace to potvrzovala (výsledky 0/40 nebo 40/40, smrt nositele rozhodovala).
+- **Žádné bonusy pro celý oddíl v bitvě.** Hráč se v bitvě soustředí jen na hrdiny.
+- **Hrdina:** pevné výchozí chování podle třídy, jedna aktivní schopnost na kartě s počtem použití za bitvu (obnova po bitvě). Později až 3 sloty na schopnosti, odemykají se během běhu.
+- **Pasivky** dostávají hrdinové jako odměny na mapě běhu. **Přísahy** jsou zvláštní druh pasivky: silnější, ale s omezením. Pasivky mají být čitelné efekty, pohyb hrdiny mění jen výjimečně.
+- **Sláva** zůstává jako společná rezerva rodu: plní se činy hrdinů, utratí se za použití schopnosti navíc u kteréhokoli hrdiny. Zaznamenává se, kdo slávu přinesl (kronika).
+- **Rod** zůstává jako sestava: jiní hrdinové, jejich velikost, velikost skupiny. Bonusy rodu jsou zapečené přímo v hodnotách hrdinů, ne jako zvláštní bonus v bitvě.
+- **Zůstává:** signály, povel Do boje!, morálka nepřátel, trasy, nepřátelé na pozicích.
+- **Odloženo na zkušební běh (1.7):** obnova silných schopností až v táboře, přenos slávy mezi bitvami, prapor jako symbol nebo příběh.
+
 ## 28.10.2026 – Postoje podle třídy, nepřátelé na pozicích, nové UI
 - **Postoje podle třídy** (data u třídy): tank Stát pevně / Krýt prapor / Prorazit, kněz Léčit frontu / U praporu, lučištník Ostřelovat / U praporu, jezdec Výpad / Záloha, asasín Lovit střelce / Číhat. Důvod: obecné postoje v automatické bitvě nedávaly smysl (Tom).
 - **Nepřátelé na Brodu drží pozice** 30 s: lapkové a kopiníci brody, střelci břeh a střílí přes řeku. Zasažený pěšák vyrazí i se skupinou. Důvod: aby se vyplatilo jít na nepřítele a rozdělit oddíl.
