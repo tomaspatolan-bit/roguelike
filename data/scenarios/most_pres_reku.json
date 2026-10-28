@@ -1,0 +1,24 @@
+{
+  "_info": "Bitva Most přes řeku. Souřadnice v metrech: x doprava, y dopředu (k nepříteli). Řeka vede napříč mezi y = river_lo a river_hi, přejít jde jen po mostě (|x| <= bridge_half_width).",
+  "name": "Most přes řeku",
+  "subtitle": "Lapkové z Hraběcího lesa · 9 pěšáků, 3 střelci",
+  "stage_label": "Akt 1 · Stage 2",
+  "river_lo": 4.0,
+  "river_hi": 8.0,
+  "bridge_half_width": 1.25,
+  "deploy_zone": {"x0": -6, "x1": 6, "y0": -8.5, "y1": -3.5},
+  "deploy": {
+    "tank":        {"pos": [0, -4.3],  "posture": "drzet"},
+    "praporecnik": {"pos": [0, -6.0],  "posture": "drzet"},
+    "knez":        {"pos": [-1.6, -7.3], "posture": "chranit"},
+    "lucistnik":   {"pos": [-4.0, -5.6], "posture": "drzet"},
+    "jezdec":      {"pos": [4.2, -6.0],  "posture": "utok"}
+  },
+  "banner_bearer": "praporecnik",
+  "optional_task": {"text": "Sir Vilém (praporečník) nesmí padnout.", "reward": "vzácné znamení", "protect": "praporecnik"},
+  "enemies": [
+    ["lapka", -3.0, 11.0], ["lapka", -1.5, 10.5], ["lapka", 0.0, 11.2], ["lapka", 1.5, 10.6], ["lapka", 3.0, 11.0],
+    ["lapka", -2.0, 12.6], ["lapka", 2.0, 12.6], ["lapka", -4.5, 12.0], ["lapka", 4.5, 12.0],
+    ["strelec", -2.0, 14.0], ["strelec", 0.0, 14.4], ["strelec", 2.0, 14.0]
+  ]
+}

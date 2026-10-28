@@ -1,0 +1,20 @@
+{
+  "_info": "Rod Vlka: aura praporu, pokřiky a přísaha tanka. Čísla jsou vyladěná simulací (bez pokřiků se bitva u mostu prohrává, s nimi vyhrává).",
+  "name": "Rod Vlka",
+  "aura": {"radius": 5.0, "dmg_bonus": 0.15},
+  "glory": {"start": 25, "max": 100, "per_hit": 0.5, "per_kill": 10, "per_banner_pickup": 5, "oath_per_second": 1.0},
+  "shouts": {
+    "zarod":  {"name": "Za rod!",        "cost": 40, "duration": 6, "desc": "+50 % útok u praporu", "dmg_bonus": 0.5},
+    "hradba": {"name": "Štítová hradba", "cost": 30, "duration": 6, "desc": "Poloviční zranění u praporu", "damage_taken": 0.5}
+  },
+  "oaths": {
+    "nikdy_neustoupi": {
+      "name": "Nikdy neustoupí",
+      "knight": "tank",
+      "dmg_bonus": 0.25,
+      "break_glory_cost": 20,
+      "desc": "Bonus +25 % k útoku. Rozkaz k ústupu přísahu poruší: rytíř přijde o bonus a oddíl o 20 slávy."
+    }
+  },
+  "banner": {"pickup_time": 0.8}
+}
