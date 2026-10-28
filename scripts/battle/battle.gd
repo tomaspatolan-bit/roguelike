@@ -307,6 +307,14 @@ func _pick_foe(screen_pos: Vector2) -> String:
 	return best
 
 
+func _charge() -> void:
+	if phase != Phase.BATTLE or paused:
+		return
+	if sim.charge_all():
+		_flush_events()
+		_refresh_panel()
+
+
 func _use_signal() -> void:
 	if phase != Phase.BATTLE or paused:
 		return
