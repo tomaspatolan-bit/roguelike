@@ -13,6 +13,11 @@ Nejnovější nahoře. Každý záznam: datum, kdo hrál, build (větev nebo com
 - Z toho plyne (úkol v plan.md / nápad v napady.md / rozhodnutí):
 ```
 
+## 28.10.2026 – Tom, build `prapor-asasin` (20ce480), bitva na hrdiny
+- Odehráno: Most a Brod se schopnostmi hrdinů.
+- Bavilo: funguje celkem dobře; přímé ovládání schopností, hlavně mířená Salva lučištníka a Nájezd jezdce s omráčením.
+- Z toho plyne: směr hrdinů se schopnostmi potvrzen. Další krok: pasivky a přísahy jako odměny (návrh ke schválení), pak zkušební běh. Otevřené: sláva pro kněze (léčení), úkol „Nikdo nepadne“ na Brodu.
+
 ## 2026-10-28 – Tom, build `prvni-build` (f6073a4)
 - Odehráno: první bitvy, hra funguje.
 - Nebavilo / nečitelné:
