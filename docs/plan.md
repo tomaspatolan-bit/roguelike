@@ -23,13 +23,19 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [x] Přísaha určuje povolené postoje („Stát pevně“, Chránit prapor zakázán)
   - [x] Kamera: WASD, šipky, posun pravým tlačítkem; signál na mezerník
   - [x] Drag & drop rytířů, výběr podle postavy na obrazovce, prohození puštěním
+  - [x] Prapor nese kterákoli třída (volba v rozestavení, nepředává se), efekt podle třídy, nositel nemá Chránit prapor
+  - [x] Asasín místo praporečníka, jádro 5 tříd
   - [ ] Další body podle dalšího playtestu
 - [ ] 1.4 Čitelnost boje
   - [ ] Animace útoku, zásahu a smrti (zástupné)
   - [ ] Zvýraznění aktivního pokřiku a dosahu praporu
   - [ ] Ukazatel postupu volitelného úkolu
-- [ ] 1.5 Druhá bitva s jiným terénem (ověří, že data a scéna nejsou šité na jeden scénář)
+- [ ] 1.5 Druhá bitva s jiným terénem a více průchody (ověří, že data a scéna nejsou šité na jeden scénář)
+  - [ ] Trasy rytířů: kreslení čarou zjednodušenou na 2–4 body, platí od startu bitvy
 - [ ] 1.6 Testy: oba scénáře v testu balancu
+- [ ] 1.7 Podmíněné instrukce a úmysly nepřátel
+  - [ ] Slovník podmínek a akcí v datech, 1 instrukce na rytíře, kontrola přísah
+  - [ ] Nepřátelé používají stejný slovník, jejich trasy a podmínky jsou vidět před bitvou
 **Hotovo, když:** Tom řekne, že bitvy baví hrát opakovaně, a aspoň jeden člověk mimo nás to potvrdí.
 **Brána 1 (Tom):** pokračujeme, nebo měníme model bitvy?
 
@@ -40,7 +46,8 @@ Cíl: celý krátký run od výběru rodu po bosse.
 - [ ] 2.3 Odměny po stagi: 1 ze 3 (znamení na prapor nebo přísaha)
 - [ ] 2.4 Prapor se sloty pro znamení, přísahy jednotlivých rytířů (data + simulace)
 - [ ] 2.5 Postupné odemykání: rod → prapor → přísahy
-- [ ] 2.6 Smrt rytíře, nástupce a dědictví přísahy
+- [ ] 2.6 Smrt rytíře, nástupce a dědictví přísahy; prohra bitvy = ztráty a ústup, ne opakování
+- [ ] 2.9 Průzkum: odhalování podmínek nepřátel jako zdroj v runu
 - [ ] 2.7 Ukládání a načtení rozehraného runu
 - [ ] 2.8 Generátor bitev (scénáře z dílků místo ručně psaných)
 **Hotovo, když:** jde odehrát run o 6–8 stagích s bossem a rozhodnutí na mapě mají smysl.

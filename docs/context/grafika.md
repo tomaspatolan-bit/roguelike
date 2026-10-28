@@ -24,4 +24,5 @@ Modely, textury a shadery hry a cesta z Blenderu do Godotu.
 | bojiště, nepřátelé | Claude, primitiva v kódu | zástupná grafika |
 
 ## Historie významných změn
+- 28.10.2026: řádek palety 5 přebarven na fialovou šeď pro asasína (byl praporečník).
 - 2026-10-26: herní rytíř, kostra, paleta, export.

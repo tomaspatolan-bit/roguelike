@@ -2,6 +2,17 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 28.10.2026 – Prapor, jádro tříd a opakování bitev
+- **Bitvy se neopakují.** Žádné opakování po prohře, žádné vracení času, žádné cvičiště. Prohra v runu znamená ztráty (padlí rytíři, propadlá odměna, ústup), ne nutně konec runu; přesná pravidla ve fázi 2. Tlačítka „Znovu stejně“ a „Nové rozestavení“ zůstávají jen v prototypu pro playtesty.
+- **Hloubka rozhodnutí přes informace o nepříteli:** hráč před bitvou uvidí, kudy nepřátelé půjdou a jaké mají podmínky (stejný slovník jako instrukce hráče). Pojistky proti „hádance s jedním řešením“: trochu náhody v boji, podmínky nepřátel jako odhalovaná informace (průzkum, fáze 2).
+- **Prapor nese kterákoli třída, volí se v rozestavení a během bitvy se nepředává.** Padlý prapor dál někdo zvedne (přednostně postoj Chránit prapor, který to má v popisu).
+- **Efekt praporu určuje třída nositele:** tank −15 % zranění v auře, kněz léčí v auře, lučištník aura 7 m, jezdec +25 % rychlost v auře, asasín aura 4 m a +30 % útok. Postih za nošení není; cenou je, že rytíř dělá svou práci jinak.
+- **Nositel nemá postoj Chránit prapor.**
+- **Praporečník jako třída zaniká, místo něj asasín** (rychlý, křehký, přednostně jde po střelcích).
+- **Jádro tříd je pevné: tank, kněz, lučištník, jezdec, asasín.** Mění se jen po úvaze a zápisu sem.
+- **Do budoucna:** každý hrdina si najímá vlastní jednotky; prapor nese vždy hrdina, nikdy najatý voják (nápad, fáze 2+).
+- Plán dalších kroků: trasy s druhou mapou (1.5), pak podmíněné instrukce a viditelné úmysly nepřátel (1.7).
+
 ## 28.10.2026 – Po prvním playtestu
 - **Přísaha určuje povolené postoje** (data `forbidden_postures`, `posture_names`). Důvod: postoj „Držet pozici“ vracel rytíře na místo, což byl skrytý ústup a porušení přísahy, o kterém hra nevěděla.
 - **„Nikdy neustoupí“ = varianta A:** rytíř smí Útočný a „Stát pevně“ (bojuje s tím, co přijde, nikam se nevrací), Chránit prapor má zakázaný. Porušit přísahu jde jen vědomým rozkazem při signálu. Varianta B („Jen vpřed“) je v `napady.md` jako budoucí přísaha.

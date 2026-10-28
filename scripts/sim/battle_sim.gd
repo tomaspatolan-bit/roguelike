@@ -30,6 +30,7 @@ class Unit:
 	var heal_cd: float = 0.0
 	var heal_range: float = 0.0
 	var palette_row: int = 0
+	var target_priority: String = ""
 	var color: Color = Color.WHITE
 	var pos: Vector2
 	var home: Vector2
@@ -86,7 +87,7 @@ var _next_id: int = 0
 var _rng := RandomNumberGenerator.new()
 
 
-## setup = {"signals": int, "pos": {key: Vector2}, "posture": {key: String}}
+## setup = {"signals": int, "pos": {key: Vector2}, "posture": {key: String}, "bearer": key (nepovinné)}
 func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	units_data = data["units"]
 	house = data["house"]
@@ -103,7 +104,7 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	for k: String in house["shouts"]:
 		fx[k] = 0.0
 	signals = setup.get("signals", 1)
-	bearer_id = scenario["banner_bearer"]
+	bearer_id = setup.get("bearer", scenario["banner_bearer"])
 
 	var knights_data: Dictionary = units_data["knights"]
 	for key: String in knights_data:
@@ -116,6 +117,7 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		units.append(u)
 		if not posture_allowed(u.id, u.posture):
 			u.posture = "drzet"
+	_update_aura()
 
 	var foes_data: Dictionary = units_data["foes"]
 	var i := 0
@@ -148,7 +150,7 @@ static func default_setup(data: Dictionary, signal_count: int = 1) -> Dictionary
 		var p: Array = deploy[key]["pos"]
 		pos[key] = Vector2(p[0], p[1])
 		posture[key] = deploy[key]["posture"]
-	return {"signals": signal_count, "pos": pos, "posture": posture}
+	return {"signals": signal_count, "pos": pos, "posture": posture, "bearer": String(data["scenario"]["banner_bearer"])}
 
 
 static func _read_json(path: String) -> Dictionary:
@@ -183,6 +185,7 @@ func _make_unit(key: String, side: String, d: Dictionary) -> Unit:
 	u.heal_cd = d.get("heal_cd", 0.0)
 	u.heal_range = d.get("heal_range", 0.0)
 	u.palette_row = int(d.get("palette_row", 0))
+	u.target_priority = d.get("target_priority", "")
 	u.color = Color.html(d.get("color", "#ffffff"))
 	return u
 
@@ -224,6 +227,28 @@ func in_aura(u: Unit) -> bool:
 	return c != null and c.pos.distance_to(u.pos) <= aura_radius
 
 
+## Co prapor dělá u daného nositele (data "banner" u třídy rytíře). Prázdné, když prapor leží.
+func banner_effects(id: String = "") -> Dictionary:
+	var key := id
+	if key == "":
+		var c := aura_center()
+		if c == null:
+			return {}
+		key = c.key
+	var kd: Dictionary = units_data["knights"].get(key, {})
+	return kd.get("banner", {})
+
+
+func _update_aura() -> void:
+	aura_radius = float(banner_effects(bearer_id).get("aura_radius", house["aura"]["radius"]))
+
+
+## Jde nositele praporu určit? Jen před začátkem bitvy, prapor se během bitvy nepředává.
+func can_set_bearer(id: String) -> bool:
+	var u := by_id(id)
+	return t == 0.0 and over == "" and u != null and u.side == SIDE_KNIGHT and u.alive()
+
+
 func can_shout(key: String) -> bool:
 	if over != "" or not house["shouts"].has(key):
 		return false
@@ -252,10 +277,19 @@ func has_oath(id: String) -> bool:
 	return not oath_of(id).is_empty()
 
 
-## Smí rytíř mít tento postoj? Přísaha může postoje zakázat.
+## Smí rytíř mít tento postoj? Zakázat ho může přísaha, nebo to, že rytíř prapor sám nese.
 func posture_allowed(id: String, posture: String) -> bool:
+	return not oath_forbids(id, posture) and not bearer_forbids(id, posture)
+
+
+func oath_forbids(id: String, posture: String) -> bool:
 	var forbidden: Array = oath_of(id).get("forbidden_postures", [])
-	return not forbidden.has(posture)
+	return forbidden.has(posture)
+
+
+## Nositel praporu nemůže prapor chránit, nese ho.
+func bearer_forbids(id: String, posture: String) -> bool:
+	return posture == "chranit" and id == bearer_id
 
 
 ## Název postoje pro hráče. Přísaha může postoj přejmenovat (u tanka "Držet pozici" = "Stát pevně").
@@ -276,7 +310,7 @@ func _dmg_mult(u: Unit) -> float:
 	var m := 1.0
 	var a := in_aura(u)
 	if a:
-		m += float(house["aura"]["dmg_bonus"])
+		m += float(house["aura"]["dmg_bonus"]) + float(banner_effects().get("aura_dmg_bonus", 0.0))
 	var zarod: float = fx.get("zarod", 0.0)
 	if a and zarod > 0.0:
 		m += float(house["shouts"]["zarod"]["dmg_bonus"])
@@ -287,10 +321,31 @@ func _dmg_mult(u: Unit) -> float:
 
 func _taken_mult(u: Unit) -> float:
 	var m := 1.0 - u.armor
+	if u.side != SIDE_KNIGHT or not in_aura(u):
+		return m
+	m *= 1.0 - float(banner_effects().get("aura_armor", 0.0))
 	var hradba: float = fx.get("hradba", 0.0)
-	if u.side == SIDE_KNIGHT and hradba > 0.0 and in_aura(u):
+	if hradba > 0.0:
 		m *= float(house["shouts"]["hradba"]["damage_taken"])
 	return m
+
+
+func _speed(u: Unit) -> float:
+	if u.side == SIDE_KNIGHT and in_aura(u):
+		return u.speed * (1.0 + float(banner_effects().get("aura_speed", 0.0)))
+	return u.speed
+
+
+## Cíl z kandidátů: nejbližší, ale rytíř s target_priority dá přednost svému typu cíle.
+func _choose_target(u: Unit, cand: Array[Unit]) -> Unit:
+	if u.target_priority == "ranged":
+		var pref: Array[Unit] = []
+		for f in cand:
+			if f.ranged:
+				pref.append(f)
+		if not pref.is_empty():
+			return _nearest(pref, u.pos)
+	return _nearest(cand, u.pos)
 
 
 func _nearest(list: Array[Unit], from: Vector2) -> Unit:
@@ -335,7 +390,20 @@ func order_move(id: String, target: Vector2) -> void:
 	_log("%s: nová pozice" % u.name, false)
 
 
-## Změna postoje. Vrací false, když ho zakazuje přísaha (pak se nic nemění).
+## Určí nositele praporu (jen v rozestavení). Nositel s postojem Chránit prapor přejde na Držet pozici.
+func set_bearer(id: String) -> bool:
+	if not can_set_bearer(id):
+		return false
+	bearer_id = id
+	var u := by_id(id)
+	if u.posture == "chranit":
+		u.posture = "drzet"
+		u.home = u.pos
+	_update_aura()
+	return true
+
+
+## Změna postoje. Vrací false, když ho zakazuje přísaha nebo nošení praporu (pak se nic nemění).
 func set_posture(id: String, posture: String) -> bool:
 	var u := by_id(id)
 	if u == null or not posture_allowed(id, posture):
@@ -406,7 +474,7 @@ func _walk(u: Unit, target: Vector2, dt: float, stop: float = 0.0) -> void:
 	if d < 0.000001 or (d <= maxf(stop, 0.05) and w == target):
 		u.moving = false
 		return
-	var st := minf(d, u.speed * dt)
+	var st := minf(d, _speed(u) * dt)
 	var old := u.pos
 	u.pos += dv / d * st
 	u.face = dv / d
@@ -457,7 +525,8 @@ func _hurt(att: Unit, tg: Unit, raw: float) -> void:
 			_gain_glory(float(house["glory"]["per_kill"]))
 		return
 	_log("%s padl" % tg.name, true)
-	if tg.id == scenario["optional_task"]["protect"]:
+	var protect: String = scenario["optional_task"]["protect"]
+	if tg.id == protect or (protect == "banner" and tg.id == bearer_id):
 		task_ok = false
 	if tg.id == bearer_id:
 		bearer_id = ""
@@ -500,6 +569,10 @@ func _knight_think(u: Unit, dt: float) -> void:
 			bearer_id = u.id
 			banner_down = false
 			picker_id = ""
+			if u.posture == "chranit":
+				u.posture = "drzet"
+				u.home = u.pos
+			_update_aura()
 			_gain_glory(float(house["glory"]["per_banner_pickup"]))
 			_log("%s zvedl prapor" % u.name, true)
 		return
@@ -537,7 +610,7 @@ func _knight_think(u: Unit, dt: float) -> void:
 			cand.append(f)
 		elif not u.ranged and f.pos.distance_to(anchor) <= engage:
 			cand.append(f)
-	var tg := _nearest(cand, u.pos)
+	var tg := _choose_target(u, cand)
 
 	if has_oath(u.id) and tg != null and u.pos.distance_to(tg.pos) <= u.reach + 0.3:
 		_gain_glory(float(house["glory"]["oath_per_second"]) * dt)
@@ -622,6 +695,11 @@ func step(dt: float) -> void:
 	t += dt
 	for k: String in fx.keys():
 		fx[k] = maxf(0.0, float(fx[k]) - dt)
+	var regen := float(banner_effects().get("aura_heal", 0.0))
+	if regen > 0.0:
+		for k in living(SIDE_KNIGHT):
+			if in_aura(k):
+				k.hp = minf(k.maxhp, k.hp + regen * dt)
 
 	if banner_down and picker_id == "":
 		var protectors: Array[Unit] = []

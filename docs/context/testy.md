@@ -15,7 +15,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 ## Co který test hlídá
 | Test | Hlídá | Očekávaný výsledek |
 | --- | --- | --- |
-| `test_battle_sim.gd` | invarianty simulace, balanc, prapor, přísahy a postoje, „Stát pevně“ | kód 0, „OK: všechny testy prošly“ |
+| `test_battle_sim.gd` | invarianty simulace, balanc, prapor (volba nositele, efekty podle třídy, zvednutí), přísahy a postoje, „Stát pevně“, cíle asasína; informativně výhry podle nositele | kód 0, „OK: všechny testy prošly“ |
 | `screenshot_battle.gd` | scéna se načte, drag & drop prohodí rytíře tam i zpět, bitva doběhne bez chyb | „Drag & drop … OK“, „Bitva skončila: win“, žádné ERROR v logu |
 
 ## Invarianty
@@ -25,5 +25,6 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 4. **Nový invariant v kontextovém souboru** = ideálně i nový test, který ho hlídá.
 
 ## Historie významných změn
+- 28.10.2026: testy nositele praporu a asasína. Dlouhé běhy Godotu spouštět přes `Popen` s logem do souboru (volání Blenderu má limit 60 s).
 - 2026-10-28: testy přísah a postojů, drag & drop ve scéně, přenos změn patchem.
 - 2026-10-28: založeno.

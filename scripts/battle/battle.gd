@@ -34,6 +34,7 @@ var hover_ring: MeshInstance3D
 var drop_ring: MeshInstance3D
 var order_line: MeshInstance3D
 var zone: MeshInstance3D
+var _aura_base := 5.0
 var _acc := 0.0
 var _ui_t := 0.0
 
@@ -68,6 +69,7 @@ func _ready() -> void:
 	add_child(zone)
 
 	var aura_r: float = data["house"]["aura"]["radius"]
+	_aura_base = aura_r
 	aura_disc = Field.disc(aura_r, Color(0.91, 0.77, 0.25, 0.12))
 	aura_ring = Field.ring(aura_r, 0.08, Color(0.91, 0.77, 0.25, 0.75))
 	add_child(aura_disc)
@@ -92,6 +94,7 @@ func _ready() -> void:
 	add_child(ui)
 	ui.knight_clicked.connect(_select)
 	ui.posture_changed.connect(_on_posture)
+	ui.bearer_changed.connect(_on_bearer)
 	ui.signals_count_changed.connect(func(n: int) -> void:
 		setup["signals"] = n
 		_fresh_deploy())
@@ -178,6 +181,17 @@ func _set_selected(id: String) -> void:
 		_refresh_panel()
 
 
+## Volba nositele praporu: jen v rozestavení, během bitvy se prapor nepředává.
+func _on_bearer(id: String) -> void:
+	if phase != Phase.DEPLOY:
+		return
+	if sim.set_bearer(id):
+		setup["bearer"] = id
+		for u in sim.knights():
+			setup["posture"][u.id] = u.posture
+	_refresh_panel()
+
+
 func _on_posture(id: String, posture: String) -> void:
 	var u := sim.by_id(id)
 	if u == null:
@@ -188,7 +202,8 @@ func _on_posture(id: String, posture: String) -> void:
 		else:
 			_refresh_panel()
 		return
-	if phase != Phase.SIGNAL:
+	if phase != Phase.SIGNAL or sim.bearer_forbids(id, posture):
+		_refresh_panel()
 		return
 	# Postoj, který zakazuje přísaha, jde při signálu zvolit jen za cenu jejího porušení.
 	if not sim.posture_allowed(id, posture):
@@ -460,7 +475,7 @@ func _flush_events() -> void:
 				log_lines.append(ev)
 				relog = true
 			"autopause":
-				log_lines.append({"t": sim.t, "text": "Praporečník padl, prapor leží", "hot": true})
+				log_lines.append({"t": sim.t, "text": "Nositel praporu padl, prapor leží", "hot": true})
 				relog = true
 				paused = true
 				ui.show_toast(ev["text"])
@@ -515,6 +530,9 @@ func _sync_markers() -> void:
 		aura_ring.visible = true
 		aura_disc.position = Field.to_world(c.pos, 0.04)
 		aura_ring.position = Field.to_world(c.pos, 0.05)
+		var k := sim.aura_radius / _aura_base
+		aura_disc.scale = Vector3(k, 1.0, k)
+		aura_ring.scale = Vector3(k, 1.0, k)
 		var shout_on := float(sim.fx.get("zarod", 0.0)) > 0.0
 		var wall_on := float(sim.fx.get("hradba", 0.0)) > 0.0
 		var col := Color(0.5, 0.69, 1.0) if wall_on else Color(0.91, 0.77, 0.25)

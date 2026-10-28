@@ -5,6 +5,7 @@ const Sim := preload("res://scripts/sim/battle_sim.gd")
 
 signal knight_clicked(id: String)
 signal posture_changed(id: String, posture: String)
+signal bearer_changed(id: String)
 signal signals_count_changed(count: int)
 signal start_pressed
 signal shout_pressed(key: String)
@@ -216,11 +217,14 @@ func show_deploy(sim: Sim, setup: Dictionary, selected: String) -> void:
 
 	content.add_child(_heading("Rozestavení"))
 	content.add_child(_roster(sim, selected, true, false))
-	content.add_child(_label("Přetáhni rytíře myší na místo v modré zóně. Puštěním na jiného rytíře je prohodíš. Postoj určuje, co rytíř dělá bez rozkazu.", 13, MUTED, true))
+	content.add_child(_label("Přetáhni rytíře myší na místo v modré zóně. Puštěním na jiného rytíře je prohodíš. Postoj určuje, co rytíř dělá bez rozkazu. Tlačítkem Prapor určíš, kdo ponese prapor; během bitvy se už nepředává.", 13, MUTED, true))
 
 	content.add_child(_heading(sim.house["name"]))
 	var shouts: Dictionary = sim.house["shouts"]
+	var bearer := sim.by_id(sim.bearer_id)
 	var text := "Aura praporu (žlutý kruh, %d m): +%d %% útok." % [int(sim.aura_radius), roundi(float(sim.house["aura"]["dmg_bonus"]) * 100)]
+	if bearer != null:
+		text += "\nPrapor nese %s. %s" % [bearer.name, sim.banner_effects(bearer.id).get("desc", "")]
 	for k: String in shouts:
 		text += "\nPokřik %s (%d slávy): %s." % [shouts[k]["name"], int(shouts[k]["cost"]), shouts[k]["desc"]]
 	text += "\nSláva roste za zásahy, zabití a za tanka, který v boji drží přísahu."
@@ -374,9 +378,11 @@ func _roster(sim: Sim, selected: String, editable: bool, with_hp: bool) -> Contr
 			tags += " · padl"
 		if sim.bearer_id == u.id:
 			tags += " · nese prapor"
+		elif sim.banner_down and sim.picker_id == u.id:
+			tags += " · běží pro prapor"
 		if u.key == "tank":
 			tags += " · Nikdy neustoupí" if sim.oath_kept else " · přísaha zlomena"
-		info.add_child(_label(tags, 12, MUTED))
+		info.add_child(_label(tags, 12, MUTED, true))
 		if with_hp:
 			var hp := _bar(OK, 5)
 			hp.max_value = u.maxhp
@@ -385,24 +391,43 @@ func _roster(sim: Sim, selected: String, editable: bool, with_hp: bool) -> Contr
 			_roster_hp[u.id] = hp
 		h.add_child(info)
 		if u.alive():
+			if editable and not signal_mode:
+				var fb := Button.new()
+				fb.text = "Prapor"
+				fb.toggle_mode = true
+				fb.button_pressed = sim.bearer_id == u.id
+				fb.disabled = sim.bearer_id == u.id
+				fb.tooltip_text = "Ponese prapor: %s" % sim.banner_effects(u.id).get("desc", "")
+				fb.add_theme_font_size_override("font_size", 13)
+				fb.pressed.connect(func() -> void: bearer_changed.emit(id))
+				h.add_child(fb)
 			if editable:
 				var ob := OptionButton.new()
 				var postures: Dictionary = sim.units_data["postures"]
 				var idx := 0
+				var pdesc: Dictionary = sim.units_data.get("posture_desc", {})
 				for pk: String in postures:
-					var allowed := sim.posture_allowed(u.id, pk)
+					var by_oath := sim.oath_forbids(u.id, pk)
+					var by_banner := sim.bearer_forbids(u.id, pk)
 					var label := sim.posture_name(u.id, pk)
-					if not allowed and signal_mode:
+					if by_oath and not by_banner and signal_mode:
 						label += " (poruší přísahu)"
 					ob.add_item(label)
 					ob.set_item_metadata(idx, pk)
-					if not allowed and not signal_mode:
+					ob.set_item_tooltip(idx, String(pdesc.get(pk, "")))
+					if by_banner:
+						ob.set_item_disabled(idx, true)
+						ob.set_item_tooltip(idx, "Nositel praporu prapor nechrání, nese ho.")
+					elif by_oath and not signal_mode:
 						ob.set_item_disabled(idx, true)
 						ob.set_item_tooltip(idx, "Zakazuje přísaha %s" % sim.oath_of(u.id).get("name", ""))
 					if pk == u.posture:
 						ob.select(idx)
 					idx += 1
 				ob.focus_mode = Control.FOCUS_NONE
+				ob.fit_to_longest_item = false
+				ob.clip_text = true
+				ob.custom_minimum_size = Vector2(124, 0)
 				ob.add_theme_font_size_override("font_size", 13)
 				ob.item_selected.connect(func(index: int) -> void: posture_changed.emit(id, String(ob.get_item_metadata(index))))
 				h.add_child(ob)
