@@ -8,6 +8,7 @@ podporuje aspoň jeden pilíř? kolik stojí? řeší problém, který jsme vid�
 | 2026-10-25 | Pravidla „když–pak“ pro rytíře (např. kněz zvedne prapor) | Velíš rodu, ne vojákovi | čeká na playtest (jen pokud postoje a pokřiky nestačí) |
 | 2026-10-25 | Okamžité povely bez zastavení času („Ke mně!“) | Prapor je srdce oddílu | čeká na playtest (proti pasivitě) |
 | 2026-10-26 | Plášť rozpohybovaný fyzikou | – | vizuál, fáze 3 |
+| 28.10.2026 | Morálka, která má dopad: vlastnosti nepřátel (Zoufalec +10 % útok, Fanatik se nezlomí, Zbabělec utíká dřív, Mstitel sílí při ztrátách), uprchlíci se vrátí v další bitvě runu, ústupová palba střelců, menší odměna za uprchlé, morálka ve dvou krocích (otřesení 50 %, zlomení 70 %). Cíl: zlomený nepřítel nesmí přestat záležet. | Každý run je příběh rodu | vlastnosti s druhou mapou (1.5), návrat uprchlíků ve fázi 2; balanc morálky se ještě vrátí |
 | 28.10.2026 | Ústup s praporem při prohrávané bitvě (zachrání přeživší, tank s přísahou zůstane nebo ji poruší) | Přísaha má cenu | fáze 2, záleží na tom, jestli prohra končí run |
 | 28.10.2026 | Vůdce nepřátel / nepřátelský prapor, jehož pád zlomí morálku | Prapor je srdce oddílu | po druhé mapě |
 | 28.10.2026 | Postoje na míru třídám: tank Stát pevně/Krýt/Prorazit, kněz Léčit frontu/U praporu, lučištník Ostřelovat/Krýt postup/Lovit střelce, jezdec Výpad/Záloha, asasín Lovit střelce/Číhat/Doprovod; 2 na třídu, třetí jako odměna | Velíš rodu, ne vojákovi | po druhé mapě (1.5); Tom souhlasí se směrem |
