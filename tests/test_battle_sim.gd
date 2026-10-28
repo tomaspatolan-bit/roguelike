@@ -355,11 +355,11 @@ func _test_enemy_hold(data: Dictionary) -> void:
 ## Po ztrátě 70 % se nepřítel zlomí: střelci prchnou z bojiště, pěšáci zoufale dobojují.
 func _test_morale(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data, 0), 19)
-	for i in 11:
-		s.by_id("e%d" % i).hp = 0.0   # 11 z 15 ztrát = 73 %
+	for i in 10:
+		s.by_id("e%d" % i).hp = 0.0   # 10 z 14 ztrát = 71 %
 	s.step(DT)
-	var lapka := s.by_id("e11")
-	var strelec := s.by_id("e12")
+	var lapka := s.by_id("e10")
+	var strelec := s.by_id("e11")
 	_check(s.foes_broken, "po ztrátě 70 % se morálka nepřítele zlomí")
 	_check(lapka.desperate and not lapka.fleeing and s._dmg_mult(lapka) > 1.0, "pěšák se zlomenou morálkou zoufale útočí silněji")
 	_check(strelec.fleeing and not strelec.desperate, "střelec se zlomenou morálkou prchá")
