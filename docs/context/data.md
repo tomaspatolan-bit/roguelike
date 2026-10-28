@@ -7,7 +7,7 @@ Hlídá: `tests/test_battle_sim.gd` (balanc), `tests/screenshot_battle.gd` (nač
 Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 
 ## Invarianty
-1. **Klíče, na které se odkazuje kód, se nepřejmenovávají** bez úpravy kódu: rytíři `tank`, `knez`, `lucistnik`, `jezdec`, `asasin`; nepřátelé `lapka`, `strelec`, `kopinik`; vlastnosti `zoufalec`, `fanatik`, `zbabelec`; scénáře `most_pres_reku`, `brod_a_les`; postoje `utok`, `drzet`, `chranit`; pokřiky `zarod`, `hradba`; přísaha `nikdy_neustoupi`.
+1. **Klíče, na které se odkazuje kód, se nepřejmenovávají** bez úpravy kódu: rytíři `tank`, `knez`, `lucistnik`, `jezdec`, `asasin`; nepřátelé `lapka`, `strelec`, `kopinik`; vlastnosti `zoufalec`, `fanatik`, `zbabelec`; scénáře `most_pres_reku`, `brod_a_les`; postoje `utok`, `drzet`, `chranit`, `vypad`, `zaloha`, `lecit`; pokřiky `zarod`, `hradba`; přísaha `nikdy_neustoupi`.
 2. **Jednotky:** vzdálenosti v metrech, čas v sekundách, rychlost v m/s, `armor` je podíl 0–1, bonusy jsou podíly (0.5 = +50 %).
 3. **`palette_row`** odpovídá řádku paletové textury: 0 rod Vlka, 1 tank, 2 lučištník, 3 kněz, 4 jezdec, 5 asasín (6–7 volné).
 4. **Každá změna čísla v bitvě = spustit test balancu** a výsledek zapsat do commitu.
@@ -21,12 +21,15 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 12. **Terén ve scénáři:** `river` {`y0`, `y1`, `crossings`: [{`x0`, `x1`, `kind`: most/brod/lavka, `speed`}]}, `forests`: [{`x0`, `x1`, `y0`, `y1`, `speed`, `path`: [x0, x1]}], volitelně `trees`, `rocks` (dekorace). Výchozí trasa rytíře: `deploy.<klíč>.route` (seznam bodů). Nepřítel ve scénáři může mít 4. prvek: seznam vlastností.
 13. **Nový scénář = nový soubor** v `data/scenarios/` a zápis do `index.json` (pořadí ve výběru). Scénář má i `win_title`. `optional_task.protect` může být `"all"`.
 14. **Vlastnosti** (`traits` v `units.json`): `name`, `desc` a efekty `never_breaks`, `on_break`, `desperate_dmg_bonus`. Jízda: `mounted`; kopí: `dmg_vs_mounted`; terén: `ignores`.
+15. **Postoje** (`postures` v `units.json`): `name`, `desc` a čísla chování (`vypad.engage`, `lecit.behind`). Třída má `postures` (seznam, první = výchozí) a `posture_names`. Postoj ve scénáři musí být v seznamu třídy. Pořadí názvů: přísaha > třída > obecný název.
+16. **Rozkazy nepřátel ve scénáři:** řádek `[typ, x, y, (vlastnosti), (rozkazy)]`, rozkazy `{"hold": true, "engage": m, "hold_time": s}`.
 
 ## Úskalí
 - JSON nemá komentáře: popis patří do klíče `_info`.
 - Při exportu hry je potřeba přidat `*.json` do filtru exportovaných souborů (zatím neřešeno).
 
 ## Historie významných změn
+- 28.10.2026: postoje jako slovníky s názvem, popisem a čísly, seznam postojů u třídy (`posture_desc` zrušeno), Brod: nepřátelé drží pozice 30 s, +1 lapka a +1 kopiník.
 - 28.10.2026: řeka s přechody místo `river_lo`/`bridge_half_width`, lesy, `index.json`, scénář Brod a les, kopiník, vlastnosti (zoufalství lapky 20 % + Zoufalec 10 % = 30 % jako dřív), `mounted`, `ignores`.
 - 28.10.2026: `morale`, `on_break` u nepřátel, `enemy_morale` ve scénáři (práh 0,7, okraj y = 20), `behavior.decided_ratio` 0,15.
 - 28.10.2026: praporečník nahrazen asasínem (řádek palety 5), `banner` u každé třídy, `target_priority`, `posture_desc`, úkol „Prapor nesmí padnout“. Lapka útok 6 → 7. Balanc: bez pokřiků 0/40, s pokřiky 40/40 (62 s); podle nositele s pokřiky: tank, kněz, lučištník, asasín 40/40, jezdec 0/40.

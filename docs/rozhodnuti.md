@@ -2,6 +2,11 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 28.10.2026 – Postoje podle třídy, nepřátelé na pozicích, nové UI
+- **Postoje podle třídy** (data u třídy): tank Stát pevně / Krýt prapor / Prorazit, kněz Léčit frontu / U praporu, lučištník Ostřelovat / U praporu, jezdec Výpad / Záloha, asasín Lovit střelce / Číhat. Důvod: obecné postoje v automatické bitvě nedávaly smysl (Tom).
+- **Nepřátelé na Brodu drží pozice** 30 s: lapkové a kopiníci brody, střelci břeh a střílí přes řeku. Zasažený pěšák vyrazí i se skupinou. Důvod: aby se vyplatilo jít na nepřítele a rozdělit oddíl.
+- **Nové UI (zástupné, Tom převezme):** lišta velení nahoře, karty rytířů dole, malý deník vpravo nahoře, ikonky stavu nad hlavami a na kartách. Ikonky kreslené vektorově v kódu.
+
 ## 28.10.2026 – Druhá mapa Brod a les
 - **Mapa A „Brod a les“:** dva brody po stranách (zpomalí), úzká lávka uprostřed, za ní les se stezkou, nepřátelé ze dvou stran. Důvod: ověřit jednotky a jejich chování mimo most, rozdělení oddílu a trasy.
 - **Trasy:** kreslení čarou zjednodušenou na nejvýš 4 body, jen v rozestavení. Na trase rytíř bojuje jen s tím, kdo mu vstoupí do cesty. Rytíř s přísahou Nikdy neustoupí nemá trasu zpět.

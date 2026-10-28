@@ -34,6 +34,8 @@ func _init() -> void:
 	_test_terrain(brod)
 	_test_routes(brod)
 	_test_spears_and_traits(brod)
+	_test_class_postures(data)
+	_test_enemy_hold(brod)
 
 	if failures.is_empty():
 		print("OK: všechny testy prošly")
@@ -189,7 +191,7 @@ func _test_bearer(data: Dictionary) -> void:
 	var setup := Sim.default_setup(data, 1)
 	setup["bearer"] = "knez"
 	var s := Sim.new(data, setup, 11)
-	_check(s.bearer_id == "knez" and s.by_id("knez").posture == "drzet", "nositel z rozestavení s postojem Chránit prapor přejde na Držet pozici")
+	_check(s.bearer_id == "knez" and s.by_id("knez").posture != "chranit" and s.posture_allowed("knez", s.by_id("knez").posture), "nositel z rozestavení s postojem Chránit prapor přejde na jiný povolený postoj")
 	_check(not s.posture_allowed("knez", "chranit") and not s.set_posture("knez", "chranit"), "nositel nesmí mít postoj Chránit prapor")
 	_check(s.bearer_forbids("knez", "chranit") and not s.oath_forbids("knez", "chranit"), "zákaz je kvůli praporu, ne kvůli přísaze")
 
@@ -229,8 +231,8 @@ func _test_target_priority(data: Dictionary) -> void:
 ## Rytíř v Držet pozici nestojí, když jeho spolubojovník bojuje jinde (konec bitvy, poslední dva rytíři).
 func _test_no_idle(data: Dictionary) -> void:
 	var setup := Sim.default_setup(data, 0)
-	setup["posture"]["knez"] = "drzet"
-	setup["posture"]["jezdec"] = "drzet"
+	setup["posture"]["knez"] = "lecit"
+	setup["posture"]["jezdec"] = "vypad"
 	var s := Sim.new(data, setup, 17)
 	for u in s.units:
 		if u.id != "knez" and u.id != "jezdec" and u.id != "e0":
@@ -248,7 +250,22 @@ func _test_no_idle(data: Dictionary) -> void:
 		s.events.clear()
 	var now := knez.pos.distance_to(jezdec.pos)
 	print("Pomoc spolubojovníkovi: kněz %.1f m -> %.1f m od jezdce" % [start, now])
-	_check(now < start - 3.0, "rytíř bez cíle v Držet pozici jde pomoct bojujícímu spolubojovníkovi")
+	_check(now < start - 3.0, "kněz v Léčit frontu jde za bojujícím spolubojovníkem")
+	# Držet pozici: lučištník bez cíle jde pomoct bojujícímu (nestojí bez práce)
+	var s2 := Sim.new(data, Sim.default_setup(data, 0), 17)
+	for u in s2.units:
+		if u.id != "lucistnik" and u.id != "jezdec" and u.id != "e0":
+			u.hp = 0.0
+	var luc := s2.by_id("lucistnik")
+	luc.pos = Vector2(-5.0, -20.0)
+	luc.home = luc.pos
+	s2.by_id("jezdec").pos = Vector2(5.0, -4.0)
+	s2.by_id("e0").pos = Vector2(5.0, -2.8)
+	var d0 := luc.pos.distance_to(s2.by_id("e0").pos)
+	for i in 150:
+		s2.step(DT)
+		s2.events.clear()
+	_check(luc.pos.distance_to(s2.by_id("e0").pos) < d0 - 3.0, "lučištník v Ostřelovat bez cíle jde pomoct bojujícímu")
 
 
 ## Po ztrátě 70 % se nepřítel zlomí: střelci prchnou z bojiště, pěšáci zoufale dobojují.
@@ -351,7 +368,7 @@ func _test_routes(data: Dictionary) -> void:
 	for u in s.units:
 		if u.side == Sim.SIDE_FOE:
 			u.hp = 0.0
-	var target := s.by_id("e12")
+	var target := s.by_id("e14")
 	target.hp = 90.0
 	target.pos = Vector2(14.0, 23.0)
 	target.speed = 0.0
@@ -383,15 +400,15 @@ func _test_spears_and_traits(data: Dictionary) -> void:
 	s._attack(spear, tank)
 	var hit_t := t0 - tank.hp
 	_check(hit_j > hit_t * 1.5, "kopiník zraní jezdce víc než tanka (%.1f vs %.1f)" % [hit_j, hit_t])
-	# naživu zůstane kopiník (Fanatik), lapka se Zbabělcem a jeden střelec: 10 ztrát z 13
-	for i in 13:
-		if i != 5 and i != 9 and i != 10:
+	# naživu zůstane kopiník (Fanatik), lapka se Zbabělcem a jeden střelec
+	for i in s.living(Sim.SIDE_FOE).size():
+		if i != 5 and i != 9 and i != 12:
 			s.by_id("e%d" % i).hp = 0.0
 	s.step(DT)
 	_check(s.foes_broken, "po ztrátách se morálka zlomí")
 	_check(not s.by_id("e5").desperate and not s.by_id("e5").fleeing, "Fanatik (kopiník) se nezlomí")
 	_check(s.by_id("e9").fleeing, "Zbabělec uteče, i když je pěšák")
-	_check(s.by_id("e10").fleeing, "střelec uteče")
+	_check(s.by_id("e12").fleeing, "střelec uteče")
 	var ss := Sim.new(Sim.load_data(), Sim.default_setup(Sim.load_data(), 0), 37)
 	var lapka := ss.by_id("e0")
 	lapka.desperate = true
@@ -399,3 +416,43 @@ func _test_spears_and_traits(data: Dictionary) -> void:
 	s.by_id("tank").hp = 0.0
 	s._hurt(null, s.by_id("knez"), 99999.0)
 	_check(not s.task_ok, "úkol Nikdo nepadne selže, když padne kdokoli")
+
+
+## Každá třída má své postoje; Záloha čeká, dokud se oddíl nestřetne; Výpad se vrací k praporu.
+func _test_class_postures(data: Dictionary) -> void:
+	var s := Sim.new(data, Sim.default_setup(data, 0), 41)
+	_check(s.postures_for("jezdec") == ["vypad", "zaloha"] and not s.posture_allowed("jezdec", "drzet"), "jezdec zná jen své postoje")
+	_check(s.posture_name("asasin", "utok") == "Lovit střelce" and s.posture_name("lucistnik", "drzet") == "Ostřelovat", "třída má vlastní názvy postojů")
+	var setup := Sim.default_setup(data, 0)
+	setup["posture"]["jezdec"] = "drzet"
+	var s2 := Sim.new(data, setup, 41)
+	_check(s2.by_id("jezdec").posture == "vypad", "neznámý postoj z rozestavení se změní na první povolený")
+	var asasin := s.by_id("asasin")
+	s.set_posture("asasin", "zaloha")
+	var start := asasin.pos
+	for i in 30:
+		s.step(DT)
+		s.events.clear()
+	_check(asasin.pos.distance_to(start) < 0.3 and not asasin.sprung, "Číhat: asasín čeká, dokud se nikdo nestřetne")
+	s.by_id("tank").combat_t = s.t
+	s.step(DT)
+	_check(asasin.sprung, "Číhat: když se někdo střetne, asasín vyrazí")
+
+
+## Nepřátelé na Brodu drží pozice; pěšák po zásahu vyrazí, po čase postupují všichni.
+func _test_enemy_hold(data: Dictionary) -> void:
+	var s := Sim.new(data, Sim.default_setup(data, 0), 43)
+	var lapka := s.by_id("e0")
+	var archer := s.by_id("e12")
+	var l0 := lapka.pos
+	for i in 150:
+		s.step(DT)
+		s.events.clear()
+	_check(lapka.hold and lapka.pos.distance_to(l0) < 1.0, "lapka drží brod, dokud k ní nikdo nepřijde")
+	_check(archer.hold, "střelec drží břeh")
+	lapka.hp -= 10.0
+	s.step(DT)
+	_check(not lapka.hold, "zasažený pěšák opustí pozici")
+	s.t = 31.0
+	s.step(DT)
+	_check(not archer.hold, "po vypršení času postupují všichni")

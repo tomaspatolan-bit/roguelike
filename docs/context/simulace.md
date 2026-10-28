@@ -24,14 +24,17 @@ Celá pravidla bitvy bez grafiky. Scéna i testy ji jen volají. Když jde něco
 12. **Dobojování:** po zlomení morálky smí hráč jednou dát povel Do boje! (`can_charge`, `charge_all`), všichni rytíři pak jednají jako v Útočném postoji (i tank se Stát pevně; útok vpřed není ústup). Pojistka: když síla strany (`power()`) klesne pod `decided_ratio` síly druhé, nastaví se `decided` a rytíři dobojují sami; ve prospěch rytířů jen dokud morálka nepřítele není zlomená (potom rozhoduje hráč). Postoj rytíře se v datech nemění, jen chování.
 13. **Trasy:** rytíř má nejvýš 4 body trasy (`set_route`, `route_problem`, jen při `t == 0`; body ve vodě se zahazují). Na trase jde od bodu k bodu a bojuje jen s nepřítelem do `reach + 1 m`; na konci trasy drží místo podle postoje. Rytíř s `no_retreat` nesmí mít trasu, která se vrací o víc než 1 m zpět. Rozkaz přesunu, Do boje! a rozhodnutá bitva trasu ruší. `simplify_route` zjednoduší nakreslenou čáru (RDP).
 14. **Vlastnosti nepřátel** (`traits`) se hledají v datech: `never_breaks`, `on_break`, `desperate_dmg_bonus`. Kopí proti jízdě: útočník s `dmg_vs_mounted` × cíl s `mounted`.
+15. **Postoje podle třídy:** třída zná jen své postoje (`postures_for`, data `knights.<klíč>.postures`); neznámý nebo zakázaný postoj se nahradí prvním povoleným (`fallback_posture`). Chování: `utok`, `drzet`, `chranit` (u praporu), `vypad` (jako u praporu, ale vyrazí na nepřítele do `engage` m od praporu), `zaloha` (čeká, dokud někdo z oddílu nebojuje nebo nepřítel nepřijde k němu, pak `utok`; `sprung`), `lecit` (drží se `behind` m za bojujícím spolubojovníkem na straně od nepřítele). Rozkaz přesunu u třídy bez `drzet` = trasa o jednom bodu.
+16. **Nepřátelé držící pozici** (rozkaz ve scénáři `hold`): střelec střílí na dostřel z místa, pěšák vyrazí jen na rytíře do `engage` m od svého místa a vrací se. Pěšák, kterého něco zasáhne, uvolní celou skupinu do 5 m; `hold_time` a zlomení morálky uvolní všechny.
+17. **Pohyb u břehu:** když krok vede do vody, jednotka zkusí sklouznout podél břehu (jen po x, jen po y, pak od řeky), aby se nezasekla.
 
 ## Rozhraní, na které spoléhá scéna a testy
 - Stav: `units`, `projectiles`, `glory`, `fx`, `signals`, `bearer_id`, `aura_radius`, `foes_broken`, `charging`, `decided`, `banner_pos`, `banner_down`, `picker_id`, `oath_kept`, `task_ok`, `over` ("", "win", "lose"), `t`, `events`.
 - Setup: `{"signals", "pos", "posture", "bearer", "routes"}` (`default_setup` bere nositele ze scénáře).
-- Dotazy: `knights()`, `living(side)`, `by_id()`, `aura_center()`, `in_aura()`, `banner_effects()`, `can_set_bearer()`, `can_shout()`, `can_signal()`, `is_retreat()`, `oath_of()`, `has_oath()`, `posture_allowed()`, `oath_forbids()`, `bearer_forbids()`, `posture_name()`, `can_charge()`, `power()`, `terrain_speed()`, `route_problem()`, `on_route()`, `has_trait()`; statické `load_data(klíč)`, `scenario_list()`, `default_setup()`, `simplify_route()`.
+- Dotazy: `knights()`, `living(side)`, `by_id()`, `aura_center()`, `in_aura()`, `banner_effects()`, `can_set_bearer()`, `can_shout()`, `can_signal()`, `is_retreat()`, `oath_of()`, `has_oath()`, `posture_allowed()`, `oath_forbids()`, `bearer_forbids()`, `posture_name()`, `can_charge()`, `power()`, `postures_for()`, `fallback_posture()`, `posture_desc()`, `terrain_speed()`, `route_problem()`, `on_route()`, `has_trait()`; statické `load_data(klíč)`, `scenario_list()`, `default_setup()`, `simplify_route()`.
 - Příkazy: `step(dt)`, `shout()`, `use_signal()`, `order_move()`, `set_bearer()` (vrací bool), `set_posture()` (vrací bool), `charge_all()` (vrací bool), `set_route()` (vrací bool), `break_oath()`.
 - Události (`events`, scéna je po zpracování maže): `log`, `autopause`, `death`, `fled`, `decided`, `heal`, `shoot`, `end`.
-- Jednotka: `fled`, `fleeing`, `desperate`, `combat_t`, `route`, `route_i`, `mounted`, `vs_mounted`, `ignores`, `traits`.
+- Jednotka: `fled`, `fleeing`, `desperate`, `combat_t`, `route`, `route_i`, `sprung`, `hold`, `hold_engage`, `hold_until`, `mounted`, `vs_mounted`, `ignores`, `traits`.
 Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, `battle_ui.gd` a testy.
 
 ## Úskalí
@@ -40,6 +43,7 @@ Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, 
 - Krok simulace je pevný (1/60 s ze scény, 1/30 s v testu). Logika nesmí záviset na velikosti kroku víc, než je nutné.
 
 ## Historie významných změn
+- 28.10.2026: postoje podle třídy (Výpad, Záloha/Číhat, Léčit frontu…), nepřátelé držící pozici, klouzání u břehu (oprava zaseknutí). Most 0/40 a 40/40 (přeživší 2,0), Brod 0/40 a 40/40.
 - 28.10.2026: obecný terén (přechody, lesy), trasy rytířů, kopiníci a vlastnosti nepřátel, scénář Brod a les. Most beze změny: 0/40 a 40/40.
 - 28.10.2026: morálka nepřátel (střelci prchají, pěšáci zoufale dobojují), povel Do boje!, pojistka dobojování. Práh zlomení 0,7 (při 0,6 vyhrávala i bitva bez pokřiků). Balanc 0/40 a 40/40, bitva 37 s místo 64 s.
 - 28.10.2026: pravidlo „nikdo nestojí bez práce“ (pomoc bojujícímu spolubojovníkovi, `combat_t`). Balanc 0/40 a 40/40, přeživší rytíři 4,0 místo 3,0.

@@ -10,8 +10,8 @@
     "tank": {"pos": [0, -4.3], "posture": "drzet"},
     "knez": {"pos": [-1.6, -7.3], "posture": "chranit"},
     "lucistnik": {"pos": [-4.0, -5.6], "posture": "drzet"},
-    "jezdec": {"pos": [4.2, -6.0], "posture": "utok"},
-    "asasin": {"pos": [2.6, -5.0], "posture": "drzet"}
+    "jezdec": {"pos": [4.2, -6.0], "posture": "vypad"},
+    "asasin": {"pos": [2.6, -5.0], "posture": "zaloha"}
   },
   "banner_bearer": "tank",
   "optional_task": {"text": "Prapor nesmí padnout.", "reward": "vzácné znamení", "protect": "banner"},

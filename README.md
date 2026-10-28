@@ -14,6 +14,8 @@ Engine: Godot 4.7. Prototyp obsahuje jednu bitvu, **Most přes řeku**.
 | Akce | Ovládání |
 | --- | --- |
 | Rozestavit rytíře | přetáhnout myší v modré zóně; puštění na jiného rytíře je prohodí |
+| Postoj, nositel praporu, trasa | na kartě rytíře dole (Trasa: pak táhnout myší po zemi, Esc zruší) |
+| Výběr bitvy | nahoře vlevo v rozestavení |
 | Rozkaz přesunu (při signálu) | přetáhnout rytíře na místo, které má držet |
 | Pokřiky praporu | tlačítka v panelu nebo **1**, **2** |
 | Do boje! (po zlomení morálky nepřítele, jednou) | tlačítko nebo **F** |

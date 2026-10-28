@@ -1,7 +1,12 @@
 extends CanvasLayer
 ## Rozhraní bitvy. Neobsahuje herní logiku: jen vykresluje stav a posílá signály do battle.gd.
+##
+## Rozvržení: nahoře lišta velení (sláva, pokřiky, signál, Do boje!, rychlost; v rozestavení
+## signály a Začít bitvu), vlevo nahoře karta bitvy (scénář, úkol, rod), dole karty rytířů,
+## vpravo nahoře malý deník bitvy (dá se sbalit), nad jednotkami zdraví a ikonky stavu.
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
+const Icon := preload("res://scripts/battle/ui_icon.gd")
 
 signal knight_clicked(id: String)
 signal posture_changed(id: String, posture: String)
@@ -29,26 +34,34 @@ const GLORY := Color("#e2b84a")
 const OK := Color("#5bb36a")
 const BAD := Color("#ef6b62")
 const STEEL := Color("#8aa2e0")
+const CARD_W := 196.0
+
+const SHOUT_ICONS := {"zarod": "zarod", "hradba": "hradba"}
 
 var root: Control
-var panel: PanelContainer
-var content: VBoxContainer
-var hud: HBoxContainer
+var top_bar: PanelContainer
+var top_row: HBoxContainer
+var info_card: PanelContainer
+var info_box: VBoxContainer
+var cards_row: HBoxContainer
+var log_panel: PanelContainer
 var bars_layer: Control
 var toast: PanelContainer
 var toast_label: Label
 var result_box: PanelContainer
 var oath_dialog: ConfirmationDialog
-
 var scenario_choices: Array = []   # [[klíč, název], ...] pro výběr bitvy
-var _hp_bars: Dictionary = {}      # id -> Control (ukazatel nad hlavou)
-var _roster_hp: Dictionary = {}    # id -> ProgressBar (v panelu)
+
+var _overhead: Dictionary = {}     # id -> {"root", "fill", "bg", "icons", "sig"}
+var _cards: Dictionary = {}        # id -> {"hp": ProgressBar, "icons": HBoxContainer, "sig": String}
 var _glory_bar: ProgressBar
 var _glory_label: Label
+var _time_label: Label
 var _shout_buttons: Dictionary = {}
 var _signal_button: Button
 var _charge_button: Button
 var _log_box: VBoxContainer
+var _log_open := true
 var _oath_break_cb: Callable
 var _oath_keep_cb: Callable
 
@@ -65,28 +78,69 @@ func _ready() -> void:
 	bars_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(bars_layer)
 
-	panel = PanelContainer.new()
-	panel.anchor_left = 1.0
-	panel.anchor_right = 1.0
-	panel.anchor_bottom = 1.0
-	panel.offset_left = -392
-	panel.offset_right = -12
-	panel.offset_top = 12
-	panel.offset_bottom = -12
-	root.add_child(panel)
-	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	panel.add_child(scroll)
-	content = VBoxContainer.new()
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 12)
-	scroll.add_child(content)
+	# lišta velení nahoře uprostřed
+	top_bar = PanelContainer.new()
+	top_bar.anchor_left = 0.5
+	top_bar.anchor_right = 0.5
+	top_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	top_bar.offset_top = 10
+	top_bar.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.92), 10, 8, LINE, 1))
+	root.add_child(top_bar)
+	top_row = HBoxContainer.new()
+	top_row.add_theme_constant_override("separation", 8)
+	top_bar.add_child(top_row)
 
-	hud = HBoxContainer.new()
-	hud.position = Vector2(14, 12)
-	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud.add_theme_constant_override("separation", 8)
-	root.add_child(hud)
+	# karta bitvy vlevo nahoře
+	info_card = PanelContainer.new()
+	info_card.position = Vector2(12, 12)
+	info_card.custom_minimum_size = Vector2(300, 0)
+	info_card.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.92), 10, 12, LINE, 1))
+	root.add_child(info_card)
+	info_box = VBoxContainer.new()
+	info_box.add_theme_constant_override("separation", 6)
+	info_card.add_child(info_box)
+
+	# karty rytířů dole uprostřed
+	var cards_holder := CenterContainer.new()
+	cards_holder.anchor_left = 0.0
+	cards_holder.anchor_right = 1.0
+	cards_holder.anchor_top = 1.0
+	cards_holder.anchor_bottom = 1.0
+	cards_holder.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	cards_holder.offset_bottom = -10
+	cards_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(cards_holder)
+	cards_row = HBoxContainer.new()
+	cards_row.add_theme_constant_override("separation", 8)
+	cards_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cards_holder.add_child(cards_row)
+
+	# deník vpravo nahoře
+	log_panel = PanelContainer.new()
+	log_panel.anchor_left = 1.0
+	log_panel.anchor_right = 1.0
+	log_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	log_panel.offset_top = 12
+	log_panel.offset_right = -12
+	log_panel.custom_minimum_size = Vector2(290, 0)
+	log_panel.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.85), 10, 10, LINE, 1))
+	root.add_child(log_panel)
+	var lv := VBoxContainer.new()
+	log_panel.add_child(lv)
+	var lh := Button.new()
+	lh.flat = true
+	lh.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	lh.add_theme_font_size_override("font_size", 12)
+	lh.add_theme_color_override("font_color", MUTED)
+	lh.text = "DENÍK BITVY  ▾"
+	lh.focus_mode = Control.FOCUS_NONE
+	lh.pressed.connect(func() -> void:
+		_log_open = not _log_open
+		lh.text = "DENÍK BITVY  ▾" if _log_open else "DENÍK BITVY  ▸"
+		_log_box.visible = _log_open)
+	lv.add_child(lh)
+	_log_box = VBoxContainer.new()
+	lv.add_child(_log_box)
 
 	toast = PanelContainer.new()
 	toast.anchor_left = 0.5
@@ -95,10 +149,8 @@ func _ready() -> void:
 	toast.anchor_bottom = 1.0
 	toast.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	toast.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	toast.offset_bottom = -24
-	toast.offset_left = -400
-	toast.offset_right = 0
-	toast.add_theme_stylebox_override("panel", _box(Color(0.08, 0.09, 0.11, 0.92), 8, 14))
+	toast.offset_bottom = -200
+	toast.add_theme_stylebox_override("panel", _box(Color(0.08, 0.09, 0.11, 0.94), 8, 14, BANNER, 1))
 	var th := HBoxContainer.new()
 	th.add_theme_constant_override("separation", 14)
 	toast.add_child(th)
@@ -137,7 +189,7 @@ func _ready() -> void:
 	add_child(oath_dialog)
 
 
-# ================================================================ téma
+# ================================================================ téma a pomocníci
 
 func _box(bg: Color, radius: int, pad: int, border: Color = Color(0, 0, 0, 0), bw: int = 0) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
@@ -178,17 +230,13 @@ func _label(text: String, size: int = 15, color: Color = INK, wrap: bool = false
 	return l
 
 
-func _heading(text: String) -> Label:
-	var l := _label(text.to_upper(), 12, MUTED)
-	return l
-
-
-func _primary(b: Button) -> Button:
-	b.add_theme_stylebox_override("normal", _box(BANNER, 7, 10))
-	b.add_theme_stylebox_override("hover", _box(BANNER.lightened(0.1), 7, 10))
-	b.add_theme_stylebox_override("pressed", _box(BANNER.darkened(0.1), 7, 10))
+func _primary(b: Button, col: Color = BANNER) -> Button:
+	b.add_theme_stylebox_override("normal", _box(col, 7, 10))
+	b.add_theme_stylebox_override("hover", _box(col.lightened(0.1), 7, 10))
+	b.add_theme_stylebox_override("pressed", _box(col.darkened(0.1), 7, 10))
+	b.add_theme_stylebox_override("disabled", _box(col.darkened(0.55), 7, 10))
 	b.add_theme_color_override("font_color", Color.WHITE)
-	b.add_theme_font_size_override("font_size", 17)
+	b.add_theme_font_size_override("font_size", 16)
 	return b
 
 
@@ -201,23 +249,142 @@ func _bar(fill: Color, h: int = 6) -> ProgressBar:
 	return p
 
 
+## Tlačítko s ikonkou a textem (popisek je Label uvnitř, aby šel měnit v update_dynamic).
+func _icon_button(kind: String, text: String, icon_col: Color = INK) -> Button:
+	var b := Button.new()
+	var h := HBoxContainer.new()
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_theme_constant_override("separation", 6)
+	h.set_anchors_preset(Control.PRESET_FULL_RECT)
+	h.offset_left = 8
+	h.offset_right = -8
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	var ic := Icon.make(kind, icon_col, 18)
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(ic)
+	if text != "":
+		var l := _label(text, 13)
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(l)
+	b.add_child(h)
+	b.custom_minimum_size = Vector2(maxf(36.0, 34.0 + text.length() * 7.5), 36)
+	return b
+
+
 func _clear() -> void:
-	for c in content.get_children():
+	for c in top_row.get_children():
 		c.queue_free()
-	_roster_hp.clear()
+	for c in info_box.get_children():
+		c.queue_free()
+	for c in cards_row.get_children():
+		c.queue_free()
+	_cards.clear()
 	_shout_buttons.clear()
 	_signal_button = null
 	_charge_button = null
 	_glory_bar = null
-	_log_box = null
+	_time_label = null
 
 
-# ================================================================ panely
+## Ikona třídy rytíře.
+static func class_icon(u: Sim.Unit) -> String:
+	return u.key if u.key in ["tank", "knez", "lucistnik", "jezdec", "asasin"] else "tank"
+
+
+## Ikonky stavu jednotky: [druh, barva, přeškrtnutá, popisek]. Jen čte simulaci.
+func _status_icons(sim: Sim, u: Sim.Unit, in_battle: bool) -> Array:
+	var out: Array = []
+	if u.side == Sim.SIDE_KNIGHT:
+		if sim.bearer_id == u.id:
+			out.append(["banner", BANNER, false, "Nese prapor. %s" % sim.banner_effects(u.id).get("desc", "")])
+		for k: String in sim.house["oaths"]:
+			var o: Dictionary = sim.house["oaths"][k]
+			if o["knight"] == u.id:
+				out.append(["oath", GLORY, not sim.oath_kept, ("Přísaha %s" % o["name"]) + ("" if sim.oath_kept else " (zlomena)")])
+		if in_battle and u.alive():
+			if sim.in_aura(u) and sim.bearer_id != u.id:
+				out.append(["aura", Color(GLORY, 0.85), false, "V auře praporu"])
+			if sim.in_aura(u):
+				for sk: String in sim.fx:
+					if float(sim.fx[sk]) > 0.0:
+						out.append([SHOUT_ICONS.get(sk, "glory"), GLORY if sk == "zarod" else STEEL, false, String(sim.house["shouts"][sk]["name"])])
+			if u.posture == "zaloha" and not u.sprung and sim.decided == "" and not sim.charging:
+				out.append(["wait", MUTED, false, "Čeká v záloze"])
+		if sim.on_route(u):
+			out.append(["route", Color(1.0, 0.92, 0.55), false, "Jde po trase"])
+	else:
+		if u.fleeing:
+			out.append(["flee", MUTED, false, "Prchá"])
+		elif u.desperate:
+			out.append(["desperate", BAD, false, "Zoufalý: útočí silněji"])
+		elif u.hold:
+			out.append(["hold", MUTED, false, "Drží pozici"])
+		for tr: String in u.traits:
+			if tr == "fanatik":
+				out.append(["fanatik", Color("#f08a3c"), false, "Fanatik: nikdy se nezlomí"])
+			elif tr == "zbabelec":
+				out.append(["zbabelec", Color("#c9c3a6"), false, "Zbabělec: uteče, když se morálka zlomí"])
+		if u.vs_mounted > 1.0:
+			out.append(["jezdec", BAD, true, "Kopí: proti jízdě 2× poškození"])
+	return out
+
+
+func _fill_icons(box: HBoxContainer, icons: Array, px: float) -> void:
+	for c in box.get_children():
+		c.queue_free()
+	for it: Array in icons:
+		var ic := Icon.make(it[0], it[1], px, it[3])
+		ic.set("crossed", it[2])
+		box.add_child(ic)
+
+
+static func _sig(icons: Array) -> String:
+	var s := ""
+	for it: Array in icons:
+		s += "%s%s%s|" % [it[0], it[2], it[3]]
+	return s
+
+
+# ================================================================ rozestavení
 
 func show_deploy(sim: Sim, setup: Dictionary, selected: String, scenario_id: String = "", route_id: String = "") -> void:
 	_clear()
+	_fill_info(sim, true, scenario_id)
+
+	# lišta: signály a začátek bitvy
+	var si := Icon.make("signal", MUTED, 20, "Signál praporu zastaví čas: kolik jich na bitvu (experiment)")
+	si.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	top_row.add_child(si)
+	var sl := _label("Signály", 14, MUTED)
+	sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	top_row.add_child(sl)
+	var group := ButtonGroup.new()
+	for n in 3:
+		var b := Button.new()
+		b.text = str(n)
+		b.toggle_mode = true
+		b.button_group = group
+		b.button_pressed = int(setup["signals"]) == n
+		b.custom_minimum_size = Vector2(36, 36)
+		b.pressed.connect(func() -> void: signals_count_changed.emit(n))
+		top_row.add_child(b)
+	var start := _primary(Button.new())
+	start.text = "Začít bitvu"
+	start.custom_minimum_size = Vector2(150, 36)
+	start.pressed.connect(func() -> void: start_pressed.emit())
+	top_row.add_child(start)
+
+	_build_cards(sim, selected, true, false, route_id)
+	_time_label = null
+	set_log([])
+	update_dynamic(sim, false, false)
+	_no_focus(root)
+
+
+func _fill_info(sim: Sim, deploy: bool, scenario_id: String) -> void:
 	var sc := sim.scenario
-	if scenario_choices.size() > 1:
+	if deploy and scenario_choices.size() > 1:
 		var pick := OptionButton.new()
 		var i := 0
 		for ch: Array in scenario_choices:
@@ -227,134 +394,82 @@ func show_deploy(sim: Sim, setup: Dictionary, selected: String, scenario_id: Str
 				pick.select(i)
 			i += 1
 		pick.item_selected.connect(func(index: int) -> void: scenario_changed.emit(String(pick.get_item_metadata(index))))
-		content.add_child(pick)
-	content.add_child(_label("%s · %s" % [sc["stage_label"], sim.house["name"]], 12, MUTED))
-	content.add_child(_label(sc["name"], 28))
-	content.add_child(_label(sc["subtitle"], 14, MUTED, true))
-	content.add_child(_task_box(sim))
+		info_box.add_child(pick)
+	info_box.add_child(_label("%s · %s" % [sc["stage_label"], sim.house["name"]], 12, MUTED))
+	info_box.add_child(_label(sc["name"], 24 if deploy else 20))
+	if deploy:
+		info_box.add_child(_label(sc["subtitle"], 13, MUTED, true))
+	var task: Dictionary = sc["optional_task"]
+	var tb := PanelContainer.new()
+	var st := _box(Color(GLORY, 0.10), 6, 8)
+	st.border_color = GLORY
+	st.border_width_left = 3
+	tb.add_theme_stylebox_override("panel", st)
+	tb.add_child(_label("Úkol: %s Odměna: %s." % [task["text"], task["reward"]], 13, INK, true))
+	info_box.add_child(tb)
+	if deploy:
+		var bearer := sim.by_id(sim.bearer_id)
+		var lines := "Prapor: aura %d m, +%d %% útok." % [int(sim.aura_radius), roundi(float(sim.house["aura"]["dmg_bonus"]) * 100)]
+		if bearer != null:
+			lines += " Nese %s: %s" % [bearer.name, sim.banner_effects(bearer.id).get("desc", "")]
+		info_box.add_child(_label(lines, 12, MUTED, true))
+		info_box.add_child(_label("Přetáhni rytíře v modré zóně (puštěním na jiného je prohodíš). Na kartě rytíře dole volíš postoj, prapor a trasu.", 12, MUTED, true))
 
-	content.add_child(_heading("Rozestavení"))
-	content.add_child(_roster(sim, selected, true, false))
-	var su := sim.by_id(selected) if selected != "" else null
-	if su != null:
-		var rbox := HBoxContainer.new()
-		var drawing := route_id == selected
-		var npts := su.route.size()
-		rbox.add_child(_label("Trasa %s: %s" % [su.name, ("%d body" % npts) if npts > 0 else "žádná"], 13, INK))
-		var spacer := Control.new()
-		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		rbox.add_child(spacer)
-		var db := Button.new()
-		db.text = "Kreslím… [Esc]" if drawing else "Kreslit trasu"
-		db.pressed.connect(func() -> void: route_draw_pressed.emit(selected))
-		rbox.add_child(db)
-		if npts > 0:
-			var cb := Button.new()
-			cb.text = "Smazat"
-			cb.pressed.connect(func() -> void: route_clear_pressed.emit(selected))
-			rbox.add_child(cb)
-		content.add_child(rbox)
-		if drawing:
-			content.add_child(_label("Táhni myší po zemi, kudy má rytíř jít. Čára se zjednoduší na nejvýš 4 body. Na trase bojuje jen s tím, kdo mu vstoupí do cesty; na konci drží místo podle postoje.", 13, GLORY, true))
-	content.add_child(_label("Přetáhni rytíře myší na místo v modré zóně. Puštěním na jiného rytíře je prohodíš. Postoj určuje, co rytíř dělá bez rozkazu. Tlačítkem Prapor určíš, kdo ponese prapor; během bitvy se už nepředává. Vybranému rytíři můžeš nakreslit trasu.", 13, MUTED, true))
 
-	content.add_child(_heading(sim.house["name"]))
-	var shouts: Dictionary = sim.house["shouts"]
-	var bearer := sim.by_id(sim.bearer_id)
-	var text := "Aura praporu (žlutý kruh, %d m): +%d %% útok." % [int(sim.aura_radius), roundi(float(sim.house["aura"]["dmg_bonus"]) * 100)]
-	if bearer != null:
-		text += "\nPrapor nese %s. %s" % [bearer.name, sim.banner_effects(bearer.id).get("desc", "")]
-	for k: String in shouts:
-		text += "\nPokřik %s (%d slávy): %s." % [shouts[k]["name"], int(shouts[k]["cost"]), shouts[k]["desc"]]
-	text += "\nSláva roste za zásahy, zabití a za tanka, který v boji drží přísahu."
-	content.add_child(_label(text, 13, MUTED, true))
-
-	content.add_child(_heading("Signály praporu (experiment)"))
-	var row := HBoxContainer.new()
-	var group := ButtonGroup.new()
-	for n in 3:
-		var b := Button.new()
-		b.text = str(n)
-		b.toggle_mode = true
-		b.button_group = group
-		b.button_pressed = int(setup["signals"]) == n
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.pressed.connect(func() -> void: signals_count_changed.emit(n))
-		row.add_child(b)
-	content.add_child(row)
-	content.add_child(_label("Kolik zastavení času na bitvu je správně? Zkus 0, 1 i 2.", 13, MUTED, true))
-
-	var start := _primary(Button.new())
-	start.text = "Začít bitvu"
-	start.pressed.connect(func() -> void: start_pressed.emit())
-	content.add_child(start)
-	_no_focus(content)
-
+# ================================================================ bitva
 
 func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, log_lines: Array) -> void:
 	_clear()
-	content.add_child(_label(sim.scenario["stage_label"], 12, MUTED))
-	content.add_child(_label(sim.scenario["name"], 26))
+	_fill_info(sim, false, "")
 
-	if signal_phase:
-		var sb := PanelContainer.new()
-		sb.add_theme_stylebox_override("panel", _box(Color(BANNER, 0.12), 8, 12, BANNER, 1))
-		var v := VBoxContainer.new()
-		sb.add_child(v)
-		v.add_child(_label("Signál praporu", 19, BANNER))
-		v.add_child(_label("Čas stojí. Změň postoje, nebo přetáhni rytíře na místo, které má držet.", 13, INK, true))
-		var rb := _primary(Button.new())
-		rb.text = "Pokračovat  [Mezerník]"
-		rb.pressed.connect(func() -> void: resume_pressed.emit())
-		v.add_child(rb)
-		content.add_child(sb)
+	_time_label = _label("0:00", 16, INK)
+	_time_label.custom_minimum_size = Vector2(44, 0)
+	_time_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	top_row.add_child(_time_label)
 
-	content.add_child(_heading("Sláva"))
-	var gr := HBoxContainer.new()
-	_glory_bar = _bar(GLORY, 12)
-	_glory_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var gl := HBoxContainer.new()
+	gl.add_theme_constant_override("separation", 4)
+	gl.tooltip_text = "Sláva: roste za zásahy, zabití a dodrženou přísahu. Platí se jí pokřiky."
+	var gi := Icon.make("glory", GLORY, 18)
+	gi.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	gl.add_child(gi)
+	_glory_bar = _bar(GLORY, 10)
+	_glory_bar.custom_minimum_size = Vector2(110, 10)
 	_glory_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	gr.add_child(_glory_bar)
+	gl.add_child(_glory_bar)
 	_glory_label = _label("0", 14, GLORY)
-	_glory_label.custom_minimum_size = Vector2(32, 0)
-	_glory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	gr.add_child(_glory_label)
-	content.add_child(gr)
+	_glory_label.custom_minimum_size = Vector2(28, 0)
+	_glory_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	gl.add_child(_glory_label)
+	top_row.add_child(gl)
 
-	content.add_child(_heading("Pokřiky"))
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 6)
-	grid.add_theme_constant_override("v_separation", 6)
 	var i := 1
 	for k: String in sim.house["shouts"]:
 		var s: Dictionary = sim.house["shouts"][k]
-		var b := Button.new()
-		b.text = "%s\n%s\n[%d] · %d slávy" % [s["name"], s["desc"], i, int(s["cost"])]
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.custom_minimum_size = Vector2(0, 76)
-		b.add_theme_font_size_override("font_size", 13)
+		var b := _icon_button(SHOUT_ICONS.get(k, "glory"), "%d  [%d]" % [int(s["cost"]), i], GLORY if k == "zarod" else STEEL)
+		b.tooltip_text = "%s (%d slávy): %s" % [s["name"], int(s["cost"]), s["desc"]]
 		b.pressed.connect(func() -> void: shout_pressed.emit(k))
-		grid.add_child(b)
+		top_row.add_child(b)
 		_shout_buttons[k] = b
 		i += 1
-	content.add_child(grid)
 
-	if sim.foes_broken and not signal_phase:
-		_charge_button = _primary(Button.new())
-		_charge_button.text = "Do boje!  [F]" if not sim.charging else "Rytíři dobojují"
-		_charge_button.tooltip_text = "Jednorázový povel: všichni rytíři opustí postoje a dobojují se zlomeným nepřítelem."
-		_charge_button.pressed.connect(func() -> void: charge_pressed.emit())
-		content.add_child(_charge_button)
-
-	if not signal_phase:
-		var row := HBoxContainer.new()
-		_signal_button = Button.new()
-		_signal_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if signal_phase:
+		var rb := _primary(Button.new())
+		rb.text = "Čas stojí · Pokračovat"
+		rb.tooltip_text = "Pokračovat [Mezerník]"
+		rb.custom_minimum_size = Vector2(200, 36)
+		rb.pressed.connect(func() -> void: resume_pressed.emit())
+		top_row.add_child(rb)
+	else:
+		_signal_button = _icon_button("signal", "Signál · 0", INK)
+		_signal_button.tooltip_text = "Signál praporu [Mezerník]: zastaví čas, můžeš měnit postoje a dávat rozkazy přesunu."
 		_signal_button.pressed.connect(func() -> void: signal_pressed.emit())
-		row.add_child(_signal_button)
+		top_row.add_child(_signal_button)
+		if sim.foes_broken:
+			_charge_button = _primary(_icon_button("charge", "Do boje! [F]" if not sim.charging else "Dobojují", Color.WHITE))
+			_charge_button.tooltip_text = "Jednorázový povel: všichni rytíři opustí postoje a dobojují se zlomeným nepřítelem."
+			_charge_button.pressed.connect(func() -> void: charge_pressed.emit())
+			top_row.add_child(_charge_button)
 		var group := ButtonGroup.new()
 		for v: float in [1.0, 2.0]:
 			var sp := Button.new()
@@ -362,125 +477,123 @@ func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, l
 			sp.toggle_mode = true
 			sp.button_group = group
 			sp.button_pressed = is_equal_approx(speed, v)
-			sp.custom_minimum_size = Vector2(46, 0)
+			sp.custom_minimum_size = Vector2(40, 36)
 			sp.pressed.connect(func() -> void: speed_changed.emit(v))
-			row.add_child(sp)
-		content.add_child(row)
+			top_row.add_child(sp)
 
-	content.add_child(_heading("Oddíl"))
-	content.add_child(_roster(sim, selected, signal_phase, true))
-
-	content.add_child(_heading("Deník bitvy"))
-	_log_box = VBoxContainer.new()
-	content.add_child(_log_box)
+	_build_cards(sim, selected, signal_phase, true, "")
 	set_log(log_lines)
 	update_dynamic(sim, signal_phase, false)
-	_no_focus(content)
+	_no_focus(root)
 
 
-func _task_box(sim: Sim) -> Control:
-	var tb := PanelContainer.new()
-	var st := _box(Color(GLORY, 0.10), 6, 10)
-	st.border_color = GLORY
-	st.border_width_left = 3
-	tb.add_theme_stylebox_override("panel", st)
-	var task: Dictionary = sim.scenario["optional_task"]
-	tb.add_child(_label("Volitelný úkol: %s Odměna: %s." % [task["text"], task["reward"]], 14, INK, true))
-	return tb
-
+# ================================================================ karty rytířů
 
 ## editable: jde měnit postoje. V rozestavení jsou zakázané postoje zašedlé,
 ## při signálu jdou zvolit, ale za cenu porušení přísahy (battle.gd se zeptá).
-func _roster(sim: Sim, selected: String, editable: bool, with_hp: bool) -> Control:
-	var signal_mode := with_hp
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+func _build_cards(sim: Sim, selected: String, editable: bool, in_battle: bool, route_id: String) -> void:
+	var signal_mode := in_battle and editable
 	for u in sim.knights():
-		var row := PanelContainer.new()
 		var sel := u.id == selected
-		row.add_theme_stylebox_override("panel", _box(Color(STEEL, 0.12) if sel else Color(0, 0, 0, 0), 6, 6, STEEL if sel else Color(0, 0, 0, 0), 1 if sel else 0))
-		var h := HBoxContainer.new()
-		h.add_theme_constant_override("separation", 8)
-		row.add_child(h)
-		var dot := ColorRect.new()
-		dot.color = u.color
-		dot.custom_minimum_size = Vector2(10, 10)
-		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		h.add_child(dot)
-		var info := VBoxContainer.new()
-		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		info.add_theme_constant_override("separation", 0)
-		var name_btn := Button.new()
-		name_btn.flat = true
-		name_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		name_btn.text = u.name
-		name_btn.add_theme_font_size_override("font_size", 15)
-		name_btn.disabled = not u.alive()
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(CARD_W, 0)
+		card.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.94), 9, 8, STEEL if sel else LINE, 2 if sel else 1))
 		var id := u.id
-		name_btn.pressed.connect(func() -> void: knight_clicked.emit(id))
-		info.add_child(name_btn)
-		var tags := u.role
+		card.gui_input.connect(func(ev: InputEvent) -> void:
+			if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+				knight_clicked.emit(id))
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 4)
+		card.add_child(v)
+
+		var head := HBoxContainer.new()
+		head.add_theme_constant_override("separation", 6)
+		var cls := Icon.make(class_icon(u), u.color if u.alive() else MUTED, 26, u.role)
+		cls.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		head.add_child(cls)
+		var names := VBoxContainer.new()
+		names.add_theme_constant_override("separation", -2)
+		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		names.add_child(_label(u.name, 14, INK if u.alive() else MUTED))
+		names.add_child(_label(u.role + ("" if u.alive() else " · padl"), 11, MUTED))
+		head.add_child(names)
+		var icons := HBoxContainer.new()
+		icons.add_theme_constant_override("separation", 2)
+		icons.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		head.add_child(icons)
+		v.add_child(head)
+
+		var hp := _bar(OK if u.alive() else LINE, 6)
+		hp.max_value = u.maxhp
+		hp.value = maxf(0.0, u.hp)
+		v.add_child(hp)
+		_cards[u.id] = {"hp": hp, "icons": icons, "sig": ""}
+
 		if not u.alive():
-			tags += " · padl"
-		if sim.bearer_id == u.id:
-			tags += " · nese prapor"
-		elif sim.banner_down and sim.picker_id == u.id:
-			tags += " · běží pro prapor"
-		if u.key == "tank":
-			tags += " · Nikdy neustoupí" if sim.oath_kept else " · přísaha zlomena"
-		info.add_child(_label(tags, 12, MUTED, true))
-		if with_hp:
-			var hp := _bar(OK, 5)
-			hp.max_value = u.maxhp
-			hp.value = u.hp
-			info.add_child(hp)
-			_roster_hp[u.id] = hp
-		h.add_child(info)
-		if u.alive():
-			if editable and not signal_mode:
-				var fb := Button.new()
-				fb.text = "Prapor"
-				fb.toggle_mode = true
-				fb.button_pressed = sim.bearer_id == u.id
-				fb.disabled = sim.bearer_id == u.id
-				fb.tooltip_text = "Ponese prapor: %s" % sim.banner_effects(u.id).get("desc", "")
-				fb.add_theme_font_size_override("font_size", 13)
-				fb.pressed.connect(func() -> void: bearer_changed.emit(id))
-				h.add_child(fb)
-			if editable:
-				var ob := OptionButton.new()
-				var postures: Dictionary = sim.units_data["postures"]
-				var idx := 0
-				var pdesc: Dictionary = sim.units_data.get("posture_desc", {})
-				for pk: String in postures:
-					var by_oath := sim.oath_forbids(u.id, pk)
-					var by_banner := sim.bearer_forbids(u.id, pk)
-					var label := sim.posture_name(u.id, pk)
-					if by_oath and not by_banner and signal_mode:
-						label += " (poruší přísahu)"
-					ob.add_item(label)
-					ob.set_item_metadata(idx, pk)
-					ob.set_item_tooltip(idx, String(pdesc.get(pk, "")))
-					if by_banner:
-						ob.set_item_disabled(idx, true)
-						ob.set_item_tooltip(idx, "Nositel praporu prapor nechrání, nese ho.")
-					elif by_oath and not signal_mode:
-						ob.set_item_disabled(idx, true)
-						ob.set_item_tooltip(idx, "Zakazuje přísaha %s" % sim.oath_of(u.id).get("name", ""))
-					if pk == u.posture:
-						ob.select(idx)
-					idx += 1
-				ob.focus_mode = Control.FOCUS_NONE
-				ob.fit_to_longest_item = false
-				ob.clip_text = true
-				ob.custom_minimum_size = Vector2(124, 0)
-				ob.add_theme_font_size_override("font_size", 13)
-				ob.item_selected.connect(func(index: int) -> void: posture_changed.emit(id, String(ob.get_item_metadata(index))))
-				h.add_child(ob)
-			else:
-				h.add_child(_label(sim.posture_name(u.id, u.posture), 12, MUTED))
-		box.add_child(row)
-	return box
+			cards_row.add_child(card)
+			continue
+
+		if editable:
+			var ob := OptionButton.new()
+			var idx := 0
+			for pk: String in sim.postures_for(u.id):
+				var by_oath := sim.oath_forbids(u.id, pk)
+				var by_banner := sim.bearer_forbids(u.id, pk)
+				var label := sim.posture_name(u.id, pk)
+				if by_oath and not by_banner and signal_mode:
+					label += " (poruší přísahu)"
+				ob.add_item(label)
+				ob.set_item_metadata(idx, pk)
+				ob.set_item_tooltip(idx, sim.posture_desc(pk))
+				if by_banner:
+					ob.set_item_disabled(idx, true)
+					ob.set_item_tooltip(idx, "Nositel praporu prapor nechrání, nese ho.")
+				elif by_oath and not signal_mode:
+					ob.set_item_disabled(idx, true)
+					ob.set_item_tooltip(idx, "Zakazuje přísaha %s" % sim.oath_of(u.id).get("name", ""))
+				if pk == u.posture:
+					ob.select(idx)
+				idx += 1
+			ob.fit_to_longest_item = false
+			ob.clip_text = true
+			ob.add_theme_font_size_override("font_size", 13)
+			ob.tooltip_text = sim.posture_desc(u.posture)
+			ob.item_selected.connect(func(index: int) -> void: posture_changed.emit(id, String(ob.get_item_metadata(index))))
+			v.add_child(ob)
+		else:
+			var pl := _label(sim.posture_name(u.id, u.posture), 12, MUTED)
+			pl.tooltip_text = sim.posture_desc(u.posture)
+			pl.mouse_filter = Control.MOUSE_FILTER_PASS
+			v.add_child(pl)
+
+		if not in_battle:
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 4)
+			var fb := _icon_button("banner", "Prapor", BANNER)
+			fb.toggle_mode = true
+			fb.button_pressed = sim.bearer_id == u.id
+			fb.disabled = sim.bearer_id == u.id
+			fb.tooltip_text = "Ponese prapor: %s" % sim.banner_effects(u.id).get("desc", "")
+			fb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			fb.pressed.connect(func() -> void: bearer_changed.emit(id))
+			row.add_child(fb)
+			var drawing := route_id == u.id
+			var rb := _icon_button("route", "Kreslím" if drawing else "Trasa", Color(1.0, 0.92, 0.55))
+			rb.tooltip_text = "Táhni myší po zemi, kudy má rytíř jít (nejvýš 4 body). Esc zruší." if drawing else "Nakreslit trasu: klikni a pak táhni myší po zemi, kudy má rytíř jít."
+			rb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			if drawing:
+				rb.add_theme_stylebox_override("normal", _box(Color("#3a3220"), 7, 8, GLORY, 1))
+			rb.pressed.connect(func() -> void: route_draw_pressed.emit(id))
+			row.add_child(rb)
+			if u.route.size() > 0:
+				var cb := Button.new()
+				cb.text = "✕"
+				cb.tooltip_text = "Smazat trasu"
+				cb.custom_minimum_size = Vector2(32, 36)
+				cb.pressed.connect(func() -> void: route_clear_pressed.emit(id))
+				row.add_child(cb)
+			v.add_child(row)
+		cards_row.add_child(card)
 
 
 func set_log(lines: Array) -> void:
@@ -489,17 +602,21 @@ func set_log(lines: Array) -> void:
 	for c in _log_box.get_children():
 		c.queue_free()
 	if lines.is_empty():
-		_log_box.add_child(_label("Bitva začala.", 13, MUTED))
+		_log_box.add_child(_label("Bitva ještě nezačala." if _time_label == null else "Bitva začala.", 12, MUTED))
 		return
-	var start := maxi(0, lines.size() - 7)
+	var start := maxi(0, lines.size() - 6)
 	for i in range(lines.size() - 1, start - 1, -1):
 		var l: Dictionary = lines[i]
 		var tt: float = l["t"]
-		_log_box.add_child(_label("%d:%02d  %s" % [int(tt) / 60, int(tt) % 60, l["text"]], 13, INK if l["hot"] else MUTED, true))
+		var lab := _label("%d:%02d  %s" % [int(tt) / 60, int(tt) % 60, l["text"]], 12, INK if l["hot"] else MUTED, true)
+		lab.custom_minimum_size = Vector2(270, 0)
+		_log_box.add_child(lab)
 
 
-## Části, které se mění každý zlomek sekundy (bez přestavby panelu).
+## Části, které se mění každý zlomek sekundy (bez přestavby panelů).
 func update_dynamic(sim: Sim, signal_phase: bool, paused: bool) -> void:
+	if _time_label != null:
+		_time_label.text = "%d:%02d" % [int(sim.t) / 60, int(sim.t) % 60]
 	if _glory_bar != null:
 		_glory_bar.max_value = float(sim.house["glory"]["max"])
 		_glory_bar.value = sim.glory
@@ -509,73 +626,77 @@ func update_dynamic(sim: Sim, signal_phase: bool, paused: bool) -> void:
 		var active: float = sim.fx[k]
 		b.disabled = not sim.can_shout(k) or signal_phase or paused
 		b.add_theme_stylebox_override("normal", _box(Color("#3a3220") if active > 0.0 else Color("#252a31"), 7, 8, GLORY if active > 0.0 else LINE, 1))
+	if _signal_button != null:
+		var labs := _signal_button.find_children("*", "Label", true, false)
+		if not labs.is_empty():
+			(labs[0] as Label).text = "Signál · %d" % sim.signals
+		_signal_button.disabled = not sim.can_signal() or paused
 	if _charge_button != null:
 		_charge_button.disabled = not sim.can_charge() or paused
-	if _signal_button != null:
-		_signal_button.text = "Signál praporu [Mezerník] · zbývá %d" % sim.signals
-		_signal_button.disabled = not sim.can_signal() or paused
-	for id: String in _roster_hp:
+	var in_battle := _time_label != null
+	for id: String in _cards:
 		var u := sim.by_id(id)
-		(_roster_hp[id] as ProgressBar).value = maxf(0.0, u.hp)
-
-	for c in hud.get_children():
-		c.queue_free()
-	_pill("%d:%02d" % [int(sim.t) / 60, int(sim.t) % 60], Color(0.08, 0.09, 0.11, 0.8))
-	for k: String in sim.fx:
-		var rest: float = sim.fx[k]
-		if rest > 0.0:
-			_pill("%s %.1f s" % [sim.house["shouts"][k]["name"], rest], Color(0.47, 0.35, 0.04, 0.9))
-	if sim.aura_center() == null:
-		_pill("Prapor leží na zemi", Color(0.59, 0.1, 0.09, 0.9))
-	_pill("Úkol: %s" % ("plní se" if sim.task_ok else "nesplněn"), Color(0.08, 0.09, 0.11, 0.8))
-	if signal_phase:
-		_pill("Čas stojí", Color(0.59, 0.1, 0.09, 0.9))
+		var c: Dictionary = _cards[id]
+		(c["hp"] as ProgressBar).value = maxf(0.0, u.hp)
+		var icons := _status_icons(sim, u, in_battle)
+		var sg := _sig(icons)
+		if sg != c["sig"]:
+			c["sig"] = sg
+			_fill_icons(c["icons"], icons, 16)
 
 
-func _pill(text: String, bg: Color) -> void:
-	var p := PanelContainer.new()
-	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_theme_stylebox_override("panel", _box(bg, 12, 6))
-	var l := _label(text, 13, Color.WHITE)
-	p.add_child(l)
-	hud.add_child(p)
-
-
-# ================================================================ ukazatele zdraví nad hlavou
+# ================================================================ nad hlavami: zdraví a ikonky
 
 func update_hp_bars(sim: Sim, cam: Camera3D, views: Dictionary, show_full: bool) -> void:
 	for u in sim.units:
-		var bar: Control = _hp_bars.get(u.id)
-		if bar == null:
-			bar = Control.new()
-			bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			bar.size = Vector2(36, 5)
+		var o: Dictionary = _overhead.get(u.id, {})
+		if o.is_empty():
+			var holder := Control.new()
+			holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var icons := HBoxContainer.new()
+			icons.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			icons.add_theme_constant_override("separation", 1)
+			holder.add_child(icons)
 			var bg := ColorRect.new()
 			bg.color = Color(0, 0, 0, 0.5)
-			bg.size = bar.size
-			bar.add_child(bg)
+			bg.size = Vector2(36, 5)
+			bg.position = Vector2(-18, 0)
+			bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			holder.add_child(bg)
 			var fill := ColorRect.new()
-			fill.name = "Fill"
 			fill.color = OK if u.side == Sim.SIDE_KNIGHT else BAD
-			fill.size = bar.size
-			bar.add_child(fill)
-			bars_layer.add_child(bar)
-			_hp_bars[u.id] = bar
+			fill.size = Vector2(36, 5)
+			fill.position = Vector2(-18, 0)
+			fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			holder.add_child(fill)
+			bars_layer.add_child(holder)
+			o = {"root": holder, "fill": fill, "bg": bg, "icons": icons, "sig": ""}
+			_overhead[u.id] = o
+		var holder: Control = o["root"]
 		var view: Node3D = views.get(u.id)
 		var world := view.global_position + Vector3(0, 2.25, 0) if view != null else Vector3.ZERO
-		var hidden_bar := not u.alive() or (u.hp >= u.maxhp and not show_full) or cam.is_position_behind(world)
-		bar.visible = not hidden_bar
-		if hidden_bar:
+		var hidden_now := not u.alive() or cam.is_position_behind(world)
+		holder.visible = not hidden_now
+		if hidden_now:
 			continue
-		var sp := cam.unproject_position(world)
-		bar.position = sp - Vector2(18, 0)
-		(bar.get_node("Fill") as ColorRect).size.x = 36.0 * clampf(u.hp / u.maxhp, 0.0, 1.0)
+		holder.position = cam.unproject_position(world)
+		var hp_visible := show_full or u.hp < u.maxhp
+		(o["bg"] as ColorRect).visible = hp_visible
+		(o["fill"] as ColorRect).visible = hp_visible
+		(o["fill"] as ColorRect).size.x = 36.0 * clampf(u.hp / u.maxhp, 0.0, 1.0)
+		var icons := _status_icons(sim, u, show_full)
+		var sg := _sig(icons)
+		if sg != o["sig"]:
+			o["sig"] = sg
+			var box: HBoxContainer = o["icons"]
+			_fill_icons(box, icons, 15)
+			box.position = Vector2(-icons.size() * 8.0, -19)
 
 
 func clear_hp_bars() -> void:
-	for id: String in _hp_bars:
-		(_hp_bars[id] as Control).queue_free()
-	_hp_bars.clear()
+	for id: String in _overhead:
+		(_overhead[id]["root"] as Control).queue_free()
+	_overhead.clear()
 
 
 # ================================================================ dialogy
@@ -611,13 +732,18 @@ func show_result(sim: Sim, setup: Dictionary) -> void:
 	for u in sim.knights():
 		if not u.alive():
 			fallen.append(u.name)
+	var fled := 0
+	for u in sim.units:
+		if u.fled:
+			fled += 1
 	var g := GridContainer.new()
 	g.columns = 2
 	g.add_theme_constant_override("h_separation", 16)
 	for pair: Array in [
 		["Padlí", ", ".join(fallen) if not fallen.is_empty() else "nikdo"],
+		["Uprchlí nepřátelé", str(fled)],
 		["Volitelný úkol", "splněn, %s" % sim.scenario["optional_task"]["reward"] if win and sim.task_ok else "nesplněn"],
-		["Přísaha", "Sir Bořek ji dodržel" if sim.oath_kept else "zlomena"],
+		["Přísaha", "dodržena" if sim.oath_kept else "zlomena"],
 		["Signály", "%d z %d" % [sim.signals_used, int(setup["signals"])]],
 		["Pokřiky", "%d×" % sim.shouts_used],
 		["Sláva", str(int(sim.glory))],

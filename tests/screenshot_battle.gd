@@ -45,8 +45,11 @@ func _process(_delta: float) -> bool:
 	if started_at > 0:
 		var sim: Variant = scene.get("sim")
 		if sim != null and scene.get("phase") == 1:
+			# stejná zásada jako test simulace: Za rod!, a když neběží, Štítová hradba
 			if sim.call("can_shout", "zarod"):
 				scene.call("_shout", "zarod")
+			elif float(sim.get("fx")["zarod"]) <= 0.0 and sim.call("can_shout", "hradba"):
+				scene.call("_shout", "hradba")
 			if bool(scene.get("paused")):
 				scene.call("_resume_pause")
 		if frame == started_at + 300:
@@ -121,6 +124,7 @@ func _test_route_draw() -> void:
 	scene.call("_pointer_up", cam.unproject_position(Vector3(pts[-1].x, 0, -pts[-1].y)))
 	var route: Array = asasin.get("route")
 	print("Kreslení trasy: %s (%d bodů)" % ["OK" if route.size() >= 1 and route.size() <= 4 else "CHYBA", route.size()])
+	scene.call("_clear_route", "asasin")   # bitva pak běží ve výchozím rozestavení
 
 
 func _prefix() -> String:

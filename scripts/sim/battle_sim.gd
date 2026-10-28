@@ -47,6 +47,10 @@ class Unit:
 	var ignores: Array = []       # druhy terénu, které jednotku nezpomalují ("les")
 	var traits: Array = []        # vlastnosti (nepřátelé): klíče z units.json "traits"
 	var route: Array[Vector2] = []
+	var sprung: bool = false      # Záloha už vyrazila
+	var hold: bool = false        # nepřítel drží pozici (rozkaz ze scénáře)
+	var hold_engage: float = 4.0  # jak daleko od svého místa vyrazí na rytíře
+	var hold_until: float = INF   # do kdy drží (pak postupuje jako ostatní)
 	var route_i: int = 0
 	var on_break: String = ""     # jak reaguje na zlomenou morálku (nepřátelé)
 	var desperate: bool = false
@@ -137,7 +141,7 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		if routes.has(key):
 			_apply_route(u, routes[key])
 		if not posture_allowed(u.id, u.posture):
-			u.posture = "drzet"
+			u.posture = fallback_posture(u.id)
 	_update_aura()
 
 	var foes_data: Dictionary = units_data["foes"]
@@ -146,10 +150,16 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		var fkey: String = row[0]
 		var u := _make_unit(fkey, SIDE_FOE, foes_data[fkey])
 		u.id = "e%d" % i
-		if row.size() > 3:
-			for tr: String in row[3]:
-				if not u.traits.has(tr):
-					u.traits.append(tr)
+		for extra: Variant in row.slice(3):
+			if extra is Array:
+				for tr: String in extra:
+					if not u.traits.has(tr):
+						u.traits.append(tr)
+			elif extra is Dictionary:
+				var orders: Dictionary = extra
+				u.hold = bool(orders.get("hold", false))
+				u.hold_engage = float(orders.get("engage", u.hold_engage))
+				u.hold_until = float(orders.get("hold_time", INF))
 		u.pos = Vector2(row[1], row[2])
 		u.home = u.pos
 		u.face = Vector2(0, -1)
@@ -323,9 +333,26 @@ func has_oath(id: String) -> bool:
 	return not oath_of(id).is_empty()
 
 
-## Smí rytíř mít tento postoj? Zakázat ho může přísaha, nebo to, že rytíř prapor sám nese.
+## Postoje, které třída rytíře zná (data knights.<klíč>.postures).
+func postures_for(id: String) -> Array:
+	var u := by_id(id)
+	if u == null:
+		return []
+	var kd: Dictionary = units_data["knights"].get(u.key, {})
+	return kd.get("postures", ["utok", "drzet", "chranit"])
+
+
+## Smí rytíř mít tento postoj? Musí ho znát jeho třída; zakázat ho může přísaha, nebo to, že rytíř prapor sám nese.
 func posture_allowed(id: String, posture: String) -> bool:
-	return not oath_forbids(id, posture) and not bearer_forbids(id, posture)
+	return postures_for(id).has(posture) and not oath_forbids(id, posture) and not bearer_forbids(id, posture)
+
+
+## První povolený postoj třídy (když ten zvolený nejde).
+func fallback_posture(id: String) -> String:
+	for p: String in postures_for(id):
+		if posture_allowed(id, p):
+			return p
+	return "utok"
 
 
 func oath_forbids(id: String, posture: String) -> bool:
@@ -343,7 +370,16 @@ func posture_name(id: String, posture: String) -> String:
 	var names: Dictionary = oath_of(id).get("posture_names", {})
 	if names.has(posture):
 		return names[posture]
-	return units_data["postures"][posture]
+	var u := by_id(id)
+	if u != null:
+		var cn: Dictionary = units_data["knights"].get(u.key, {}).get("posture_names", {})
+		if cn.has(posture):
+			return cn[posture]
+	return units_data["postures"][posture]["name"]
+
+
+func posture_desc(posture: String) -> String:
+	return units_data["postures"].get(posture, {}).get("desc", "")
 
 
 func _no_retreat(u: Unit) -> bool:
@@ -548,8 +584,14 @@ func order_move(id: String, target: Vector2) -> void:
 	if u == null or not u.alive():
 		return
 	u.home = target
-	u.posture = "drzet"
-	u.route_i = u.route.size()   # rozkaz přesunu ruší zbytek trasy
+	if posture_allowed(id, "drzet"):
+		u.posture = "drzet"
+		u.route_i = u.route.size()   # rozkaz přesunu ruší zbytek trasy
+	else:
+		# třída bez Držet pozici: dojde na místo (jako trasa o jednom bodu) a pak jedná podle postoje
+		u.route.clear()
+		u.route.append(target)
+		u.route_i = 0
 	_log("%s: nová pozice" % u.name, false)
 
 
@@ -559,8 +601,8 @@ func set_bearer(id: String) -> bool:
 		return false
 	bearer_id = id
 	var u := by_id(id)
-	if u.posture == "chranit":
-		u.posture = "drzet"
+	if not posture_allowed(id, u.posture):
+		u.posture = fallback_posture(id)
 		u.home = u.pos
 	_update_aura()
 	return true
@@ -681,11 +723,19 @@ func _walk(u: Unit, target: Vector2, dt: float, stop: float = 0.0) -> void:
 		return
 	var st := minf(d, _speed(u) * terrain_speed(u, u.pos) * dt)
 	var old := u.pos
-	u.pos += dv / d * st
+	var step_v := dv / d * st
+	u.pos += step_v
 	u.face = dv / d
 	u.moving = true
 	if _in_water(u.pos):
-		u.pos = old
+		# u břehu se nezasekne: zkusí sklouznout podél břehu (jen po x, nebo jen po y)
+		u.pos = old + Vector2(step_v.x, 0.0)
+		if _in_water(u.pos):
+			u.pos = old + Vector2(0.0, step_v.y)
+			if _in_water(u.pos):
+				u.pos = old + Vector2(0.0, -absf(step_v.x) if old.y < river_lo else absf(step_v.x))
+				if _in_water(u.pos):
+					u.pos = old
 
 
 func _face_to(u: Unit, tg: Unit) -> void:
@@ -776,8 +826,8 @@ func _knight_think(u: Unit, dt: float) -> void:
 			bearer_id = u.id
 			banner_down = false
 			picker_id = ""
-			if u.posture == "chranit":
-				u.posture = "drzet"
+			if not posture_allowed(u.id, u.posture):
+				u.posture = fallback_posture(u.id)
 				u.home = u.pos
 			_update_aura()
 			_gain_glory(float(house["glory"]["per_banner_pickup"]))
@@ -812,6 +862,16 @@ func _knight_think(u: Unit, dt: float) -> void:
 
 	# Když je bitva rozhodnutá, všichni dobojují útokem (nikdo nestojí, nikdo nečeká).
 	var posture := u.posture if decided == "" and not charging else "utok"
+	# Záloha / Číhat: čeká, dokud se někdo z oddílu nestřetne (nebo nepřítel nepřijde k němu), pak útočí.
+	var waiting := false
+	if posture == "zaloha":
+		if not u.sprung and (_engaged_ally(u) != null or _nearest(foes, u.pos).pos.distance_to(u.pos) <= u.reach + 1.5):
+			u.sprung = true
+			_log("%s vyráží ze zálohy" % u.name, false)
+		if u.sprung:
+			posture = "utok"
+		else:
+			waiting = true
 	var has_anchor := false
 	var anchor := Vector2.ZERO
 	var leash := INF
@@ -825,7 +885,7 @@ func _knight_think(u: Unit, dt: float) -> void:
 		anchor = u.home
 		leash = 0.0 if firm else 1.5
 		engage = u.reach if u.ranged else u.reach + 3.0
-	elif posture == "chranit":
+	elif posture == "chranit" or posture == "vypad":
 		has_anchor = true
 		var c := aura_center()
 		if c != null and c.id != u.id:
@@ -836,6 +896,27 @@ func _knight_think(u: Unit, dt: float) -> void:
 			anchor = u.home
 		leash = 2.5
 		engage = 4.5
+		if posture == "vypad":
+			engage = float(units_data["postures"]["vypad"].get("engage", 10.0))
+			leash = engage
+	elif posture == "lecit":
+		# drží se kousek za bojujícím spolubojovníkem (na straně od nepřítele)
+		has_anchor = true
+		var mate := _engaged_ally(u)
+		if mate != null:
+			var fn := _nearest(foes, mate.pos)
+			var away := (mate.pos - fn.pos).normalized() if fn != null else Vector2(0, -1)
+			anchor = mate.pos + away * float(units_data["postures"]["lecit"].get("behind", 2.0))
+		else:
+			var c2 := aura_center()
+			anchor = c2.pos if c2 != null and c2.id != u.id else u.home
+		leash = 1.0
+		engage = 1.5
+	elif waiting:
+		has_anchor = true
+		anchor = u.home
+		leash = 0.5
+		engage = u.reach + 1.5
 
 	var cand: Array[Unit] = []
 	for f in foes:
@@ -876,9 +957,10 @@ func _knight_think(u: Unit, dt: float) -> void:
 			return
 
 	if has_anchor:
-		var near := 1.6 if posture == "chranit" else 0.25
+		var loose := posture == "chranit" or posture == "vypad"
+		var near := 1.6 if loose else 0.25
 		if u.pos.distance_to(anchor) > near:
-			_walk(u, anchor, dt, 1.5 if posture == "chranit" else 0.2)
+			_walk(u, anchor, dt, 1.5 if loose else 0.2)
 		else:
 			u.moving = false
 	else:
@@ -909,6 +991,18 @@ func _foe_think(u: Unit, dt: float) -> void:
 	if ks.is_empty():
 		u.moving = false
 		return
+	if u.hold:
+		# Pěšák, kterého něco zasáhlo, opustí pozici a s ním celá jeho skupina (do 5 m);
+		# vypršení času nebo zlomení morálky uvolní všechny.
+		if t >= u.hold_until or u.desperate:
+			u.hold = false
+		elif not u.ranged and u.hp < u.maxhp:
+			for f in living(SIDE_FOE):
+				if f.hold and not f.ranged and f.home.distance_to(u.home) <= 5.0:
+					f.hold = false
+		if u.hold:
+			_foe_hold(u, ks, dt)
+			return
 	var tg := _nearest(ks, u.pos)
 	var d := u.pos.distance_to(tg.pos)
 	if u.ranged:
@@ -927,6 +1021,34 @@ func _foe_think(u: Unit, dt: float) -> void:
 		_attack(u, tg)
 	else:
 		_walk(u, tg.pos, dt, u.reach * 0.8)
+
+
+## Nepřítel drží pozici: střelec střílí, co má na dostřel, pěšák vyrazí jen na rytíře blízko svého místa.
+func _foe_hold(u: Unit, ks: Array[Unit], dt: float) -> void:
+	if u.ranged:
+		var tg := _nearest(ks, u.pos)
+		if tg != null and u.pos.distance_to(tg.pos) <= u.reach:
+			u.moving = false
+			_attack(u, tg)
+			return
+	else:
+		var near: Array[Unit] = []
+		for k in ks:
+			if k.pos.distance_to(u.home) <= u.hold_engage:
+				near.append(k)
+		var mt := _nearest(near, u.pos)
+		if mt != null:
+			if u.pos.distance_to(mt.pos) <= u.reach + mt.radius * 0.5:
+				u.moving = false
+				_attack(u, mt)
+			else:
+				_walk(u, mt.pos, dt, u.reach * 0.8)
+			return
+	if u.pos.distance_to(u.home) > 0.4:
+		_walk(u, u.home, dt, 0.2)
+	else:
+		u.moving = false
+		u.face = Vector2(0, -1)
 
 
 func _separate() -> void:

@@ -22,6 +22,7 @@ Modely, textury a shadery hry a cesta z Blenderu do Godotu.
 | `SK_Knight.glb` | Claude, skriptem v Blenderu | herní rytíř |
 | `T_Knight_Palette_*.png` | Claude, vygenerováno skriptem | paleta barev |
 | bojiště, nepřátelé (i kopiník, brody, lávka, les) | Claude, primitiva v kódu | zástupná grafika |
+| ikonky UI (`scripts/battle/ui_icon.gd`) | Claude, vektorově v kódu | zástupné, finální navrhne Tom |
 
 ## Historie významných změn
 - 28.10.2026: řádek palety 5 přebarven na fialovou šeď pro asasína (byl praporečník).

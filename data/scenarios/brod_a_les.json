@@ -1,7 +1,7 @@
 {
-  "_info": "Bitva Brod a les. Řeku jde přejít dvěma brody po stranách (zpomalí) a úzkou lávkou uprostřed. Za lávkou je les se stezkou, za lesem střelci. Nepřátelé přijdou ze dvou stran: vlevo lapkové, vpravo kopiníci (proti jízdě). Asasína les nezpomaluje.",
+  "_info": "Bitva Brod a les. Řeku jde přejít dvěma brody po stranách (zpomalí) a úzkou lávkou uprostřed. Za lávkou je les se stezkou, za lesem střelci. Nepřátelé drží pozice: vlevo lapkové a vpravo kopiníci (proti jízdě) hlídají brody, střelci stojí na břehu před lesem a střílí přes řeku. Pěšák, kterého něco zasáhne, vyrazí; po hold_time s postupují všichni. Asasína les nezpomaluje. Řádek nepřítele: [typ, x, y, (vlastnosti), (rozkazy {hold, engage, hold_time})].",
   "name": "Brod a les",
-  "subtitle": "Lapkové a kopiníci od Černého brodu · 7 pěšáků, 3 kopiníci, 3 střelci",
+  "subtitle": "Lapkové a kopiníci od Černého brodu · 8 pěšáků, 4 kopiníci, 3 střelci",
   "stage_label": "Akt 1 · Stage 3",
   "win_title": "Vítězství u brodu",
   "river": {"y0": 5.0, "y1": 8.5, "crossings": [
@@ -14,20 +14,23 @@
   ],
   "trees": [[-13, -2, 4.5], [-15, 2, 4.0], [14, -1, 4.2], [16, 3, 4.6], [-17, -8, 4.4], [15, -9, 4.6], [-14, 18, 4.4], [14, 19, 4.2]],
   "rocks": [[13, -4, 1.2, 20], [-13, -12, 0.7, 35], [12, 22, 1.0, 10]],
-  "deploy_zone": {"x0": -10, "x1": 10, "y0": -6, "y1": 1.5},
+  "deploy_zone": {"x0": -10, "x1": 10, "y0": -6, "y1": 2.0},
   "deploy": {
     "tank": {"pos": [-1.5, 0.5], "posture": "drzet"},
-    "jezdec": {"pos": [1.5, 0.5], "posture": "drzet"},
-    "asasin": {"pos": [0.5, -0.5], "posture": "drzet"},
-    "knez": {"pos": [-0.5, -2.0], "posture": "drzet"},
+    "jezdec": {"pos": [1.5, 0.5], "posture": "zaloha"},
+    "asasin": {"pos": [0.5, -0.5], "posture": "zaloha"},
+    "knez": {"pos": [-0.5, -2.0], "posture": "lecit"},
     "lucistnik": {"pos": [0.0, -3.5], "posture": "drzet"}
   },
   "banner_bearer": "knez",
   "optional_task": {"text": "Nikdo nepadne.", "reward": "vzácné znamení", "protect": "all"},
   "enemy_morale": {"break_losses": 0.7, "flee_y": 24.0},
   "enemies": [
-    ["lapka", -9.5, 14.0], ["lapka", -8.0, 13.2], ["lapka", -6.5, 14.0], ["lapka", -8.8, 15.6], ["lapka", -7.2, 15.6],
-    ["kopinik", 7.0, 13.5], ["kopinik", 8.5, 13.2], ["kopinik", 10.0, 13.5], ["lapka", 7.8, 15.2], ["lapka", 9.2, 15.2, ["zbabelec"]],
-    ["strelec", -1.5, 18.0], ["strelec", 0.0, 18.4], ["strelec", 1.5, 18.0]
+    ["lapka", -9.5, 10.0, {"hold": true, "engage": 4.5, "hold_time": 30}], ["lapka", -8.0, 9.6, {"hold": true, "engage": 4.5, "hold_time": 30}], ["lapka", -6.8, 10.0, {"hold": true, "engage": 4.5, "hold_time": 30}],
+    ["lapka", -8.8, 11.5, {"hold": true, "engage": 4.5, "hold_time": 30}], ["lapka", -7.4, 11.5, {"hold": true, "engage": 4.5, "hold_time": 30}],
+    ["kopinik", 7.0, 9.6, {"hold": true, "engage": 4.0, "hold_time": 30}], ["kopinik", 8.5, 9.6, {"hold": true, "engage": 4.0, "hold_time": 30}], ["kopinik", 10.0, 9.6, {"hold": true, "engage": 4.0, "hold_time": 30}],
+    ["lapka", 7.8, 11.2, {"hold": true, "engage": 4.0, "hold_time": 30}], ["lapka", 9.2, 11.2, ["zbabelec"], {"hold": true, "engage": 4.0, "hold_time": 30}],
+    ["lapka", -8.0, 12.5, {"hold": true, "engage": 4.5, "hold_time": 30}], ["kopinik", 8.4, 12.0, {"hold": true, "engage": 4.0, "hold_time": 30}],
+    ["strelec", -3.0, 9.0, {"hold": true, "hold_time": 30}], ["strelec", 1.5, 9.0, {"hold": true, "hold_time": 30}], ["strelec", 3.5, 9.0, {"hold": true, "hold_time": 30}]
   ]
 }

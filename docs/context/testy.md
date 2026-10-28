@@ -17,8 +17,8 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 ## Co který test hlídá
 | Test | Hlídá | Očekávaný výsledek |
 | --- | --- | --- |
-| `test_battle_sim.gd` | invarianty simulace, balanc, prapor (volba nositele, efekty podle třídy, zvednutí), přísahy a postoje, „Stát pevně“, cíle asasína, pomoc bojujícímu spolubojovníkovi, morálka nepřítele, povel Do boje!, rozhodnutá bitva; balanc každého scénáře z `index.json`; terén (brody, lávka, les), trasy, kopiníci a vlastnosti; informativně výhry podle nositele | kód 0, „OK: všechny testy prošly“ |
-| `screenshot_battle.gd` | scéna se načte, drag & drop prohodí rytíře tam i zpět, po zlomení morálky jde dát povel Do boje!, bitva doběhne bez chyb | „Drag & drop … OK“, „povel Do boje!: OK“, „Kreslení trasy: OK“, u mostu „Bitva skončila: win“ (u jiných scénářů jen doběhne), žádné ERROR v logu |
+| `test_battle_sim.gd` | invarianty simulace, balanc, prapor (volba nositele, efekty podle třídy, zvednutí), přísahy a postoje, „Stát pevně“, cíle asasína, pomoc bojujícímu spolubojovníkovi, morálka nepřítele, povel Do boje!, rozhodnutá bitva; balanc každého scénáře z `index.json`; terén (brody, lávka, les), trasy, kopiníci a vlastnosti, postoje podle třídy, nepřátelé držící pozici; informativně výhry podle nositele | kód 0, „OK: všechny testy prošly“ |
+| `screenshot_battle.gd` | scéna se načte, drag & drop prohodí rytíře tam i zpět, po zlomení morálky jde dát povel Do boje!, bitva doběhne bez chyb | „Drag & drop … OK“, „povel Do boje!: OK“, „Kreslení trasy: OK“ (trasa se pak smaže), pokřiky jako v testu simulace, u mostu „Bitva skončila: win“ (u jiných scénářů jen doběhne), žádné ERROR v logu |
 
 ## Invarianty
 1. **Před každým pushem** projde `gdparse` na změněných `.gd` souborech.
