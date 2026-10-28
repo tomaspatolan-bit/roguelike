@@ -1,11 +1,13 @@
 {
-  "_info": "Rod Vlka: aura praporu, pokřiky a přísaha tanka. Čísla jsou vyladěná simulací (bez pokřiků se bitva u mostu prohrává, s nimi vyhrává).",
+  "_info": "Rod Vlka: sestava je v units.json (knights), tady sláva a přísahy. Sláva je společná rezerva rodu: plní se činy hrdinů, extra_use_cost = cena použití schopnosti navíc. Přísaha u tanka je v prototypu jen na zkoušku (přísahy budou odměny v běhu).",
   "name": "Rod Vlka",
-  "aura": {"radius": 5.0, "dmg_bonus": 0.15},
-  "glory": {"start": 25, "max": 100, "per_hit": 0.5, "per_kill": 10, "per_banner_pickup": 5, "oath_per_second": 1.0},
-  "shouts": {
-    "zarod":  {"name": "Za rod!",        "cost": 40, "duration": 6, "desc": "+50 % útok u praporu", "dmg_bonus": 0.5},
-    "hradba": {"name": "Štítová hradba", "cost": 30, "duration": 6, "desc": "Poloviční zranění u praporu", "damage_taken": 0.5}
+  "glory": {
+    "start": 25,
+    "max": 100,
+    "per_hit": 0.5,
+    "per_kill": 10,
+    "oath_per_second": 1.0,
+    "extra_use_cost": 40
   },
   "oaths": {
     "nikdy_neustoupi": {
@@ -14,10 +16,7 @@
       "dmg_bonus": 0.25,
       "break_glory_cost": 20,
       "no_retreat": true,
-      "forbidden_postures": ["chranit"],
-      "posture_names": {"drzet": "Stát pevně"},
-      "desc": "Bonus +25 % k útoku. Nikdy necouvne: v postoji Stát pevně bojuje s tím, co k němu přijde, a nevrací se. Chránit prapor nesmí. Rozkaz k ústupu přísahu poruší: rytíř přijde o bonus a oddíl o 20 slávy."
+      "desc": "Bonus +25 % k útoku. Nikdy necouvne: nejde za nepřítelem dozadu, bez nepřítele stojí na místě, trasa ani rozkaz nesmí vést zpět. Rozkaz k ústupu přísahu poruší: hrdina přijde o bonus a rod o 20 slávy."
     }
-  },
-  "banner": {"pickup_time": 0.8}
+  }
 }

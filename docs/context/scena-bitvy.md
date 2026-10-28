@@ -8,17 +8,17 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 
 ## Invarianty
 1. **Scéna jen čte stav simulace a volá její příkazy.** Nové pravidlo patří do simulace.
-2. **Fáze:** rozestavení → bitva ⇄ signál → konec. V rozestavení a při signálu čas stojí. Rozkazy přesunu jen při signálu, rozestavení jen v zóně.
-3. **Pauza (`paused`)** zastaví simulaci a pokřiky. Zapíná ji smrt nositele praporu a otevřený dialog přísahy; vždy musí jít zrušit (Enter, tlačítko, odpověď v dialogu).
+2. **Fáze:** rozestavení → bitva ⇄ signál → konec. V rozestavení a při signálu čas stojí. Rozkazy přesunu jen při signálu, rozestavení jen v zóně. Schopnosti jdou v bitvě i při signálu.
+3. **Pauza (`paused`)** zastaví simulaci. Zapíná ji otevřený dialog přísahy; vždy musí jít zrušit.
 4. **Pevný krok 1/60 s**, nejvýš 8 kroků na snímek. Rychlost 2× = víc kroků, ne delší krok.
 5. **Převod souřadnic** `Vector3(x, výška, -y)`, natočení `atan2(face.x, -face.y)` (model kouká po +Z).
-6. **Rytíř z GLB:** očekává `MeshInstance3D` a `AnimationPlayer` s animacemi `A_Knight_Idle` a `A_Knight_Walk`. Barva role přes `role_row` v shaderu, materiál je na jednotku vlastní (kvůli záblesku zásahu).
-7. **Ovládání:** 1, 2 pokřiky · F povel Do boje! (po zlomení morálky) · mezerník signál / pokračovat · Enter pokračovat · kamera: WASD nebo šipky a tažení pravým tlačítkem = posun, prostřední tlačítko nebo Q/E = otáčení, kolečko = přiblížení. Klávesa S patří kameře, ne signálu. Změna = upravit README a popisky v UI.
-8. **Výběr a přesun rytířů:** rytíř se vybírá podle své postavy na obrazovce (úsečka nohy–hlava, tolerance `PICK_PX` = 30 px), ne podle bodu na zemi. Drag & drop: v rozestavení přesun v zóně a puštění na jiného rytíře je prohodí; při signálu rozkaz přesunu s kontrolou přísahy. Pohyb a puštění myši se čtou v `_input`, aby táhnutí neuvízlo nad panelem. Klik na rytíře a pak na zem funguje dál.
-9. **Přísahy se ve scéně ověřují přes simulaci** (`posture_allowed`, `has_oath`, `is_retreat`), nikdy podle klíče rytíře.
-10. **Nositel praporu** se mění jen v rozestavení přes `sim.set_bearer` a ukládá se do `setup["bearer"]`. Kruh aury se zvětšuje podle `sim.aura_radius` (měřítko vůči poloměru rodu).
+6. **Hrdina z GLB:** očekává `MeshInstance3D` a `AnimationPlayer` s `A_Knight_Idle` a `A_Knight_Walk`. Barva role přes `role_row` v shaderu.
+7. **Ovládání:** 1–5 schopnost hrdiny podle pořadí karet · F Do boje! · mezerník signál / pokračovat · Enter pokračovat · Esc zruší cílení nebo kreslení trasy · kamera: WASD/šipky a pravé tlačítko = posun, prostřední tlačítko nebo Q/E = otáčení, kolečko = přiblížení. Změna = upravit README a popisky v UI.
+8. **Výběr a přesun hrdinů:** podle postavy na obrazovce (úsečka nohy–hlava, `PICK_PX` = 30 px). Drag & drop v rozestavení (prohození puštěním), při signálu rozkaz přesunu s kontrolou přísahy.
+9. **Cílení schopnosti:** `_aim_id` = hrdina, jehož schopnost se cílí; kruh pod kurzorem v poloměru schopnosti (červený mimo dosah), klik pošle cíl do `sim.use_ability`, neplatný cíl ukáže `flash_hint`. Nepřítel se vybírá podle postavy na obrazovce (`_pick_foe`). Událost `ability` = krátký kruh efektu.
+10. **Přísahy se ve scéně ověřují přes simulaci** (`has_oath`, `is_retreat`), nikdy podle klíče hrdiny.
 11. **Rozhodnutá bitva** (událost `decided`) přepne rychlost aspoň na 2×. Uprchlá jednotka (`fled`) je skrytá.
-12. **Výběr bitvy** jen v rozestavení (`_load_scenario`): bojiště se staví do `field_root` a při změně se zahodí a postaví znovu, i s modrou zónou. **Trasy:** tlačítkem Kreslit trasu se zapne režim kreslení pro vybraného rytíře, tažení po zemi kreslí čáru, puštění ji zjednoduší a pošle do `sim.set_route` (problém ukáže toast). Esc režim zruší. Trasy se kreslí žlutě se šipkami (`_draw_routes`), v bitvě jen zbývající část.
+12. **Výběr bitvy** jen v rozestavení (`_load_scenario`, bojiště v `field_root`). **Trasy:** Kreslit trasu → tažení po zemi → zjednodušení → `sim.set_route`; Esc zruší; trasy žlutě se šipkami.
 
 ## Úskalí
 - Proměnná s typem `Node3D` nezná metody skriptu: použij typ skriptu (`var v := UnitView.new()`).
@@ -26,6 +26,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 - Limity testů počítej v čase bitvy, ne ve snímcích (monitor může mít 144 Hz).
 
 ## Historie významných změn
+- 28.10.2026: přestavba na hrdiny: pryč aura a prapor; schopnosti klávesami 1–5 a z karet, cílení kruhem, efekty schopností.
 - 28.10.2026: výběr bitvy, kreslení a zobrazení tras, bojiště z obecného terénu (most, brody, lávka, les), kopiník.
 - 28.10.2026: povel Do boje! (F), rozhodnutá bitva se zrychlí na 2×, uprchlí nepřátelé zmizí.
 - 28.10.2026: volba nositele praporu, kruh aury podle nositele.

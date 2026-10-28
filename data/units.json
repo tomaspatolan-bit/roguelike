@@ -1,26 +1,33 @@
 {
-  "_info": "Statistiky jednotek. hp = zdraví, dmg = poškození za úder, reach = dosah útoku v m, speed = m/s, cd = prodleva mezi útoky v s, armor = podíl pohlceného poškození, radius = poloměr těla v m, palette_row = řádek paletové textury (barva látky). target_priority = koho rytíř přednostně napadá ('ranged' = střelce). mounted = jízda (kopiníci proti ní dávají dmg_vs_mounted). ignores = terén, který jednotku nezpomaluje ('les'). postures = povolené postoje třídy (první je výchozí), posture_names = názvy postojů pro tuto třídu. banner = co prapor dělá, když ho nese tento rytíř: aura_radius (m, jinak podle rodu), aura_dmg_bonus (přičte se k bonusu rodu), aura_armor (podíl zranění, který v auře odpadne), aura_speed (podíl rychlosti navíc v auře), aura_heal (zdraví za sekundu v auře).",
+  "_info": "Statistiky jednotek. hp = zdraví, dmg = poškození za úder, reach = dosah útoku v m, speed = m/s, cd = prodleva mezi útoky v s, armor = podíl pohlceného poškození, radius = poloměr těla v m, palette_row = řádek paletové textury (barva látky). target_priority = koho rytíř přednostně napadá ('ranged' = střelce). mounted = jízda (kopiníci proti ní dávají dmg_vs_mounted). ignores = terén, který jednotku nezpomaluje ('les'). behavior = výchozí chování třídy (behaviors), ability = schopnost (abilities).",
   "knights": {
-    "tank":      {"name": "Sir Bořek", "role": "Tank",      "hp": 375, "dmg": 11, "reach": 1.5, "speed": 2.2, "cd": 1.1, "armor": 0.35, "radius": 0.45, "palette_row": 1, "color": "#4d66a6",
-                  "postures": ["drzet", "chranit", "utok"], "posture_names": {"chranit": "Krýt prapor", "utok": "Prorazit"}, "banner": {"aura_armor": 0.15, "desc": "Ocelová hradba: v auře o 15 % menší zranění."}},
-    "knez":      {"name": "Otec Jan",  "role": "Kněz",      "hp": 185, "dmg": 5,  "reach": 1.4, "speed": 2.3, "cd": 1.2, "armor": 0.05, "radius": 0.40, "palette_row": 3, "color": "#d9d1b3", "heal": 14, "heal_cd": 2.5, "heal_range": 6,
-                  "postures": ["lecit", "chranit"], "posture_names": {"chranit": "U praporu"}, "banner": {"aura_heal": 2.0, "desc": "Požehnaný prapor: v auře léčí 2 zdraví za sekundu."}},
-    "lucistnik": {"name": "Matěj",     "role": "Lučištník", "hp": 165, "dmg": 9,  "reach": 9.0, "speed": 2.6, "cd": 1.3, "armor": 0.05, "radius": 0.40, "palette_row": 2, "color": "#4d8c4d", "ranged": true,
-                  "postures": ["drzet", "chranit"], "posture_names": {"drzet": "Ostřelovat", "chranit": "U praporu"}, "banner": {"aura_radius": 7.0, "desc": "Prapor nad hlavami: aura 7 m místo 5 m."}},
-    "jezdec":    {"name": "Sir Radek", "role": "Jezdec",    "hp": 285, "dmg": 17, "reach": 1.8, "speed": 5.0, "cd": 1.4, "armor": 0.20, "radius": 0.75, "palette_row": 4, "color": "#bf8c26", "mounted": true,
-                  "postures": ["vypad", "zaloha"], "banner": {"aura_speed": 0.25, "desc": "Prapor v trysku: v auře +25 % rychlost."}},
-    "asasin":    {"name": "Kryštof",   "role": "Asasín",    "hp": 170, "dmg": 18, "reach": 1.3, "speed": 3.4, "cd": 0.85, "armor": 0.10, "radius": 0.38, "palette_row": 5, "color": "#6a5a8c", "target_priority": "ranged", "ignores": ["les"],
-                  "postures": ["utok", "zaloha"], "posture_names": {"utok": "Lovit střelce", "zaloha": "Číhat"}, "banner": {"aura_radius": 4.0, "aura_dmg_bonus": 0.15, "desc": "Krvavý prapor: aura jen 4 m, ale útok v ní +30 % místo +15 %."}}
+    "tank": {"name": "Sir Bořek", "role": "Tank", "hp": 375, "dmg": 11, "reach": 1.5, "speed": 2.2, "cd": 1.1, "armor": 0.35, "radius": 0.45, "palette_row": 1, "color": "#4d66a6", "behavior": "frontline", "ability": "vyzva"},
+    "knez": {"name": "Otec Jan", "role": "Kněz", "hp": 185, "dmg": 5, "reach": 1.4, "speed": 2.3, "cd": 1.2, "armor": 0.05, "radius": 0.4, "palette_row": 3, "color": "#d9d1b3", "heal": 14, "heal_cd": 2.5, "heal_range": 6, "behavior": "healer", "ability": "pozehnani"},
+    "lucistnik": {"name": "Matěj", "role": "Lučištník", "hp": 165, "dmg": 9, "reach": 9.0, "speed": 2.6, "cd": 1.3, "armor": 0.05, "radius": 0.4, "palette_row": 2, "color": "#4d8c4d", "ranged": true, "behavior": "archer", "ability": "salva"},
+    "jezdec": {"name": "Sir Radek", "role": "Jezdec", "hp": 285, "dmg": 17, "reach": 1.8, "speed": 5.0, "cd": 1.4, "armor": 0.2, "radius": 0.75, "palette_row": 4, "color": "#bf8c26", "mounted": true, "behavior": "rider", "ability": "najezd"},
+    "asasin": {"name": "Kryštof", "role": "Asasín", "hp": 170, "dmg": 18, "reach": 1.3, "speed": 3.4, "cd": 0.85, "armor": 0.1, "radius": 0.38, "palette_row": 5, "color": "#6a5a8c", "target_priority": "ranged", "ignores": ["les"], "behavior": "assassin", "ability": "uder"}
   },
   "foes": {
-    "lapka":   {"name": "Lapka",   "role": "Lapka",   "hp": 120, "dmg": 7, "reach": 1.3, "speed": 2.5, "cd": 1.1, "armor": 0.0, "radius": 0.40, "on_break": "desperate", "traits": ["zoufalec"]},
-    "kopinik": {"name": "Kopiník", "role": "Kopiník", "hp": 150, "dmg": 8, "reach": 2.2, "speed": 2.2, "cd": 1.3, "armor": 0.15, "radius": 0.40, "on_break": "desperate", "dmg_vs_mounted": 2.0, "traits": ["fanatik"]},
-    "strelec": {"name": "Střelec", "role": "Střelec", "hp": 90,  "dmg": 5, "reach": 8.0, "speed": 2.4, "cd": 1.6, "armor": 0.0, "radius": 0.40, "ranged": true, "on_break": "flee"}
+    "lapka": {"name": "Lapka", "role": "Lapka", "hp": 120, "dmg": 7, "reach": 1.3, "speed": 2.5, "cd": 1.1, "armor": 0.0, "radius": 0.4, "on_break": "desperate", "traits": ["zoufalec"]},
+    "kopinik": {"name": "Kopiník", "role": "Kopiník", "hp": 150, "dmg": 8, "reach": 2.2, "speed": 2.2, "cd": 1.3, "armor": 0.15, "radius": 0.4, "on_break": "desperate", "dmg_vs_mounted": 2.0, "traits": ["fanatik"]},
+    "strelec": {"name": "Střelec", "role": "Střelec", "hp": 90, "dmg": 5, "reach": 8.0, "speed": 2.4, "cd": 1.6, "armor": 0.0, "radius": 0.4, "ranged": true, "on_break": "flee"}
   },
-  "behavior": {
-    "_info": "Obecné chování rytířů. help_window = jak dlouho (s) po útoku nebo zásahu se rytíř počítá jako bojující; rytíř v postoji Držet pozici bez vlastního cíle jde pomoct nejbližšímu bojujícímu. decided_ratio = když síla jedné strany (zdraví × poškození za sekundu) klesne pod tento podíl síly druhé, je rozhodnuto a všichni rytíři dobojují útokem (pojistka; hráč má dřív povel Do boje! po zlomení morálky).",
-    "help_window": 1.5,
-    "decided_ratio": 0.15
+  "behaviors": {
+    "_info": "Výchozí chování tříd hrdinů. _common: help_window = jak dlouho (s) po útoku nebo zásahu se hrdina počítá jako bojující; decided_ratio = když síla jedné strany klesne pod tento podíl síly druhé, hrdinové dobojují sami.",
+    "_common": {"help_window": 1.5, "decided_ratio": 0.15},
+    "frontline": {"name": "Drží frontu", "desc": "Stojí kus před oddílem a napadne každého, kdo se přiblíží k němu nebo ke spojenci.", "engage": 4.5, "guard": 3.0, "ahead": 1.5},
+    "healer": {"name": "Léčí frontu", "desc": "Drží se kousek za tím, kdo bojuje, a léčí nejzraněnějšího hrdinu v dosahu.", "behind": 2.0},
+    "archer": {"name": "Střílí zezadu", "desc": "Střílí na dostřel. Když se k němu nepřítel přiblíží, couvne.", "kite": 3.0, "kite_step": 4.0, "behind": 2.0},
+    "rider": {"name": "Výpady", "desc": "Na nepřítele do 7 m od oddílu vyrazí, udeří a vrátí se k oddílu.", "engage": 7.0},
+    "assassin": {"name": "Loví střelce", "desc": "Jde po nepřátelských střelcích, když nejsou, po nejslabším nepříteli."}
+  },
+  "abilities": {
+    "_info": "Schopnosti hrdinů. uses = použití za bitvu (obnova po bitvě), target = none / point (místo na zemi) / enemy (nepřítel), range = dosah cílení v m. Další čísla podle schopnosti.",
+    "vyzva": {"name": "Výzva", "desc": "Na 4 s přitáhne útoky nepřátel do 6 m a dostává o 50 % menší zranění.", "uses": 2, "target": "none", "radius": 6.0, "duration": 4.0, "damage_taken": 0.5},
+    "pozehnani": {"name": "Požehnání", "desc": "Vyléčí všechny hrdiny do 8 m o 30 % jejich zdraví.", "uses": 1, "target": "none", "radius": 8.0, "heal_frac": 0.3},
+    "salva": {"name": "Salva", "desc": "5 šípů do kruhu o poloměru 2 m na vybrané místo, každý za 9.", "uses": 2, "target": "point", "range": 12.0, "radius": 2.0, "arrows": 5, "dmg": 9},
+    "najezd": {"name": "Nájezd", "desc": "Projede k vybranému místu (nejvýš 10 m), nepřátele v cestě zasáhne za 17 a omráčí na 1,5 s.", "uses": 2, "target": "point", "range": 10.0, "land": true, "dmg": 17, "stun": 1.5, "width": 1.0, "speed_mult": 3.0},
+    "uder": {"name": "Úder ze stínu", "desc": "Skočí za vybraného nepřítele (nejvýš 8 m) a zasadí mu trojnásobný úder.", "uses": 2, "target": "enemy", "range": 8.0, "mult": 3.0}
   },
   "morale": {
     "_info": "Morálka nepřátel. Když nepřítel ztratí podíl break_losses jednotek (padlí i uprchlí), morálka se zlomí a každá jednotka zareaguje podle on_break: desperate = zoufale dobojuje (útok + desperate_dmg_bonus), flee = uteče za okraj bojiště (flee_y ve scénáři). Scénář může break_losses přepsat.",
@@ -30,16 +37,7 @@
   "traits": {
     "_info": "Vlastnosti nepřátel. Jednotka je má v units.json (traits) nebo je dostane ve scénáři (4. prvek řádku nepřítele). never_breaks = nikdy se nezlomí, on_break = přepíše reakci na zlomenou morálku, desperate_dmg_bonus = útok navíc při zoufalství.",
     "zoufalec": {"name": "Zoufalec", "desc": "Se zlomenou morálkou útočí o 10 % silněji navíc.", "desperate_dmg_bonus": 0.1},
-    "fanatik":  {"name": "Fanatik",  "desc": "Nikdy se nezlomí, bojuje do konce.", "never_breaks": true},
+    "fanatik": {"name": "Fanatik", "desc": "Nikdy se nezlomí, bojuje do konce.", "never_breaks": true},
     "zbabelec": {"name": "Zbabělec", "desc": "Když se morálka zlomí, uteče, i když je pěšák.", "on_break": "flee"}
-  },
-  "postures": {
-    "_info": "Postoje (chování bez rozkazu). Každá třída má v knights.<klíč>.postures svůj seznam a v posture_names vlastní názvy. Čísla chování jsou tady.",
-    "utok":    {"name": "Útočný",         "desc": "Vyrazí na nejbližšího nepřítele, i mimo auru praporu."},
-    "drzet":   {"name": "Držet pozici",   "desc": "Drží své místo a bojuje s tím, co přijde blízko. Když nemá s kým bojovat, jde pomoct nejbližšímu, kdo bojuje."},
-    "chranit": {"name": "Chránit prapor", "desc": "Drží se u praporu. Když prapor padne, snaží se ho zvednout."},
-    "vypad":   {"name": "Výpad",          "desc": "Drží se u praporu. Na nepřítele do 7 m od praporu vyrazí, udeří a vrátí se.", "engage": 7.0},
-    "zaloha":  {"name": "Záloha",         "desc": "Čeká na místě. Jakmile se kdokoli z oddílu střetne s nepřítelem, vyrazí do útoku."},
-    "lecit":   {"name": "Léčit frontu",   "desc": "Drží se kousek za tím, kdo právě bojuje, a léčí ho.", "behind": 2.0}
   }
 }

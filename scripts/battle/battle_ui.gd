@@ -1,7 +1,7 @@
 extends CanvasLayer
 ## Rozhraní bitvy. Neobsahuje herní logiku: jen vykresluje stav a posílá signály do battle.gd.
 ##
-## Rozvržení: nahoře lišta velení (sláva, pokřiky, signál, Do boje!, rychlost; v rozestavení
+## Rozvržení: nahoře lišta velení (čas, sláva, signál, Do boje!, rychlost; v rozestavení
 ## signály a Začít bitvu), vlevo nahoře karta bitvy (scénář, úkol, rod), dole karty rytířů,
 ## vpravo nahoře malý deník bitvy (dá se sbalit), nad jednotkami zdraví a ikonky stavu.
 
@@ -9,14 +9,12 @@ const Sim := preload("res://scripts/sim/battle_sim.gd")
 const Icon := preload("res://scripts/battle/ui_icon.gd")
 
 signal knight_clicked(id: String)
-signal posture_changed(id: String, posture: String)
-signal bearer_changed(id: String)
+signal ability_pressed(id: String)
 signal scenario_changed(id: String)
 signal route_draw_pressed(id: String)
 signal route_clear_pressed(id: String)
 signal signals_count_changed(count: int)
 signal start_pressed
-signal shout_pressed(key: String)
 signal signal_pressed
 signal charge_pressed
 signal resume_pressed
@@ -36,7 +34,8 @@ const BAD := Color("#ef6b62")
 const STEEL := Color("#8aa2e0")
 const CARD_W := 196.0
 
-const SHOUT_ICONS := {"zarod": "zarod", "hradba": "hradba"}
+## Ikona schopnosti podle klíče (zástupné).
+const ABILITY_ICONS := {"vyzva": "hradba", "pozehnani": "heal", "salva": "lucistnik", "najezd": "charge", "uder": "asasin"}
 
 var root: Control
 var top_bar: PanelContainer
@@ -57,7 +56,9 @@ var _cards: Dictionary = {}        # id -> {"hp": ProgressBar, "icons": HBoxCont
 var _glory_bar: ProgressBar
 var _glory_label: Label
 var _time_label: Label
-var _shout_buttons: Dictionary = {}
+var _ability_buttons: Dictionary = {}   # id hrdiny -> Button
+var _hint: Label
+var _hint_t := 0.0
 var _signal_button: Button
 var _charge_button: Button
 var _log_box: VBoxContainer
@@ -165,6 +166,17 @@ func _ready() -> void:
 	th.add_child(tb)
 	toast.visible = false
 	root.add_child(toast)
+
+	_hint = _label("", 15, Color.WHITE)
+	_hint.anchor_left = 0.5
+	_hint.anchor_right = 0.5
+	_hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_hint.offset_top = 64
+	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	_hint.add_theme_constant_override("outline_size", 5)
+	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_hint)
 
 	result_box = PanelContainer.new()
 	result_box.set_anchors_preset(Control.PRESET_CENTER)
@@ -280,7 +292,7 @@ func _clear() -> void:
 	for c in cards_row.get_children():
 		c.queue_free()
 	_cards.clear()
-	_shout_buttons.clear()
+	_ability_buttons.clear()
 	_signal_button = null
 	_charge_button = null
 	_glory_bar = null
@@ -296,24 +308,20 @@ static func class_icon(u: Sim.Unit) -> String:
 func _status_icons(sim: Sim, u: Sim.Unit, in_battle: bool) -> Array:
 	var out: Array = []
 	if u.side == Sim.SIDE_KNIGHT:
-		if sim.bearer_id == u.id:
-			out.append(["banner", BANNER, false, "Nese prapor. %s" % sim.banner_effects(u.id).get("desc", "")])
 		for k: String in sim.house["oaths"]:
 			var o: Dictionary = sim.house["oaths"][k]
 			if o["knight"] == u.id:
 				out.append(["oath", GLORY, not sim.oath_kept, ("Přísaha %s" % o["name"]) + ("" if sim.oath_kept else " (zlomena)")])
 		if in_battle and u.alive():
-			if sim.in_aura(u) and sim.bearer_id != u.id:
-				out.append(["aura", Color(GLORY, 0.85), false, "V auře praporu"])
-			if sim.in_aura(u):
-				for sk: String in sim.fx:
-					if float(sim.fx[sk]) > 0.0:
-						out.append([SHOUT_ICONS.get(sk, "glory"), GLORY if sk == "zarod" else STEEL, false, String(sim.house["shouts"][sk]["name"])])
-			if u.posture == "zaloha" and not u.sprung and sim.decided == "" and not sim.charging:
-				out.append(["wait", MUTED, false, "Čeká v záloze"])
+			if u.taunt_t > 0.0:
+				out.append(["hradba", STEEL, false, "Výzva: nepřátelé útočí na něj, poloviční zranění"])
+			if u.holding:
+				out.append(["hold", Color(1, 1, 1, 0.8), false, "Drží místo z rozkazu"])
 		if sim.on_route(u):
 			out.append(["route", Color(1.0, 0.92, 0.55), false, "Jde po trase"])
 	else:
+		if u.stun_t > 0.0:
+			out.append(["glory", STEEL, false, "Omráčený"])
 		if u.fleeing:
 			out.append(["flee", MUTED, false, "Prchá"])
 		elif u.desperate:
@@ -375,7 +383,7 @@ func show_deploy(sim: Sim, setup: Dictionary, selected: String, scenario_id: Str
 	start.pressed.connect(func() -> void: start_pressed.emit())
 	top_row.add_child(start)
 
-	_build_cards(sim, selected, true, false, route_id)
+	_build_cards(sim, selected, true, false, route_id, "")
 	_time_label = null
 	set_log([])
 	update_dynamic(sim, false, false)
@@ -408,17 +416,13 @@ func _fill_info(sim: Sim, deploy: bool, scenario_id: String) -> void:
 	tb.add_child(_label("Úkol: %s Odměna: %s." % [task["text"], task["reward"]], 13, INK, true))
 	info_box.add_child(tb)
 	if deploy:
-		var bearer := sim.by_id(sim.bearer_id)
-		var lines := "Prapor: aura %d m, +%d %% útok." % [int(sim.aura_radius), roundi(float(sim.house["aura"]["dmg_bonus"]) * 100)]
-		if bearer != null:
-			lines += " Nese %s: %s" % [bearer.name, sim.banner_effects(bearer.id).get("desc", "")]
-		info_box.add_child(_label(lines, 12, MUTED, true))
-		info_box.add_child(_label("Přetáhni rytíře v modré zóně (puštěním na jiného je prohodíš). Na kartě rytíře dole volíš postoj, prapor a trasu.", 12, MUTED, true))
+		info_box.add_child(_label("Každý hrdina má výchozí chování podle třídy a jednu schopnost na kartě (počet použití za bitvu). Sláva rodu platí použití navíc (%d slávy)." % int(sim.house["glory"]["extra_use_cost"]), 12, MUTED, true))
+		info_box.add_child(_label("Přetáhni rytíře v modré zóně (puštěním na jiného je prohodíš). Na kartě hrdiny dole můžeš nakreslit trasu.", 12, MUTED, true))
 
 
 # ================================================================ bitva
 
-func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, log_lines: Array) -> void:
+func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, log_lines: Array, aim_id: String = "") -> void:
 	_clear()
 	_fill_info(sim, false, "")
 
@@ -429,7 +433,7 @@ func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, l
 
 	var gl := HBoxContainer.new()
 	gl.add_theme_constant_override("separation", 4)
-	gl.tooltip_text = "Sláva: roste za zásahy, zabití a dodrženou přísahu. Platí se jí pokřiky."
+	gl.tooltip_text = "Sláva rodu: roste za činy hrdinů. Za %d slávy dostane hrdina použití schopnosti navíc." % int(sim.house["glory"]["extra_use_cost"])
 	var gi := Icon.make("glory", GLORY, 18)
 	gi.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	gl.add_child(gi)
@@ -442,16 +446,6 @@ func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, l
 	_glory_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	gl.add_child(_glory_label)
 	top_row.add_child(gl)
-
-	var i := 1
-	for k: String in sim.house["shouts"]:
-		var s: Dictionary = sim.house["shouts"][k]
-		var b := _icon_button(SHOUT_ICONS.get(k, "glory"), "%d  [%d]" % [int(s["cost"]), i], GLORY if k == "zarod" else STEEL)
-		b.tooltip_text = "%s (%d slávy): %s" % [s["name"], int(s["cost"]), s["desc"]]
-		b.pressed.connect(func() -> void: shout_pressed.emit(k))
-		top_row.add_child(b)
-		_shout_buttons[k] = b
-		i += 1
 
 	if signal_phase:
 		var rb := _primary(Button.new())
@@ -481,7 +475,7 @@ func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, l
 			sp.pressed.connect(func() -> void: speed_changed.emit(v))
 			top_row.add_child(sp)
 
-	_build_cards(sim, selected, signal_phase, true, "")
+	_build_cards(sim, selected, signal_phase, true, "", aim_id)
 	set_log(log_lines)
 	update_dynamic(sim, signal_phase, false)
 	_no_focus(root)
@@ -491,8 +485,8 @@ func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, l
 
 ## editable: jde měnit postoje. V rozestavení jsou zakázané postoje zašedlé,
 ## při signálu jdou zvolit, ale za cenu porušení přísahy (battle.gd se zeptá).
-func _build_cards(sim: Sim, selected: String, editable: bool, in_battle: bool, route_id: String) -> void:
-	var signal_mode := in_battle and editable
+func _build_cards(sim: Sim, selected: String, editable: bool, in_battle: bool, route_id: String, aim_id: String) -> void:
+	var idx_key := 0
 	for u in sim.knights():
 		var sel := u.id == selected
 		var card := PanelContainer.new()
@@ -533,53 +527,29 @@ func _build_cards(sim: Sim, selected: String, editable: bool, in_battle: bool, r
 			cards_row.add_child(card)
 			continue
 
-		if editable:
-			var ob := OptionButton.new()
-			var idx := 0
-			for pk: String in sim.postures_for(u.id):
-				var by_oath := sim.oath_forbids(u.id, pk)
-				var by_banner := sim.bearer_forbids(u.id, pk)
-				var label := sim.posture_name(u.id, pk)
-				if by_oath and not by_banner and signal_mode:
-					label += " (poruší přísahu)"
-				ob.add_item(label)
-				ob.set_item_metadata(idx, pk)
-				ob.set_item_tooltip(idx, sim.posture_desc(pk))
-				if by_banner:
-					ob.set_item_disabled(idx, true)
-					ob.set_item_tooltip(idx, "Nositel praporu prapor nechrání, nese ho.")
-				elif by_oath and not signal_mode:
-					ob.set_item_disabled(idx, true)
-					ob.set_item_tooltip(idx, "Zakazuje přísaha %s" % sim.oath_of(u.id).get("name", ""))
-				if pk == u.posture:
-					ob.select(idx)
-				idx += 1
-			ob.fit_to_longest_item = false
-			ob.clip_text = true
-			ob.add_theme_font_size_override("font_size", 13)
-			ob.tooltip_text = sim.posture_desc(u.posture)
-			ob.item_selected.connect(func(index: int) -> void: posture_changed.emit(id, String(ob.get_item_metadata(index))))
-			v.add_child(ob)
-		else:
-			var pl := _label(sim.posture_name(u.id, u.posture), 12, MUTED)
-			pl.tooltip_text = sim.posture_desc(u.posture)
-			pl.mouse_filter = Control.MOUSE_FILTER_PASS
-			v.add_child(pl)
+		idx_key += 1
+		var bl := _label(sim.behavior_name(u.id), 12, MUTED)
+		bl.tooltip_text = sim.behavior_desc(u.id)
+		bl.mouse_filter = Control.MOUSE_FILTER_PASS
+		v.add_child(bl)
+		var a := sim.ability_of(u.id)
+		if not a.is_empty():
+			var ab := _icon_button(ABILITY_ICONS.get(u.ability, "glory"), "%s [%d]" % [a["name"], idx_key], GLORY)
+			ab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			ab.tooltip_text = String(a["desc"])
+			if aim_id == u.id:
+				ab.add_theme_stylebox_override("normal", _box(Color("#3a3220"), 7, 8, GLORY, 2))
+				ab.tooltip_text += "\nKlikni na bojiště, Esc zruší."
+			ab.pressed.connect(func() -> void: ability_pressed.emit(id))
+			v.add_child(ab)
+			_ability_buttons[u.id] = ab
 
 		if not in_battle:
 			var row := HBoxContainer.new()
 			row.add_theme_constant_override("separation", 4)
-			var fb := _icon_button("banner", "Prapor", BANNER)
-			fb.toggle_mode = true
-			fb.button_pressed = sim.bearer_id == u.id
-			fb.disabled = sim.bearer_id == u.id
-			fb.tooltip_text = "Ponese prapor: %s" % sim.banner_effects(u.id).get("desc", "")
-			fb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			fb.pressed.connect(func() -> void: bearer_changed.emit(id))
-			row.add_child(fb)
 			var drawing := route_id == u.id
 			var rb := _icon_button("route", "Kreslím" if drawing else "Trasa", Color(1.0, 0.92, 0.55))
-			rb.tooltip_text = "Táhni myší po zemi, kudy má rytíř jít (nejvýš 4 body). Esc zruší." if drawing else "Nakreslit trasu: klikni a pak táhni myší po zemi, kudy má rytíř jít."
+			rb.tooltip_text = "Táhni myší po zemi, kudy má hrdina jít (nejvýš 4 body). Esc zruší." if drawing else "Nakreslit trasu: klikni a pak táhni myší po zemi, kudy má hrdina jít."
 			rb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			if drawing:
 				rb.add_theme_stylebox_override("normal", _box(Color("#3a3220"), 7, 8, GLORY, 1))
@@ -621,11 +591,20 @@ func update_dynamic(sim: Sim, signal_phase: bool, paused: bool) -> void:
 		_glory_bar.max_value = float(sim.house["glory"]["max"])
 		_glory_bar.value = sim.glory
 		_glory_label.text = str(int(sim.glory))
-	for k: String in _shout_buttons:
-		var b: Button = _shout_buttons[k]
-		var active: float = sim.fx[k]
-		b.disabled = not sim.can_shout(k) or signal_phase or paused
-		b.add_theme_stylebox_override("normal", _box(Color("#3a3220") if active > 0.0 else Color("#252a31"), 7, 8, GLORY if active > 0.0 else LINE, 1))
+	var in_play := _time_label != null
+	for id: String in _ability_buttons:
+		var b: Button = _ability_buttons[id]
+		var u := sim.by_id(id)
+		b.disabled = not in_play or paused or not sim.can_use_ability(id)
+		var labs := b.find_children("*", "Label", true, false)
+		if not labs.is_empty():
+			var base := String(sim.ability_of(id)["name"])
+			var tail := ("●".repeat(u.uses) if u.uses > 0 else "%d slávy" % int(sim.ability_cost(id)))
+			(labs[0] as Label).text = "%s  %s" % [base, tail]
+	if _hint_t > 0.0:
+		_hint_t -= 0.1
+		if _hint_t <= 0.0:
+			_hint.text = ""
 	if _signal_button != null:
 		var labs := _signal_button.find_children("*", "Label", true, false)
 		if not labs.is_empty():
@@ -729,9 +708,14 @@ func show_result(sim: Sim, setup: Dictionary) -> void:
 	v.add_child(_label("Konec bitvy · %d:%02d" % [int(sim.t) / 60, int(sim.t) % 60], 12, MUTED))
 	v.add_child(_label(String(sim.scenario.get("win_title", "Vítězství")) if win else "Oddíl padl", 26, OK if win else BAD))
 	var fallen: Array[String] = []
+	var best_glory := ""
+	var best_g := 0.0
 	for u in sim.knights():
 		if not u.alive():
 			fallen.append(u.name)
+		if u.glory_earned > best_g:
+			best_g = u.glory_earned
+			best_glory = "%s (%d)" % [u.name, int(u.glory_earned)]
 	var fled := 0
 	for u in sim.units:
 		if u.fled:
@@ -745,8 +729,9 @@ func show_result(sim: Sim, setup: Dictionary) -> void:
 		["Volitelný úkol", "splněn, %s" % sim.scenario["optional_task"]["reward"] if win and sim.task_ok else "nesplněn"],
 		["Přísaha", "dodržena" if sim.oath_kept else "zlomena"],
 		["Signály", "%d z %d" % [sim.signals_used, int(setup["signals"])]],
-		["Pokřiky", "%d×" % sim.shouts_used],
+		["Schopnosti", "%d×" % sim.abilities_used],
 		["Sláva", str(int(sim.glory))],
+		["Nejvíc slávy přinesl", best_glory if best_glory != "" else "nikdo"],
 	]:
 		g.add_child(_label(pair[0], 14, MUTED))
 		g.add_child(_label(pair[1], 14))
@@ -774,3 +759,10 @@ func hide_result() -> void:
 func _no_focus(node: Node) -> void:
 	for c in node.find_children("*", "Control", true, false):
 		(c as Control).focus_mode = Control.FOCUS_NONE
+
+
+
+## Krátká nápověda uprostřed nahoře (třeba proč cíl nejde), sama zmizí.
+func flash_hint(text: String) -> void:
+	_hint.text = text
+	_hint_t = 2.0

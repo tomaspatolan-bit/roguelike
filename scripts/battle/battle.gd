@@ -25,9 +25,10 @@ var cam: Camera3D
 var ui: BattleUI
 var views: Dictionary = {}
 var projectile_views: Dictionary = {}
-var banner: Node3D
-var aura_disc: MeshInstance3D
-var aura_ring: MeshInstance3D
+var aim_ring: MeshInstance3D      # cílení schopnosti: kruh pod kurzorem
+var _fx: Array = []                # krátké efekty schopností [MeshInstance3D, zbývající čas]
+var _aim_id := ""                  # hrdina, jehož schopnost se právě cílí
+var _aim_point := Vector2.ZERO
 var select_ring: MeshInstance3D
 var hold_marker: MeshInstance3D
 var hover_ring: MeshInstance3D
@@ -42,7 +43,6 @@ var scenario_id: String = Sim.DEFAULT_SCENARIO
 var _route_id := ""          # rytíř, kterému se kreslí trasa (režim kreslení)
 var _route_drawing := false
 var _route_raw: Array[Vector2] = []
-var _aura_base := 5.0
 var _acc := 0.0
 var _ui_t := 0.0
 
@@ -79,12 +79,9 @@ func _ready() -> void:
 	route_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(route_mesh)
 
-	var aura_r: float = data["house"]["aura"]["radius"]
-	_aura_base = aura_r
-	aura_disc = Field.disc(aura_r, Color(0.91, 0.77, 0.25, 0.12))
-	aura_ring = Field.ring(aura_r, 0.08, Color(0.91, 0.77, 0.25, 0.75))
-	add_child(aura_disc)
-	add_child(aura_ring)
+	aim_ring = Field.ring(1.0, 0.1, Color(1.0, 0.85, 0.4, 0.9))
+	aim_ring.visible = false
+	add_child(aim_ring)
 	select_ring = Field.ring(0.7, 0.14, Color(1, 1, 1, 0.95))
 	hold_marker = Field.ring(0.35, 0.1, Color(1, 1, 1, 0.6))
 	add_child(select_ring)
@@ -98,14 +95,11 @@ func _ready() -> void:
 	order_line.material_override = Field.transparent_mat(Color(1, 1, 1, 0.85))
 	order_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(order_line)
-	banner = Field.build_banner()
-	add_child(banner)
 
 	ui = BattleUI.new()
 	add_child(ui)
 	ui.knight_clicked.connect(_select)
-	ui.posture_changed.connect(_on_posture)
-	ui.bearer_changed.connect(_on_bearer)
+	ui.ability_pressed.connect(_ability)
 	ui.scenario_changed.connect(_load_scenario)
 	ui.route_draw_pressed.connect(func(id: String) -> void:
 		_route_id = id if _route_id != id else ""
@@ -119,7 +113,6 @@ func _ready() -> void:
 		setup["signals"] = n
 		_fresh_deploy())
 	ui.start_pressed.connect(_start_battle)
-	ui.shout_pressed.connect(_shout)
 	ui.signal_pressed.connect(_use_signal)
 	ui.charge_pressed.connect(_charge)
 	ui.resume_pressed.connect(_resume_signal)
@@ -206,6 +199,7 @@ func _new_sim() -> void:
 		add_child(v)
 		views[u.id] = v
 	log_lines.clear()
+	_aim_id = ""
 	paused = false
 	_acc = 0.0
 
@@ -219,7 +213,6 @@ func _fresh_deploy() -> void:
 func _start_battle() -> void:
 	for u in sim.knights():
 		setup["pos"][u.id] = u.pos
-		setup["posture"][u.id] = u.posture
 	_new_sim()
 	phase = Phase.BATTLE
 	selected = ""
@@ -230,7 +223,7 @@ func _refresh_panel() -> void:
 	if phase == Phase.DEPLOY:
 		ui.show_deploy(sim, setup, selected, scenario_id, _route_id)
 	else:
-		ui.show_battle(sim, phase == Phase.SIGNAL, selected, speed, log_lines)
+		ui.show_battle(sim, phase == Phase.SIGNAL, selected, speed, log_lines, _aim_id)
 	ui.update_dynamic(sim, phase == Phase.SIGNAL, paused)
 
 
@@ -253,61 +246,65 @@ func _set_selected(id: String) -> void:
 		_refresh_panel()
 
 
-## Volba nositele praporu: jen v rozestavení, během bitvy se prapor nepředává.
-func _on_bearer(id: String) -> void:
-	if phase != Phase.DEPLOY:
+## Schopnost hrdiny (karta nebo klávesa 1–5). Bez cíle se použije hned, jinak začne cílení.
+func _ability(id: String) -> void:
+	if (phase != Phase.BATTLE and phase != Phase.SIGNAL) or paused:
 		return
-	if sim.set_bearer(id):
-		setup["bearer"] = id
-		for u in sim.knights():
-			setup["posture"][u.id] = u.posture
+	if not sim.can_use_ability(id):
+		return
+	if sim.ability_target(id) == "none":
+		if sim.use_ability(id):
+			_flush_events()
+			_refresh_panel()
+		return
+	_aim_id = "" if _aim_id == id else id
 	_refresh_panel()
 
 
-func _on_posture(id: String, posture: String) -> void:
-	var u := sim.by_id(id)
-	if u == null:
+func _ability_by_index(i: int) -> void:
+	var ks := sim.knights()
+	if i < ks.size():
+		_ability(ks[i].id)
+
+
+## Klik při cílení: místo na zemi, nebo nepřítel pod kurzorem.
+func _aim_click(screen_pos: Vector2) -> void:
+	var id := _aim_id
+	var target: Variant = null
+	if sim.ability_target(id) == "enemy":
+		var e := _pick_foe(screen_pos)
+		if e == "":
+			return
+		target = e
+	else:
+		var gp: Variant = _ground(screen_pos)
+		if gp == null:
+			return
+		target = gp
+	var problem := sim.ability_target_problem(id, target)
+	if problem != "":
+		ui.flash_hint(problem)
 		return
-	if phase == Phase.DEPLOY:
-		if sim.set_posture(id, posture):
-			setup["posture"][id] = posture
-		else:
-			_refresh_panel()
-		return
-	if phase != Phase.SIGNAL or sim.bearer_forbids(id, posture):
-		_refresh_panel()
-		return
-	# Postoj, který zakazuje přísaha, jde při signálu zvolit jen za cenu jejího porušení.
-	if not sim.posture_allowed(id, posture):
-		paused = true
-		var on_break := func() -> void:
-			sim.break_oath()
-			sim.set_posture(id, posture)
-			paused = false
-			_refresh_panel()
-		var on_keep := func() -> void:
-			paused = false
-			_refresh_panel()
-		ui.ask_oath(u.name, sim.oath_of(id), on_break, on_keep)
-		return
-	sim.set_posture(id, posture)
+	_aim_id = ""
+	sim.use_ability(id, target)
+	_flush_events()
 	_refresh_panel()
 
 
-func _shout(key: String) -> void:
-	if phase != Phase.BATTLE or paused:
-		return
-	if sim.shout(key):
-		_flush_events()
-		_refresh_panel()
-
-
-func _charge() -> void:
-	if phase != Phase.BATTLE or paused:
-		return
-	if sim.charge_all():
-		_flush_events()
-		_refresh_panel()
+func _pick_foe(screen_pos: Vector2) -> String:
+	var best := ""
+	var bd := PICK_PX * 1.5
+	for u in sim.living(Sim.SIDE_FOE):
+		var v: Node3D = views[u.id]
+		if cam.is_position_behind(v.global_position):
+			continue
+		var a := cam.unproject_position(v.global_position + Vector3(0, 0.2, 0))
+		var b := cam.unproject_position(v.global_position + Vector3(0, 1.8, 0))
+		var d := _dist_to_segment(screen_pos, a, b)
+		if d < bd:
+			bd = d
+			best = u.id
+	return best
 
 
 func _use_signal() -> void:
@@ -363,9 +360,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		match (event as InputEventKey).keycode:
 			KEY_1:
-				_shout_by_index(0)
+				_ability_by_index(0)
 			KEY_2:
-				_shout_by_index(1)
+				_ability_by_index(1)
+			KEY_3:
+				_ability_by_index(2)
+			KEY_4:
+				_ability_by_index(3)
+			KEY_5:
+				_ability_by_index(4)
 			KEY_F:
 				_charge()
 			KEY_SPACE:
@@ -376,7 +379,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				else:
 					_use_signal()
 			KEY_ESCAPE:
-				if _route_id != "":
+				if _aim_id != "":
+					_aim_id = ""
+					_refresh_panel()
+				elif _route_id != "":
 					_route_id = ""
 					_route_drawing = false
 					_route_raw.clear()
@@ -402,12 +408,6 @@ func _input(event: InputEvent) -> void:
 		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and (_drag_id != "" or _route_drawing):
 			_pointer_up(mb.position)
 			get_viewport().set_input_as_handled()
-
-
-func _shout_by_index(i: int) -> void:
-	var keys: Array = sim.house["shouts"].keys()
-	if i < keys.size():
-		_shout(keys[i])
 
 
 func _can_command() -> bool:
@@ -457,6 +457,9 @@ func _clamp_zone(p: Vector2) -> Vector2:
 
 
 func _pointer_down(screen_pos: Vector2) -> void:
+	if _aim_id != "":
+		_aim_click(screen_pos)
+		return
 	if not _can_command():
 		return
 	if phase == Phase.DEPLOY and _route_id != "":
@@ -493,6 +496,10 @@ func _pointer_down(screen_pos: Vector2) -> void:
 
 
 func _pointer_move(screen_pos: Vector2) -> void:
+	if _aim_id != "":
+		var ga: Variant = _ground(screen_pos)
+		if ga != null:
+			_aim_point = ga
 	if not _can_command():
 		hover_id = ""
 		return
@@ -579,11 +586,8 @@ func _flush_events() -> void:
 			"log":
 				log_lines.append(ev)
 				relog = true
-			"autopause":
-				log_lines.append({"t": sim.t, "text": "Nositel praporu padl, prapor leží", "hot": true})
-				relog = true
-				paused = true
-				ui.show_toast(ev["text"])
+			"ability":
+				_spawn_fx(String(ev["key"]), ev["pos"])
 			"decided":
 				# rozhodnutá bitva se dohraje zrychleně
 				speed = maxf(speed, 2.0)
@@ -594,6 +598,7 @@ func _flush_events() -> void:
 					v.flash_heal()
 			"end":
 				phase = Phase.OVER
+				_aim_id = ""
 				relog = true
 				get_tree().create_timer(0.8).timeout.connect(func() -> void: ui.show_result(sim, setup))
 	sim.events.clear()
@@ -629,30 +634,25 @@ func _sync_projectiles() -> void:
 
 func _sync_markers() -> void:
 	zone.visible = phase == Phase.DEPLOY
-	var c := sim.aura_center()
-	if c != null:
-		var v: Node3D = views[c.id]
-		banner.rotation = Vector3(0, v.rotation.y, 0)
-		banner.position = v.position + v.basis * Vector3(-0.38, 0, -0.12) + Vector3(0, 0, 0)
-		banner.position.y = 0.0
-		aura_disc.visible = true
-		aura_ring.visible = true
-		aura_disc.position = Field.to_world(c.pos, 0.04)
-		aura_ring.position = Field.to_world(c.pos, 0.05)
-		var k := sim.aura_radius / _aura_base
-		aura_disc.scale = Vector3(k, 1.0, k)
-		aura_ring.scale = Vector3(k, 1.0, k)
-		var shout_on := float(sim.fx.get("zarod", 0.0)) > 0.0
-		var wall_on := float(sim.fx.get("hradba", 0.0)) > 0.0
-		var col := Color(0.5, 0.69, 1.0) if wall_on else Color(0.91, 0.77, 0.25)
-		var pulse := 0.06 * sin(Time.get_ticks_msec() / 120.0) if (shout_on or wall_on) else 0.0
-		(aura_disc.material_override as StandardMaterial3D).albedo_color = Color(col, 0.12 + (0.1 if shout_on or wall_on else 0.0) + pulse)
-		(aura_ring.material_override as StandardMaterial3D).albedo_color = Color(col, 0.75)
-	else:
-		aura_disc.visible = false
-		aura_ring.visible = false
-		banner.position = Field.to_world(sim.banner_pos, 0.15)
-		banner.rotation = Vector3(0, 0, deg_to_rad(80))
+	# efekty schopností doznívají
+	for i in range(_fx.size() - 1, -1, -1):
+		var fx: Array = _fx[i]
+		fx[1] = float(fx[1]) - get_process_delta_time()
+		var mi: MeshInstance3D = fx[0]
+		(mi.material_override as StandardMaterial3D).albedo_color.a = clampf(float(fx[1]) / 0.6, 0.0, 1.0) * 0.8
+		if float(fx[1]) <= 0.0:
+			mi.queue_free()
+			_fx.remove_at(i)
+	# cílení schopnosti: kruh pod kurzorem (velikost podle schopnosti), červený mimo dosah
+	aim_ring.visible = _aim_id != "" and sim.by_id(_aim_id) != null
+	if aim_ring.visible:
+		var a := sim.ability_of(_aim_id)
+		var r := float(a.get("radius", 0.9)) if String(a.get("target", "")) == "point" else 0.9
+		aim_ring.scale = Vector3(r, 0.05, r)
+		aim_ring.position = Field.to_world(_aim_point, 0.09)
+		var tgt: Variant = _aim_point
+		var bad := sim.ability_target(_aim_id) == "point" and sim.ability_target_problem(_aim_id, tgt) != ""
+		(aim_ring.material_override as StandardMaterial3D).albedo_color = Color(1.0, 0.35, 0.3, 0.9) if bad else Color(1.0, 0.85, 0.4, 0.9)
 
 	hover_ring.visible = hover_id != "" and hover_id != selected
 	if hover_ring.visible:
@@ -683,7 +683,7 @@ func _sync_markers() -> void:
 	select_ring.visible = su != null and su.alive() and (phase == Phase.DEPLOY or phase == Phase.SIGNAL)
 	if select_ring.visible:
 		select_ring.position = Field.to_world(su.pos, 0.06)
-	hold_marker.visible = su != null and su.alive() and phase == Phase.SIGNAL and su.posture == "drzet"
+	hold_marker.visible = su != null and su.alive() and phase == Phase.SIGNAL and su.holding
 	if hold_marker.visible:
 		hold_marker.position = Field.to_world(su.home, 0.06)
 
@@ -719,3 +719,19 @@ func _draw_routes() -> void:
 			im.surface_add_vertex(Field.to_world(b, 0.12))
 			im.surface_add_vertex(Field.to_world(b - d * 0.45 + n * side * 0.25, 0.12))
 	im.surface_end()
+
+
+
+## Krátký efekt schopnosti: kruh na zemi, který zmizí.
+func _spawn_fx(key: String, pos: Vector2) -> void:
+	var a: Dictionary = sim.units_data["abilities"].get(key, {})
+	var r := float(a.get("radius", 1.2))
+	var col := Color(1.0, 0.85, 0.4, 0.8)
+	if key == "pozehnani":
+		col = Color(0.5, 1.0, 0.6, 0.8)
+	elif key == "vyzva":
+		col = Color(0.55, 0.7, 1.0, 0.8)
+	var ring := Field.ring(r, 0.18, col)
+	ring.position = Field.to_world(pos, 0.1)
+	add_child(ring)
+	_fx.append([ring, 0.6])
