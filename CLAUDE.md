@@ -12,7 +12,7 @@ Přečti `docs/stav.md` (co se teď dělá), `docs/plan.md` (kde jsme ve stepper
 2. **Zkontroluj požadavek proti invariantům a pilířům.** Když by ho porušil, **neprováděj ho**: řekni Tomovi, který invariant by se rozbil a proč, a navrhni alternativu. Tom rozhodne; když invariant změní, zapiš to do `docs/rozhodnuti.md`.
 3. **Proveď změnu.** Pravidla hry patří do simulace, čísla do dat.
 4. **Ověř:** `gdparse` a testy podle `docs/context/testy.md`. Neprošlé testy se nepushují.
-5. **Aktualizuj ve stejném commitu:** kontextový soubor (invarianty, rozhraní, historie), `docs/stav.md`, případně `docs/plan.md` a deník rozhodnutí. Stejný deník je i v projektu Roguelike v Claude (`claude/rozhodnuti.md`), drž je v souladu.
+5. **Aktualizuj ve stejném commitu:** kontextový soubor (invarianty, rozhraní, historie), `docs/stav.md`, případně `docs/plan.md` a deník rozhodnutí. Data v deníku rozhodnutí piš ve formátu DD.MM.RRRR. Stejný deník je i v projektu Roguelike v Claude (`claude/rozhodnuti.md`), drž je v souladu.
 6. Nový nápad, který není v plánu, nezapracovávej rovnou: zapiš ho do `docs/napady.md`.
 
 ## Mapa oblastí → kontextové soubory
