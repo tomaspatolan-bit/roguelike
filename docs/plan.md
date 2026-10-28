@@ -30,7 +30,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [ ] Další body podle dalšího playtestu
 - [ ] 1.4 Čitelnost boje
   - [ ] Animace útoku, zásahu a smrti (zástupné)
-  - [ ] Zvýraznění aktivního pokřiku a dosahu praporu
+  - [ ] Vlastní ikonky pasivek a stavů (teď stejná hvězdička; návrh Tom)
   - [ ] Ukazatel postupu volitelného úkolu
 - [ ] 1.5 Druhá bitva s jiným terénem a více průchody (ověří, že data a scéna nejsou šité na jeden scénář)
   - [x] Brod a les: dva brody, lávka, les se stezkou; výběr bitvy v rozestavení
@@ -40,7 +40,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [ ] Playtest druhé mapy (Tom)
 - [x] 1.6 Postoje na míru třídám (2 na třídu, data), testy obou scénářů v testu balancu
 - [x] 1.6b UI: lišta velení, karty rytířů, ikonky stavu (zástupné; Tom převezme návrh)
-- [ ] 1.6c Přestavba bitvy na hrdiny (změna směru 28.10.2026)
+- [x] 1.6c Přestavba bitvy na hrdiny (změna směru 28.10.2026)
   - [x] Návrh hrdinů ke schválení (dokument „Rod Vlka a jeho hrdinové“)
   - [x] Odstranit prapor, pokřiky a postoje ze simulace, dat, scény a UI
   - [x] Schopnosti hrdinů (data), cílení z karty, sláva jako použití navíc
@@ -49,8 +49,8 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [x] Pasivky a přísahy (15 + 3) v datech a simulaci, na zkoušku v rozestavení
 - [ ] 1.7 Zkušební běh (celý loop v malém)
   - [ ] 3 bitvy za sebou: Most přes řeku → druhá mapa → závěrečná bitva s vůdcem nepřátel
-  - [ ] Mezi bitvami odměna 1 ze 3 (asi 8 odměn: znamení na prapor, přísahy, posila, vyléčení)
-  - [ ] Následky: padlí zůstanou mrtví, zranění se vyléčí, sláva se přenáší, dědictví přísahy padlého rytíře
+  - [ ] Mezi bitvami odměna 1 ze 3: pasivka nebo přísaha pro konkrétního hrdinu (15 + 3 hotové)
+  - [ ] Následky: padlí zůstanou mrtví, zranění se vyléčí, sláva se přenáší, nástupce a dědictví přísahy padlého hrdiny
   - [ ] Uprchlíci z bitev 1 a 2 se vrátí v závěrečné bitvě
   - [ ] Prohra: ztráty a pokračuje se; běh končí, až padnou všichni rytíři
   - [ ] Kronika rodu na konci běhu (kdo padl, kdo co přísahal, kdo utekl a vrátil se)
@@ -64,10 +64,10 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
 Cíl: celý krátký run od výběru rodu po bosse.
 - [ ] 2.1 Mapa aktu: uzly bitva, elita, událost, tábor, kovář, boss
 - [ ] 2.2 Karta stage a volitelné úkoly z dat
-- [ ] 2.3 Odměny po stagi: 1 ze 3 (znamení na prapor nebo přísaha)
-- [ ] 2.4 Prapor se sloty pro znamení, přísahy jednotlivých rytířů (data + simulace)
-- [ ] 2.5 Postupné odemykání: rod → prapor → přísahy
-- [ ] 2.6 Smrt rytíře, nástupce a dědictví přísahy; prohra bitvy = ztráty a ústup, ne opakování
+- [ ] 2.3 Odměny po stagi: pasivky, přísahy, nové schopnosti (2. a 3. slot u hrdiny)
+- [ ] 2.4 Více pasivek, přísah a schopností (obsah)
+- [ ] 2.5 Další rody jako sestavy: Medvěd (berserkr), Sokol (sokolník); meta odemykání rodů
+- [ ] 2.6 Ústup s přeživšími, rozhodnutí, jestli prohraná bitva končí běh; najímání vojáků k hrdinům
 - [ ] 2.9 Průzkum: odhalování podmínek nepřátel jako zdroj v runu
 - [ ] 2.7 Ukládání a načtení rozehraného runu
 - [ ] 2.8 Generátor bitev (scénáře z dílků místo ručně psaných)
