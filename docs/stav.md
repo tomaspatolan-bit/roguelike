@@ -26,6 +26,7 @@ Fáze 1, krok 1.2 (viz `docs/plan.md`). První hratelný build v Godotu: jedna b
 - Vyzkoušet různé nositele praporu. Simulace: jezdec s praporem prohrává (vyběhne s praporem z oddílu), ostatní vyhrávají. Je to chtěná cena, nebo jezdcův prapor upravit?
 - Asasín v Útočném postoji zemře sám za ~8 s (vyběhne na střelce za lapky). Výchozí postoj je proto Držet pozici.
 
-## Další kroky (návrh)
-- 1.5: druhá mapa s více průchody a trasy rytířů.
-- 1.7: podmíněné instrukce a viditelné úmysly nepřátel.
+## Další kroky
+- 1.5: druhá mapa s více průchody, trasy rytířů, vlastnosti nepřátel.
+- 1.6: postoje na míru třídám.
+- 1.7: zkušební běh (3 bitvy, odměny, dědictví, návrat uprchlíků, kronika) → playtest → Brána 1.

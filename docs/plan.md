@@ -34,12 +34,20 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [ ] Ukazatel postupu volitelného úkolu
 - [ ] 1.5 Druhá bitva s jiným terénem a více průchody (ověří, že data a scéna nejsou šité na jeden scénář)
   - [ ] Trasy rytířů: kreslení čarou zjednodušenou na 2–4 body, platí od startu bitvy
-- [ ] 1.6 Testy: oba scénáře v testu balancu
-- [ ] 1.7 Podmíněné instrukce a úmysly nepřátel
-  - [ ] Slovník podmínek a akcí v datech, 1 instrukce na rytíře, kontrola přísah
-  - [ ] Nepřátelé používají stejný slovník, jejich trasy a podmínky jsou vidět před bitvou
+  - [ ] Vlastnosti nepřátel (Zoufalec, Fanatik, Zbabělec…) a nový typ nepřátel
+- [ ] 1.6 Postoje na míru třídám (2 na třídu, data), testy obou scénářů v testu balancu
+- [ ] 1.7 Zkušební běh (celý loop v malém)
+  - [ ] 3 bitvy za sebou: Most přes řeku → druhá mapa → závěrečná bitva s vůdcem nepřátel
+  - [ ] Mezi bitvami odměna 1 ze 3 (asi 8 odměn: znamení na prapor, přísahy, posila, vyléčení)
+  - [ ] Následky: padlí zůstanou mrtví, zranění se vyléčí, sláva se přenáší, dědictví přísahy padlého rytíře
+  - [ ] Uprchlíci z bitev 1 a 2 se vrátí v závěrečné bitvě
+  - [ ] Prohra: ztráty a pokračuje se; běh končí, až padnou všichni rytíři
+  - [ ] Kronika rodu na konci běhu (kdo padl, kdo co přísahal, kdo utekl a vrátil se)
+  - [ ] Bez výběru rodu, meta progrese, ukládání a finální grafiky
+- [ ] 1.8 Playtest běhu: Tom + aspoň jeden hráč mimo nás
+- [ ] (podle 1.8) Podmíněné instrukce a úmysly nepřátel, jen když postoje na míru nestačí
 **Hotovo, když:** Tom řekne, že bitvy baví hrát opakovaně, a aspoň jeden člověk mimo nás to potvrdí.
-**Brána 1 (Tom):** pokračujeme, nebo měníme model bitvy?
+**Brána 1 (Tom), podle zkušebního běhu:** chceš hned další běh? pamatuješ si z běhu příběh? rozhodoval ses mezi odměnami? potvrdí to hráč mimo nás? → pokračujeme, nebo měníme model hry?
 
 ## Fáze 2 – Jeden run
 Cíl: celý krátký run od výběru rodu po bosse.

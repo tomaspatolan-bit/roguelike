@@ -2,6 +2,12 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 28.10.2026 – Zkušební běh před Bránou 1
+- **Před Bránou 1 postavíme zkušební běh:** 3 bitvy (Most → druhá mapa → závěrečná bitva s vůdcem), mezi nimi odměna 1 ze 3, padlí zůstanou mrtví, dědictví přísahy, uprchlíci se vrátí v závěrečné bitvě, kronika rodu na konci. Důvod: háček hry je vidět až mezi bitvami, jedna bitva neodpoví, jestli hra jako celek dává smysl.
+- **Pořadí:** druhá mapa s trasami a vlastnostmi nepřátel → postoje na míru třídám → zkušební běh → playtest (Tom + hráč mimo nás) → Brána 1.
+- **Podmíněné instrukce až podle playtestu**, jen když postoje na míru nestačí.
+- Mimo zkušební běh: výběr rodu, meta progrese, ukládání, finální grafika.
+
 ## 28.10.2026 – Morálka a dobojování
 - **Morálka nepřátel:** po ztrátě 70 % se nepřítel zlomí. Reakce podle typu jednotky: pěšáci zoufale dobojují (silnější útok), střelci utečou z bojiště. Důvod: bitva nekončí naháněním posledních nepřátel a dává smysl (bitvy se rozhodovaly útěkem).
 - **Povel Do boje!:** jednorázový, objeví se po zlomení morálky, všichni rytíři opustí postoje a dobojují (i tank se Stát pevně, útok vpřed není ústup).
