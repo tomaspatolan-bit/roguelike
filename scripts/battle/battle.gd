@@ -34,6 +34,14 @@ var hover_ring: MeshInstance3D
 var drop_ring: MeshInstance3D
 var order_line: MeshInstance3D
 var zone: MeshInstance3D
+var field_root: Node3D
+var route_mesh: MeshInstance3D
+var scenario_id: String = Sim.DEFAULT_SCENARIO
+
+# kreslení trasy v rozestavení
+var _route_id := ""          # rytíř, kterému se kreslí trasa (režim kreslení)
+var _route_drawing := false
+var _route_raw: Array[Vector2] = []
 var _aura_base := 5.0
 var _acc := 0.0
 var _ui_t := 0.0
@@ -51,22 +59,25 @@ var _drag_target_raw := Vector2.ZERO
 
 
 func _ready() -> void:
-	data = Sim.load_data()
+	data = Sim.load_data(scenario_id)
 	setup = Sim.default_setup(data, 1)
-	Field.build(self, data["scenario"])
+	field_root = Node3D.new()
+	add_child(field_root)
+	Field.build(field_root, data["scenario"])
 
 	cam = OrbitCamera.new()
 	add_child(cam)
 	cam.make_current()
 
-	var z: Dictionary = data["scenario"]["deploy_zone"]
 	zone = MeshInstance3D.new()
-	var zm := PlaneMesh.new()
-	zm.size = Vector2(float(z["x1"]) - float(z["x0"]), float(z["y1"]) - float(z["y0"]))
-	zone.mesh = zm
 	zone.material_override = Field.transparent_mat(Color(0.31, 0.47, 0.78, 0.28))
-	zone.position = Field.to_world(Vector2((float(z["x0"]) + float(z["x1"])) / 2.0, (float(z["y0"]) + float(z["y1"])) / 2.0), 0.03)
 	add_child(zone)
+	_build_zone()
+	route_mesh = MeshInstance3D.new()
+	route_mesh.mesh = ImmediateMesh.new()
+	route_mesh.material_override = Field.transparent_mat(Color(1.0, 0.92, 0.55, 0.9))
+	route_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(route_mesh)
 
 	var aura_r: float = data["house"]["aura"]["radius"]
 	_aura_base = aura_r
@@ -95,6 +106,15 @@ func _ready() -> void:
 	ui.knight_clicked.connect(_select)
 	ui.posture_changed.connect(_on_posture)
 	ui.bearer_changed.connect(_on_bearer)
+	ui.scenario_changed.connect(_load_scenario)
+	ui.route_draw_pressed.connect(func(id: String) -> void:
+		_route_id = id if _route_id != id else ""
+		_refresh_panel())
+	ui.route_clear_pressed.connect(_clear_route)
+	var choices: Array = []
+	for sid: String in Sim.scenario_list():
+		choices.append([sid, String(Sim._read_json("res://data/scenarios/%s.json" % sid).get("name", sid))])
+	ui.scenario_choices = choices
 	ui.signals_count_changed.connect(func(n: int) -> void:
 		setup["signals"] = n
 		_fresh_deploy())
@@ -119,6 +139,57 @@ func _ready() -> void:
 
 
 # ================================================================ stav
+
+func _build_zone() -> void:
+	var z: Dictionary = data["scenario"]["deploy_zone"]
+	var zm := PlaneMesh.new()
+	zm.size = Vector2(float(z["x1"]) - float(z["x0"]), float(z["y1"]) - float(z["y0"]))
+	zone.mesh = zm
+	zone.position = Field.to_world(Vector2((float(z["x0"]) + float(z["x1"])) / 2.0, (float(z["y0"]) + float(z["y1"])) / 2.0), 0.03)
+
+
+## Výběr bitvy v rozestavení: načte scénář a postaví bojiště znovu.
+func _load_scenario(id: String) -> void:
+	if phase != Phase.DEPLOY or id == scenario_id:
+		return
+	scenario_id = id
+	var signal_count: int = setup["signals"]
+	data = Sim.load_data(id)
+	setup = Sim.default_setup(data, signal_count)
+	field_root.queue_free()
+	field_root = Node3D.new()
+	add_child(field_root)
+	Field.build(field_root, data["scenario"])
+	_build_zone()
+	_route_id = ""
+	_fresh_deploy()
+
+
+func _clear_route(id: String) -> void:
+	if phase != Phase.DEPLOY:
+		return
+	sim.set_route(id, [])
+	(setup["routes"] as Dictionary).erase(id)
+	_route_id = ""
+	_refresh_panel()
+
+
+func _finish_route() -> void:
+	var id := _route_id
+	_route_drawing = false
+	_route_id = ""
+	if id == "" or _route_raw.size() < 2:
+		_refresh_panel()
+		return
+	var pts := Sim.simplify_route(_route_raw, 5)
+	pts.remove_at(0)   # první bod je rytíř sám
+	var problem := sim.route_problem(id, pts)
+	if problem != "":
+		ui.show_toast(problem)
+	elif sim.set_route(id, pts):
+		setup["routes"][id] = sim.by_id(id).route.duplicate()
+	_route_raw.clear()
+	_refresh_panel()
 
 func _new_sim() -> void:
 	sim = Sim.new(data, setup)
@@ -157,7 +228,7 @@ func _start_battle() -> void:
 
 func _refresh_panel() -> void:
 	if phase == Phase.DEPLOY:
-		ui.show_deploy(sim, setup, selected)
+		ui.show_deploy(sim, setup, selected, scenario_id, _route_id)
 	else:
 		ui.show_battle(sim, phase == Phase.SIGNAL, selected, speed, log_lines)
 	ui.update_dynamic(sim, phase == Phase.SIGNAL, paused)
@@ -304,6 +375,12 @@ func _unhandled_input(event: InputEvent) -> void:
 					_resume_signal()
 				else:
 					_use_signal()
+			KEY_ESCAPE:
+				if _route_id != "":
+					_route_id = ""
+					_route_drawing = false
+					_route_raw.clear()
+					_refresh_panel()
 			KEY_ENTER, KEY_KP_ENTER:
 				if ui.toast.visible:
 					_resume_pause()
@@ -322,7 +399,7 @@ func _input(event: InputEvent) -> void:
 		_pointer_move((event as InputEventMouseMotion).position)
 	elif event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and _drag_id != "":
+		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and (_drag_id != "" or _route_drawing):
 			_pointer_up(mb.position)
 			get_viewport().set_input_as_handled()
 
@@ -382,6 +459,15 @@ func _clamp_zone(p: Vector2) -> Vector2:
 func _pointer_down(screen_pos: Vector2) -> void:
 	if not _can_command():
 		return
+	if phase == Phase.DEPLOY and _route_id != "":
+		# režim kreslení trasy: čára začíná u rytíře a vede tam, kam táhneš
+		_route_drawing = true
+		_route_raw.clear()
+		_route_raw.append(sim.by_id(_route_id).pos)
+		var gp0: Variant = _ground(screen_pos)
+		if gp0 != null:
+			_route_raw.append(gp0)
+		return
 	var id := _pick_knight(screen_pos)
 	if id != "":
 		_drag_id = id
@@ -410,6 +496,11 @@ func _pointer_move(screen_pos: Vector2) -> void:
 	if not _can_command():
 		hover_id = ""
 		return
+	if _route_drawing:
+		var gpr: Variant = _ground(screen_pos)
+		if gpr != null and (gpr as Vector2).distance_to(_route_raw[-1]) > 0.4:
+			_route_raw.append(gpr)
+		return
 	hover_id = _pick_knight(screen_pos, _drag_id if _drag_active else "")
 	if _drag_id == "":
 		return
@@ -431,6 +522,9 @@ func _pointer_move(screen_pos: Vector2) -> void:
 
 
 func _pointer_up(screen_pos: Vector2) -> void:
+	if _route_drawing:
+		_finish_route()
+		return
 	var id := _drag_id
 	var was_drag := _drag_active
 	_drag_id = ""
@@ -583,6 +677,8 @@ func _sync_markers() -> void:
 		im.surface_add_vertex(to)
 		im.surface_end()
 
+	_draw_routes()
+
 	var su := sim.by_id(selected) if selected != "" else null
 	select_ring.visible = su != null and su.alive() and (phase == Phase.DEPLOY or phase == Phase.SIGNAL)
 	if select_ring.visible:
@@ -590,3 +686,36 @@ func _sync_markers() -> void:
 	hold_marker.visible = su != null and su.alive() and phase == Phase.SIGNAL and su.posture == "drzet"
 	if hold_marker.visible:
 		hold_marker.position = Field.to_world(su.home, 0.06)
+
+
+## Trasy rytířů: v rozestavení celé, v bitvě jen zbytek. Kreslená čára se ukazuje celá.
+func _draw_routes() -> void:
+	var im := route_mesh.mesh as ImmediateMesh
+	im.clear_surfaces()
+	var segs: Array = []
+	if phase != Phase.OVER:
+		for u in sim.knights():
+			if not u.alive() or u.route_i >= u.route.size():
+				continue
+			var prev := u.pos
+			for i in range(u.route_i, u.route.size()):
+				segs.append([prev, u.route[i]])
+				prev = u.route[i]
+	if _route_drawing:
+		for i in range(1, _route_raw.size()):
+			segs.append([_route_raw[i - 1], _route_raw[i]])
+	if segs.is_empty():
+		return
+	im.surface_begin(Mesh.PRIMITIVE_LINES)
+	for sg: Array in segs:
+		var a: Vector2 = sg[0]
+		var b: Vector2 = sg[1]
+		im.surface_add_vertex(Field.to_world(a, 0.12))
+		im.surface_add_vertex(Field.to_world(b, 0.12))
+		# šipka na konci úseku
+		var d := (b - a).normalized()
+		var n := Vector2(-d.y, d.x)
+		for side: float in [-1.0, 1.0]:
+			im.surface_add_vertex(Field.to_world(b, 0.12))
+			im.surface_add_vertex(Field.to_world(b - d * 0.45 + n * side * 0.25, 0.12))
+	im.surface_end()

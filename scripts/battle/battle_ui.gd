@@ -6,6 +6,9 @@ const Sim := preload("res://scripts/sim/battle_sim.gd")
 signal knight_clicked(id: String)
 signal posture_changed(id: String, posture: String)
 signal bearer_changed(id: String)
+signal scenario_changed(id: String)
+signal route_draw_pressed(id: String)
+signal route_clear_pressed(id: String)
 signal signals_count_changed(count: int)
 signal start_pressed
 signal shout_pressed(key: String)
@@ -37,6 +40,7 @@ var toast_label: Label
 var result_box: PanelContainer
 var oath_dialog: ConfirmationDialog
 
+var scenario_choices: Array = []   # [[klíč, název], ...] pro výběr bitvy
 var _hp_bars: Dictionary = {}      # id -> Control (ukazatel nad hlavou)
 var _roster_hp: Dictionary = {}    # id -> ProgressBar (v panelu)
 var _glory_bar: ProgressBar
@@ -210,9 +214,20 @@ func _clear() -> void:
 
 # ================================================================ panely
 
-func show_deploy(sim: Sim, setup: Dictionary, selected: String) -> void:
+func show_deploy(sim: Sim, setup: Dictionary, selected: String, scenario_id: String = "", route_id: String = "") -> void:
 	_clear()
 	var sc := sim.scenario
+	if scenario_choices.size() > 1:
+		var pick := OptionButton.new()
+		var i := 0
+		for ch: Array in scenario_choices:
+			pick.add_item("Bitva: %s" % ch[1])
+			pick.set_item_metadata(i, ch[0])
+			if ch[0] == scenario_id:
+				pick.select(i)
+			i += 1
+		pick.item_selected.connect(func(index: int) -> void: scenario_changed.emit(String(pick.get_item_metadata(index))))
+		content.add_child(pick)
 	content.add_child(_label("%s · %s" % [sc["stage_label"], sim.house["name"]], 12, MUTED))
 	content.add_child(_label(sc["name"], 28))
 	content.add_child(_label(sc["subtitle"], 14, MUTED, true))
@@ -220,7 +235,28 @@ func show_deploy(sim: Sim, setup: Dictionary, selected: String) -> void:
 
 	content.add_child(_heading("Rozestavení"))
 	content.add_child(_roster(sim, selected, true, false))
-	content.add_child(_label("Přetáhni rytíře myší na místo v modré zóně. Puštěním na jiného rytíře je prohodíš. Postoj určuje, co rytíř dělá bez rozkazu. Tlačítkem Prapor určíš, kdo ponese prapor; během bitvy se už nepředává.", 13, MUTED, true))
+	var su := sim.by_id(selected) if selected != "" else null
+	if su != null:
+		var rbox := HBoxContainer.new()
+		var drawing := route_id == selected
+		var npts := su.route.size()
+		rbox.add_child(_label("Trasa %s: %s" % [su.name, ("%d body" % npts) if npts > 0 else "žádná"], 13, INK))
+		var spacer := Control.new()
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		rbox.add_child(spacer)
+		var db := Button.new()
+		db.text = "Kreslím… [Esc]" if drawing else "Kreslit trasu"
+		db.pressed.connect(func() -> void: route_draw_pressed.emit(selected))
+		rbox.add_child(db)
+		if npts > 0:
+			var cb := Button.new()
+			cb.text = "Smazat"
+			cb.pressed.connect(func() -> void: route_clear_pressed.emit(selected))
+			rbox.add_child(cb)
+		content.add_child(rbox)
+		if drawing:
+			content.add_child(_label("Táhni myší po zemi, kudy má rytíř jít. Čára se zjednoduší na nejvýš 4 body. Na trase bojuje jen s tím, kdo mu vstoupí do cesty; na konci drží místo podle postoje.", 13, GLORY, true))
+	content.add_child(_label("Přetáhni rytíře myší na místo v modré zóně. Puštěním na jiného rytíře je prohodíš. Postoj určuje, co rytíř dělá bez rozkazu. Tlačítkem Prapor určíš, kdo ponese prapor; během bitvy se už nepředává. Vybranému rytíři můžeš nakreslit trasu.", 13, MUTED, true))
 
 	content.add_child(_heading(sim.house["name"]))
 	var shouts: Dictionary = sim.house["shouts"]
@@ -570,7 +606,7 @@ func show_result(sim: Sim, setup: Dictionary) -> void:
 	v.add_theme_constant_override("separation", 10)
 	result_box.add_child(v)
 	v.add_child(_label("Konec bitvy · %d:%02d" % [int(sim.t) / 60, int(sim.t) % 60], 12, MUTED))
-	v.add_child(_label("Vítězství u mostu" if win else "Oddíl padl", 26, OK if win else BAD))
+	v.add_child(_label(String(sim.scenario.get("win_title", "Vítězství")) if win else "Oddíl padl", 26, OK if win else BAD))
 	var fallen: Array[String] = []
 	for u in sim.knights():
 		if not u.alive():

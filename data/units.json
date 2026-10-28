@@ -1,5 +1,5 @@
 {
-  "_info": "Statistiky jednotek. hp = zdraví, dmg = poškození za úder, reach = dosah útoku v m, speed = m/s, cd = prodleva mezi útoky v s, armor = podíl pohlceného poškození, radius = poloměr těla v m, palette_row = řádek paletové textury (barva látky). target_priority = koho rytíř přednostně napadá ('ranged' = střelce). banner = co prapor dělá, když ho nese tento rytíř: aura_radius (m, jinak podle rodu), aura_dmg_bonus (přičte se k bonusu rodu), aura_armor (podíl zranění, který v auře odpadne), aura_speed (podíl rychlosti navíc v auře), aura_heal (zdraví za sekundu v auře).",
+  "_info": "Statistiky jednotek. hp = zdraví, dmg = poškození za úder, reach = dosah útoku v m, speed = m/s, cd = prodleva mezi útoky v s, armor = podíl pohlceného poškození, radius = poloměr těla v m, palette_row = řádek paletové textury (barva látky). target_priority = koho rytíř přednostně napadá ('ranged' = střelce). mounted = jízda (kopiníci proti ní dávají dmg_vs_mounted). ignores = terén, který jednotku nezpomaluje ('les'). banner = co prapor dělá, když ho nese tento rytíř: aura_radius (m, jinak podle rodu), aura_dmg_bonus (přičte se k bonusu rodu), aura_armor (podíl zranění, který v auře odpadne), aura_speed (podíl rychlosti navíc v auře), aura_heal (zdraví za sekundu v auře).",
   "knights": {
     "tank":      {"name": "Sir Bořek", "role": "Tank",      "hp": 375, "dmg": 11, "reach": 1.5, "speed": 2.2, "cd": 1.1, "armor": 0.35, "radius": 0.45, "palette_row": 1, "color": "#4d66a6",
                   "banner": {"aura_armor": 0.15, "desc": "Ocelová hradba: v auře o 15 % menší zranění."}},
@@ -7,13 +7,14 @@
                   "banner": {"aura_heal": 2.0, "desc": "Požehnaný prapor: v auře léčí 2 zdraví za sekundu."}},
     "lucistnik": {"name": "Matěj",     "role": "Lučištník", "hp": 165, "dmg": 9,  "reach": 9.0, "speed": 2.6, "cd": 1.3, "armor": 0.05, "radius": 0.40, "palette_row": 2, "color": "#4d8c4d", "ranged": true,
                   "banner": {"aura_radius": 7.0, "desc": "Prapor nad hlavami: aura 7 m místo 5 m."}},
-    "jezdec":    {"name": "Sir Radek", "role": "Jezdec",    "hp": 285, "dmg": 17, "reach": 1.8, "speed": 5.0, "cd": 1.4, "armor": 0.20, "radius": 0.75, "palette_row": 4, "color": "#bf8c26",
+    "jezdec":    {"name": "Sir Radek", "role": "Jezdec",    "hp": 285, "dmg": 17, "reach": 1.8, "speed": 5.0, "cd": 1.4, "armor": 0.20, "radius": 0.75, "palette_row": 4, "color": "#bf8c26", "mounted": true,
                   "banner": {"aura_speed": 0.25, "desc": "Prapor v trysku: v auře +25 % rychlost."}},
-    "asasin":    {"name": "Kryštof",   "role": "Asasín",    "hp": 170, "dmg": 18, "reach": 1.3, "speed": 3.4, "cd": 0.85, "armor": 0.10, "radius": 0.38, "palette_row": 5, "color": "#6a5a8c", "target_priority": "ranged",
+    "asasin":    {"name": "Kryštof",   "role": "Asasín",    "hp": 170, "dmg": 18, "reach": 1.3, "speed": 3.4, "cd": 0.85, "armor": 0.10, "radius": 0.38, "palette_row": 5, "color": "#6a5a8c", "target_priority": "ranged", "ignores": ["les"],
                   "banner": {"aura_radius": 4.0, "aura_dmg_bonus": 0.15, "desc": "Krvavý prapor: aura jen 4 m, ale útok v ní +30 % místo +15 %."}}
   },
   "foes": {
-    "lapka":   {"name": "Lapka",   "role": "Lapka",   "hp": 120, "dmg": 7, "reach": 1.3, "speed": 2.5, "cd": 1.1, "armor": 0.0, "radius": 0.40, "on_break": "desperate"},
+    "lapka":   {"name": "Lapka",   "role": "Lapka",   "hp": 120, "dmg": 7, "reach": 1.3, "speed": 2.5, "cd": 1.1, "armor": 0.0, "radius": 0.40, "on_break": "desperate", "traits": ["zoufalec"]},
+    "kopinik": {"name": "Kopiník", "role": "Kopiník", "hp": 150, "dmg": 8, "reach": 2.2, "speed": 2.2, "cd": 1.3, "armor": 0.15, "radius": 0.40, "on_break": "desperate", "dmg_vs_mounted": 2.0, "traits": ["fanatik"]},
     "strelec": {"name": "Střelec", "role": "Střelec", "hp": 90,  "dmg": 5, "reach": 8.0, "speed": 2.4, "cd": 1.6, "armor": 0.0, "radius": 0.40, "ranged": true, "on_break": "flee"}
   },
   "behavior": {
@@ -24,7 +25,13 @@
   "morale": {
     "_info": "Morálka nepřátel. Když nepřítel ztratí podíl break_losses jednotek (padlí i uprchlí), morálka se zlomí a každá jednotka zareaguje podle on_break: desperate = zoufale dobojuje (útok + desperate_dmg_bonus), flee = uteče za okraj bojiště (flee_y ve scénáři). Scénář může break_losses přepsat.",
     "break_losses": 0.7,
-    "desperate_dmg_bonus": 0.3
+    "desperate_dmg_bonus": 0.2
+  },
+  "traits": {
+    "_info": "Vlastnosti nepřátel. Jednotka je má v units.json (traits) nebo je dostane ve scénáři (4. prvek řádku nepřítele). never_breaks = nikdy se nezlomí, on_break = přepíše reakci na zlomenou morálku, desperate_dmg_bonus = útok navíc při zoufalství.",
+    "zoufalec": {"name": "Zoufalec", "desc": "Se zlomenou morálkou útočí o 10 % silněji navíc.", "desperate_dmg_bonus": 0.1},
+    "fanatik":  {"name": "Fanatik",  "desc": "Nikdy se nezlomí, bojuje do konce.", "never_breaks": true},
+    "zbabelec": {"name": "Zbabělec", "desc": "Když se morálka zlomí, uteče, i když je pěšák.", "on_break": "flee"}
   },
   "postures": {
     "utok":    "Útočný",

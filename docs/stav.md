@@ -6,6 +6,7 @@ Aktualizováno: 28.10.2026
 Fáze 1, krok 1.2 (viz `docs/plan.md`). První hratelný build v Godotu: jedna bitva (Most přes řeku) a otázka, jestli nás baví ji hrát opakovaně.
 
 ## Hotovo
+- Druhá mapa Brod a les (brody zpomalí, lávka, les se stezkou, asasína les nezpomalí), výběr bitvy v rozestavení, kreslení tras, kopiníci (2× proti jízdě, Fanatik), vlastnosti nepřátel. Testy obou map prošly.
 - Morálka nepřátel (po 70 % ztrát střelci prchají, pěšáci zoufale dobojují), jednorázový povel Do boje! (F), pojistka dobojování. Bitva s pokřiky trvá ~37 s. Testy prošly.
 - Nikdo nestojí bez práce: rytíř v Držet pozici bez cíle jde pomoct nejbližšímu bojujícímu (kromě tanka se Stát pevně). Testy prošly.
 - Prapor: nositele volí hráč v rozestavení (tlačítko Prapor), během bitvy se nepředává, efekt podle třídy nositele, nositel nemá Chránit prapor. Asasín nahradil praporečníka (jádro 5 tříd). Lapkové mají útok 7 místo 6 (balanc). Testy prošly.
@@ -22,6 +23,7 @@ Fáze 1, krok 1.2 (viz `docs/plan.md`). První hratelný build v Godotu: jedna b
 - Žádný zvuk.
 
 ## Čeká na Toma
+- Zahrát Brod a les: výběr bitvy nahoře v panelu rozestavení, trasa tlačítkem Kreslit trasu u vybraného rytíře. Simulace: nejlíp vychází sevřená obrana uprostřed s knězem jako nositelem (bez ztrát); nepřátelé jdou k nám, takže trasy zatím nejsou nutné.
 - Zahrát si bitvu a říct: baví to? co je nečitelné? 0, 1, nebo 2 signály?
 - Vyzkoušet různé nositele praporu. Simulace: jezdec s praporem prohrává (vyběhne s praporem z oddílu), ostatní vyhrávají. Je to chtěná cena, nebo jezdcův prapor upravit?
 - Asasín v Útočném postoji zemře sám za ~8 s (vyběhne na střelce za lapky). Výchozí postoj je proto Držet pozici.

@@ -17,14 +17,8 @@ func _init() -> void:
 		quit(1)
 		return
 
-	var without := _run_batch(data, false)
-	var with_shouts := _run_batch(data, true)
-	print("Bez pokřiků: výhry %d/%d, průměrná délka %.0f s" % [without["wins"], RUNS, without["avg_t"]])
-	print("S pokřiky:   výhry %d/%d, průměrná délka %.0f s, přeživší rytíři %.1f, úkol splněn %d×" % [with_shouts["wins"], RUNS, with_shouts["avg_t"], with_shouts["avg_alive"], with_shouts["task"]])
-	_check(without["wins"] <= RUNS / 4, "bez pokřiků by se měla bitva většinou prohrát")
-	_check(with_shouts["wins"] >= RUNS * 3 / 4, "s pokřiky by se měla bitva většinou vyhrát")
-	_check(with_shouts["avg_t"] > 30.0 and with_shouts["avg_t"] < 180.0, "bitva by měla trvat 30–180 s")
-	_check(without["stuck"] == 0 and with_shouts["stuck"] == 0, "žádná bitva nesmí uvíznout (pat)")
+	for sid: String in Sim.scenario_list():
+		_balance(sid)
 
 	_report_bearers(data)
 	_test_banner_pickup(data)
@@ -36,6 +30,10 @@ func _init() -> void:
 	_test_oath_and_signal(data)
 	_test_oath_postures(data)
 	_test_stand_firm(data)
+	var brod := Sim.load_data("brod_a_les")
+	_test_terrain(brod)
+	_test_routes(brod)
+	_test_spears_and_traits(brod)
 
 	if failures.is_empty():
 		print("OK: všechny testy prošly")
@@ -44,6 +42,19 @@ func _init() -> void:
 		for f in failures:
 			print("FAIL: " + f)
 		quit(1)
+
+
+## Balanc scénáře: bez pokřiků většinou prohra, s pokřiky většinou výhra, 30–180 s, žádný pat.
+func _balance(sid: String) -> void:
+	var data := Sim.load_data(sid)
+	var without := _run_batch(data, false)
+	var with_shouts := _run_batch(data, true)
+	print("[%s] Bez pokřiků: výhry %d/%d, průměrná délka %.0f s" % [sid, without["wins"], RUNS, without["avg_t"]])
+	print("[%s] S pokřiky:   výhry %d/%d, průměrná délka %.0f s, přeživší rytíři %.1f, úkol splněn %d×" % [sid, with_shouts["wins"], RUNS, with_shouts["avg_t"], with_shouts["avg_alive"], with_shouts["task"]])
+	_check(without["wins"] <= RUNS / 4, "[%s] bez pokřiků by se měla bitva většinou prohrát" % sid)
+	_check(with_shouts["wins"] >= RUNS * 3 / 4, "[%s] s pokřiky by se měla bitva většinou vyhrát" % sid)
+	_check(with_shouts["avg_t"] > 30.0 and with_shouts["avg_t"] < 180.0, "[%s] bitva by měla trvat 30–180 s" % sid)
+	_check(without["stuck"] == 0 and with_shouts["stuck"] == 0, "[%s] žádná bitva nesmí uvíznout (pat)" % sid)
 
 
 func _check(cond: bool, msg: String) -> void:
@@ -291,3 +302,100 @@ func _test_decided(data: Dictionary) -> void:
 		s.step(DT)
 		s.events.clear()
 	_check(luc.pos.distance_to(before) > 1.0 or s.over == "win", "v rozhodnuté bitvě jdou i rytíři v Držet pozici dobojovat")
+
+
+## Brody zpomalí, lávka a brody vedou přes řeku, les zpomalí všechny kromě asasína, stezka ne.
+func _test_terrain(data: Dictionary) -> void:
+	var s := Sim.new(data, Sim.default_setup(data, 0), 29)
+	var tank := s.by_id("tank")
+	var asasin := s.by_id("asasin")
+	_check(is_equal_approx(s.terrain_speed(tank, Vector2(-8.5, 6.5)), 0.55), "brod zpomalí")
+	_check(s._in_water(Vector2(-3.0, 6.5)) and not s._in_water(Vector2(0.0, 6.5)) and not s._in_water(Vector2(8.0, 6.5)), "voda mimo brody a lávku")
+	_check(s.terrain_speed(tank, Vector2(3.0, 12.0)) < 1.0 and is_equal_approx(s.terrain_speed(asasin, Vector2(3.0, 12.0)), 1.0), "les zpomalí, asasína ne")
+	_check(is_equal_approx(s.terrain_speed(tank, Vector2(0.0, 12.0)), 1.0), "stezka lesem nezpomaluje")
+	# rytíř z levé strany dojde přes řeku na druhý břeh a nikdy nevstoupí do vody
+	for u in s.units:
+		if u.side == Sim.SIDE_FOE:
+			u.hp = 0.0
+	s.by_id("e0").hp = 120.0
+	s.by_id("e0").pos = Vector2(-8.0, 20.0)
+	s.by_id("e0").speed = 0.0
+	tank.posture = "utok"
+	var wet := false
+	for i in 900:
+		s.step(DT)
+		s.events.clear()
+		if s._in_water(tank.pos):
+			wet = true
+		if tank.pos.y > 9.0:
+			break
+	_check(tank.pos.y > 9.0 and not wet, "rytíř přejde řeku brodem a nevstoupí do vody (y = %.1f)" % tank.pos.y)
+
+
+## Trasa: zjednodušení, průchod po bodech, body ve vodě se zahodí, přísaha nedovolí trasu zpět.
+func _test_routes(data: Dictionary) -> void:
+	var line: Array[Vector2] = []
+	for i in 40:
+		line.append(Vector2(sin(i * 0.2) * 3.0, i * 0.5))
+	var simple := Sim.simplify_route(line, 4)
+	_check(simple.size() <= 4 and simple.size() >= 2 and simple[0] == line[0] and simple[-1] == line[-1], "zjednodušení nechá 2–4 body a zachová začátek i konec")
+
+	var s := Sim.new(data, Sim.default_setup(data, 0), 31)
+	var asasin := s.by_id("asasin")
+	var pts: Array[Vector2] = [Vector2(0.0, 4.0), Vector2(-3.0, 6.5), Vector2(0.0, 10.0), Vector2(0.0, 13.0)]
+	_check(s.set_route("asasin", pts) and asasin.route.size() == 3, "bod trasy ve vodě se zahodí")
+	var back: Array[Vector2] = [Vector2(-7.5, 3.0), Vector2(-7.5, -3.0)]
+	_check(not s.set_route("tank", back) and s.route_problem("tank", back) != "", "rytíř s přísahou Nikdy neustoupí nemá trasu zpět")
+	var fwd: Array[Vector2] = [Vector2(-8.0, 3.0)]
+	_check(s.set_route("tank", fwd), "trasa dopředu jde i s přísahou")
+	for u in s.units:
+		if u.side == Sim.SIDE_FOE:
+			u.hp = 0.0
+	var target := s.by_id("e12")
+	target.hp = 90.0
+	target.pos = Vector2(14.0, 23.0)
+	target.speed = 0.0
+	target.traits.append("fanatik")
+	var reached := false
+	for i in 900:
+		s.step(DT)
+		s.events.clear()
+		if asasin.route_i >= asasin.route.size():
+			reached = true
+			break
+	_check(reached and asasin.pos.distance_to(Vector2(0.0, 13.0)) < 1.0, "rytíř dojde po trase na její konec (%s)" % asasin.pos)
+	_check(not s.set_route("asasin", []), "po začátku bitvy se trasa nemění")
+
+
+## Kopiníci jsou proti jízdě silnější a nezlomí se; Zbabělec uteče, i když je pěšák.
+func _test_spears_and_traits(data: Dictionary) -> void:
+	var s := Sim.new(data, Sim.default_setup(data, 0), 37)
+	var spear := s.by_id("e5")
+	var jezdec := s.by_id("jezdec")
+	var tank := s.by_id("tank")
+	_check(spear.key == "kopinik" and is_equal_approx(spear.vs_mounted, 2.0) and jezdec.mounted and not tank.mounted, "kopiník má bonus proti jízdě, jezdec je jízda")
+	var h0 := jezdec.hp
+	spear.t = 0.0
+	s._attack(spear, jezdec)
+	var hit_j := h0 - jezdec.hp
+	spear.t = 0.0
+	var t0 := tank.hp
+	s._attack(spear, tank)
+	var hit_t := t0 - tank.hp
+	_check(hit_j > hit_t * 1.5, "kopiník zraní jezdce víc než tanka (%.1f vs %.1f)" % [hit_j, hit_t])
+	# naživu zůstane kopiník (Fanatik), lapka se Zbabělcem a jeden střelec: 10 ztrát z 13
+	for i in 13:
+		if i != 5 and i != 9 and i != 10:
+			s.by_id("e%d" % i).hp = 0.0
+	s.step(DT)
+	_check(s.foes_broken, "po ztrátách se morálka zlomí")
+	_check(not s.by_id("e5").desperate and not s.by_id("e5").fleeing, "Fanatik (kopiník) se nezlomí")
+	_check(s.by_id("e9").fleeing, "Zbabělec uteče, i když je pěšák")
+	_check(s.by_id("e10").fleeing, "střelec uteče")
+	var ss := Sim.new(Sim.load_data(), Sim.default_setup(Sim.load_data(), 0), 37)
+	var lapka := ss.by_id("e0")
+	lapka.desperate = true
+	_check(is_equal_approx(ss._dmg_mult(lapka), 1.3), "lapka se Zoufalcem: zoufalství 20 % + 10 %")
+	s.by_id("tank").hp = 0.0
+	s._hurt(null, s.by_id("knez"), 99999.0)
+	_check(not s.task_ok, "úkol Nikdo nepadne selže, když padne kdokoli")

@@ -71,6 +71,11 @@ func _build_foe(u: Sim.Unit) -> void:
 	Field.box(body, Vector3(0.34, 0.12, 0.34), Vector3(0, 1.74, 0), _foe_mats["cloth"])
 	if u.ranged:
 		Field.box(body, Vector3(0.04, 1.1, 0.04), Vector3(-0.34, 1.15, 0.14), _foe_mats["wood"], Vector3(0, 0, 0.15))
+	elif u.vs_mounted > 1.0:
+		# kopiník: dlouhé kopí skloněné dopředu a kovová přilba
+		Field.box(body, Vector3(0.05, 0.05, 2.6), Vector3(0.3, 1.2, 0.7), _foe_mats["wood"], Vector3(-0.12, 0, 0))
+		Field.box(body, Vector3(0.08, 0.08, 0.25), Vector3(0.3, 1.35, 1.98), _foe_mats["steel"], Vector3(-0.12, 0, 0))
+		Field.box(body, Vector3(0.32, 0.14, 0.32), Vector3(0, 1.76, 0), _foe_mats["steel"])
 	else:
 		Field.box(body, Vector3(0.05, 0.9, 0.05), Vector3(0.32, 1.15, 0.14), _foe_mats["steel"], Vector3(0.5, 0, 0))
 

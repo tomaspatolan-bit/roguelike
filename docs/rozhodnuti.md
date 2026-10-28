@@ -2,6 +2,13 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 28.10.2026 – Druhá mapa Brod a les
+- **Mapa A „Brod a les“:** dva brody po stranách (zpomalí), úzká lávka uprostřed, za ní les se stezkou, nepřátelé ze dvou stran. Důvod: ověřit jednotky a jejich chování mimo most, rozdělení oddílu a trasy.
+- **Trasy:** kreslení čarou zjednodušenou na nejvýš 4 body, jen v rozestavení. Na trase rytíř bojuje jen s tím, kdo mu vstoupí do cesty. Rytíř s přísahou Nikdy neustoupí nemá trasu zpět.
+- **Nový nepřítel kopiník** (2× poškození proti jízdě, Fanatik). **Vlastnosti nepřátel** v datech: Zoufalec, Fanatik, Zbabělec.
+- **Asasína les nezpomaluje.** Jezdec je jízda (kopí proti němu).
+- **Zjištění:** na Brodu zatím nejlíp vychází sevřená obrana uprostřed s knězem jako nositelem; nepřátelé jdou k nám, takže trasy nejsou nutné. Další krok: nepřátelé drží pozice.
+
 ## 28.10.2026 – Zkušební běh před Bránou 1
 - **Před Bránou 1 postavíme zkušební běh:** 3 bitvy (Most → druhá mapa → závěrečná bitva s vůdcem), mezi nimi odměna 1 ze 3, padlí zůstanou mrtví, dědictví přísahy, uprchlíci se vrátí v závěrečné bitvě, kronika rodu na konci. Důvod: háček hry je vidět až mezi bitvami, jedna bitva neodpoví, jestli hra jako celek dává smysl.
 - **Pořadí:** druhá mapa s trasami a vlastnostmi nepřátel → postoje na míru třídám → zkušební běh → playtest (Tom + hráč mimo nás) → Brána 1.

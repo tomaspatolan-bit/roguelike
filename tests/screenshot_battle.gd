@@ -2,7 +2,7 @@ extends SceneTree
 ## Spustí scénu bitvy, odehraje kus bitvy s automatickými pokřiky a uloží snímky obrazovky.
 ## Slouží ke kontrole, že se scéna načte bez chyb a vypadá rozumně.
 ## Spuštění (s oknem, kvůli vykreslení):
-##   godot --path . --script res://tests/screenshot_battle.gd -- <složka pro snímky>
+##   godot --path . --script res://tests/screenshot_battle.gd -- <složka pro snímky> [klíč scénáře]
 ## Bez okna (jen kontrola chyb, bez snímků):
 ##   godot --headless --path . --script res://tests/screenshot_battle.gd
 
@@ -19,6 +19,8 @@ func _init() -> void:
 		out_dir = args[0]
 		DirAccess.make_dir_recursive_absolute(out_dir)
 	scene = load("res://scenes/battle/battle.tscn").instantiate()
+	if args.size() > 1:
+		scene.set("scenario_id", args[1])   # druhý argument: klíč scénáře
 	root.add_child(scene)
 
 
@@ -26,7 +28,7 @@ func _shot(file_name: String) -> void:
 	if out_dir == "" or DisplayServer.get_name() == "headless":
 		return
 	var img := root.get_texture().get_image()
-	img.save_png(out_dir.path_join(file_name))
+	img.save_png(out_dir.path_join(_prefix() + file_name))
 	print("Snímek: " + file_name)
 
 
@@ -102,3 +104,25 @@ func _test_drag_swap() -> void:
 	print("Drag & drop zpět: %s" % ("OK" if back_ok else "CHYBA"))
 	var posture_label: String = sim.call("posture_name", "tank", "drzet")
 	print("Postoj tanka s přísahou: %s" % posture_label)
+	_test_route_draw()
+
+
+## Nakreslí asasínovi trasu myší (režim Kreslit trasu) a ověří, že ji simulace přijala.
+func _test_route_draw() -> void:
+	var sim: Variant = scene.get("sim")
+	var cam: Camera3D = scene.get("cam")
+	var asasin: Variant = sim.call("by_id", "asasin")
+	var start: Vector2 = asasin.get("pos")
+	scene.set("_route_id", "asasin")
+	var pts: Array[Vector2] = [start, start + Vector2(0.5, 1.5), start + Vector2(1.0, 3.0), start + Vector2(1.0, 3.5)]
+	scene.call("_pointer_down", cam.unproject_position(Vector3(pts[0].x, 0, -pts[0].y)))
+	for p in pts:
+		scene.call("_pointer_move", cam.unproject_position(Vector3(p.x, 0, -p.y)))
+	scene.call("_pointer_up", cam.unproject_position(Vector3(pts[-1].x, 0, -pts[-1].y)))
+	var route: Array = asasin.get("route")
+	print("Kreslení trasy: %s (%d bodů)" % ["OK" if route.size() >= 1 and route.size() <= 4 else "CHYBA", route.size()])
+
+
+func _prefix() -> String:
+	var sid: String = scene.get("scenario_id")
+	return "" if sid == "most_pres_reku" else sid + "_"

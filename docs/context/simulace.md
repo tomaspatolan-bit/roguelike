@@ -11,7 +11,7 @@ Celá pravidla bitvy bez grafiky. Scéna i testy ji jen volají. Když jde něco
 2. **Čísla pocházejí z dat** (`data/*.json`). V kódu jsou jen klíče, ne hodnoty.
 3. **Deterministická se seedem**: stejný seed a stejné vstupy = stejný průběh.
 4. **Souřadnice:** `Vector2(x, y)`, y dopředu k nepříteli, 1 = 1 m.
-5. **Řeka jde přejít jen po mostě** (`|x| <= bridge_half_width`). Jednotka nikdy neskončí ve vodě.
+5. **Řeku jde přejít jen přechody** (`river.crossings`: most, brod, lávka; `_crossing_at`, `_best_crossing`). Jednotka nikdy neskončí ve vodě. Navigace volí přechod s nejkratší cestou. Terén mění rychlost (`terrain_speed`): brod a lávka podle `speed`, les podle `speed`, stezka lesem a jednotky s `ignores: ["les"]` bez zpomalení. Pro scénář s jedním mostem musí navigace dávat stejný výsledek jako dřív (balanc mostu se nesmí pohnout).
 6. **Prapor:** bez živého nositele nefunguje aura, pokřiky ani signály. Padlý prapor někdo zvedne (přednostně postoj „Chránit prapor“). Smrt nositele vždy vyvolá událost `autopause`.
    - **Nositele určuje hráč jen v rozestavení** (`set_bearer`, `can_set_bearer` platí jen při `t == 0`). Během bitvy se prapor nepředává; jediná výjimka je zvednutí padlého praporu.
    - **Co prapor dělá, určuje třída nositele** (data `banner` u třídy, `banner_effects()`): poloměr aury, bonus k útoku, menší zranění, rychlost, léčení v auře. `aura_radius` se přepočítá při každé změně nositele.
@@ -22,14 +22,16 @@ Celá pravidla bitvy bez grafiky. Scéna i testy ji jen volají. Když jde něco
 10. **Nikdo nestojí bez práce:** rytíř v postoji `drzet` bez vlastního cíle jde pomoct nejbližšímu rytíři, který bojoval v posledních `behavior.help_window` s (útok nebo zásah), a jeho místo se posouvá s ním. Výjimka: `no_retreat` („Stát pevně“) stojí dál. Útočný postoj a Chránit prapor tohle nepotřebují.
 11. **Morálka nepřátel:** když nepřítel ztratí podíl `break_losses` jednotek (padlí i uprchlí; data `morale`, scénář `enemy_morale`), zlomí se. Jednotka s `on_break: "flee"` prchá k `flee_y` a po dosažení okraje má `fled = true` a `hp = 0` (není to smrt: žádná událost `death`, žádná sláva). `"desperate"` útočí s bonusem `desperate_dmg_bonus`. Zlomení se stane jen jednou.
 12. **Dobojování:** po zlomení morálky smí hráč jednou dát povel Do boje! (`can_charge`, `charge_all`), všichni rytíři pak jednají jako v Útočném postoji (i tank se Stát pevně; útok vpřed není ústup). Pojistka: když síla strany (`power()`) klesne pod `decided_ratio` síly druhé, nastaví se `decided` a rytíři dobojují sami; ve prospěch rytířů jen dokud morálka nepřítele není zlomená (potom rozhoduje hráč). Postoj rytíře se v datech nemění, jen chování.
+13. **Trasy:** rytíř má nejvýš 4 body trasy (`set_route`, `route_problem`, jen při `t == 0`; body ve vodě se zahazují). Na trase jde od bodu k bodu a bojuje jen s nepřítelem do `reach + 1 m`; na konci trasy drží místo podle postoje. Rytíř s `no_retreat` nesmí mít trasu, která se vrací o víc než 1 m zpět. Rozkaz přesunu, Do boje! a rozhodnutá bitva trasu ruší. `simplify_route` zjednoduší nakreslenou čáru (RDP).
+14. **Vlastnosti nepřátel** (`traits`) se hledají v datech: `never_breaks`, `on_break`, `desperate_dmg_bonus`. Kopí proti jízdě: útočník s `dmg_vs_mounted` × cíl s `mounted`.
 
 ## Rozhraní, na které spoléhá scéna a testy
 - Stav: `units`, `projectiles`, `glory`, `fx`, `signals`, `bearer_id`, `aura_radius`, `foes_broken`, `charging`, `decided`, `banner_pos`, `banner_down`, `picker_id`, `oath_kept`, `task_ok`, `over` ("", "win", "lose"), `t`, `events`.
-- Setup: `{"signals", "pos", "posture", "bearer"}` (`default_setup` bere nositele ze scénáře).
-- Dotazy: `knights()`, `living(side)`, `by_id()`, `aura_center()`, `in_aura()`, `banner_effects()`, `can_set_bearer()`, `can_shout()`, `can_signal()`, `is_retreat()`, `oath_of()`, `has_oath()`, `posture_allowed()`, `oath_forbids()`, `bearer_forbids()`, `posture_name()`, `can_charge()`, `power()`.
-- Příkazy: `step(dt)`, `shout()`, `use_signal()`, `order_move()`, `set_bearer()` (vrací bool), `set_posture()` (vrací bool), `charge_all()` (vrací bool), `break_oath()`.
+- Setup: `{"signals", "pos", "posture", "bearer", "routes"}` (`default_setup` bere nositele ze scénáře).
+- Dotazy: `knights()`, `living(side)`, `by_id()`, `aura_center()`, `in_aura()`, `banner_effects()`, `can_set_bearer()`, `can_shout()`, `can_signal()`, `is_retreat()`, `oath_of()`, `has_oath()`, `posture_allowed()`, `oath_forbids()`, `bearer_forbids()`, `posture_name()`, `can_charge()`, `power()`, `terrain_speed()`, `route_problem()`, `on_route()`, `has_trait()`; statické `load_data(klíč)`, `scenario_list()`, `default_setup()`, `simplify_route()`.
+- Příkazy: `step(dt)`, `shout()`, `use_signal()`, `order_move()`, `set_bearer()` (vrací bool), `set_posture()` (vrací bool), `charge_all()` (vrací bool), `set_route()` (vrací bool), `break_oath()`.
 - Události (`events`, scéna je po zpracování maže): `log`, `autopause`, `death`, `fled`, `decided`, `heal`, `shoot`, `end`.
-- Jednotka: `fled`, `fleeing`, `desperate`, `combat_t`.
+- Jednotka: `fled`, `fleeing`, `desperate`, `combat_t`, `route`, `route_i`, `mounted`, `vs_mounted`, `ignores`, `traits`.
 Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, `battle_ui.gd` a testy.
 
 ## Úskalí
@@ -38,6 +40,7 @@ Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, 
 - Krok simulace je pevný (1/60 s ze scény, 1/30 s v testu). Logika nesmí záviset na velikosti kroku víc, než je nutné.
 
 ## Historie významných změn
+- 28.10.2026: obecný terén (přechody, lesy), trasy rytířů, kopiníci a vlastnosti nepřátel, scénář Brod a les. Most beze změny: 0/40 a 40/40.
 - 28.10.2026: morálka nepřátel (střelci prchají, pěšáci zoufale dobojují), povel Do boje!, pojistka dobojování. Práh zlomení 0,7 (při 0,6 vyhrávala i bitva bez pokřiků). Balanc 0/40 a 40/40, bitva 37 s místo 64 s.
 - 28.10.2026: pravidlo „nikdo nestojí bez práce“ (pomoc bojujícímu spolubojovníkovi, `combat_t`). Balanc 0/40 a 40/40, přeživší rytíři 4,0 místo 3,0.
 - 28.10.2026: nositele praporu volí hráč v rozestavení, prapor se nepředává, efekt praporu podle třídy nositele, nositel nesmí Chránit prapor. Asasín cílí přednostně na střelce (`target_priority`). Balanc: 0/40 bez pokřiků, 40/40 s pokřiky.

@@ -42,6 +42,12 @@ class Unit:
 	var face: Vector2 = Vector2(0, 1)
 	var moving: bool = false
 	var combat_t: float = -INF   # kdy naposledy útočil nebo dostal zásah
+	var mounted: bool = false
+	var vs_mounted: float = 1.0   # násobek poškození proti jízdě
+	var ignores: Array = []       # druhy terénu, které jednotku nezpomalují ("les")
+	var traits: Array = []        # vlastnosti (nepřátelé): klíče z units.json "traits"
+	var route: Array[Vector2] = []
+	var route_i: int = 0
 	var on_break: String = ""     # jak reaguje na zlomenou morálku (nepřátelé)
 	var desperate: bool = false
 	var fleeing: bool = false
@@ -67,7 +73,8 @@ var house: Dictionary
 var scenario: Dictionary
 var river_lo: float
 var river_hi: float
-var bridge: float
+var crossings: Array = []   # [{x0, x1, kind, speed}] místa, kde jde řeku přejít
+var forests: Array = []     # [{x0, x1, y0, y1, speed, path: [x0, x1]}]
 var aura_radius: float
 
 # --- stav ---
@@ -95,7 +102,8 @@ var _next_id: int = 0
 var _rng := RandomNumberGenerator.new()
 
 
-## setup = {"signals": int, "pos": {key: Vector2}, "posture": {key: String}, "bearer": key (nepovinné)}
+## setup = {"signals": int, "pos": {key: Vector2}, "posture": {key: String}, "bearer": key (nepovinné),
+##          "routes": {key: Array[Vector2]} (nepovinné)}
 func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	units_data = data["units"]
 	house = data["house"]
@@ -104,9 +112,11 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		_rng.seed = rng_seed
 	else:
 		_rng.randomize()
-	river_lo = scenario["river_lo"]
-	river_hi = scenario["river_hi"]
-	bridge = scenario["bridge_half_width"]
+	var river: Dictionary = scenario["river"]
+	river_lo = river["y0"]
+	river_hi = river["y1"]
+	crossings = river["crossings"]
+	forests = scenario.get("forests", [])
 	aura_radius = house["aura"]["radius"]
 	glory = house["glory"]["start"]
 	for k: String in house["shouts"]:
@@ -123,6 +133,9 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		u.posture = setup["posture"][key]
 		u.face = Vector2(0, 1)
 		units.append(u)
+		var routes: Dictionary = setup.get("routes", {})
+		if routes.has(key):
+			_apply_route(u, routes[key])
 		if not posture_allowed(u.id, u.posture):
 			u.posture = "drzet"
 	_update_aura()
@@ -133,6 +146,10 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		var fkey: String = row[0]
 		var u := _make_unit(fkey, SIDE_FOE, foes_data[fkey])
 		u.id = "e%d" % i
+		if row.size() > 3:
+			for tr: String in row[3]:
+				if not u.traits.has(tr):
+					u.traits.append(tr)
 		u.pos = Vector2(row[1], row[2])
 		u.home = u.pos
 		u.face = Vector2(0, -1)
@@ -141,24 +158,40 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		i += 1
 
 
-static func load_data(scenario_path: String = "res://data/scenarios/most_pres_reku.json") -> Dictionary:
+const DEFAULT_SCENARIO := "most_pres_reku"
+
+
+## scenario = klíč scénáře (soubor data/scenarios/<klíč>.json), nebo celá cesta k souboru.
+static func load_data(scenario: String = DEFAULT_SCENARIO) -> Dictionary:
+	var path := scenario if scenario.begins_with("res://") else "res://data/scenarios/%s.json" % scenario
 	return {
 		"units": _read_json("res://data/units.json"),
 		"house": _read_json("res://data/rod_vlka.json"),
-		"scenario": _read_json(scenario_path),
+		"scenario": _read_json(path),
 	}
+
+
+## Seznam scénářů v pořadí pro výběr bitvy.
+static func scenario_list() -> Array:
+	return _read_json("res://data/scenarios/index.json").get("order", [DEFAULT_SCENARIO])
 
 
 ## Výchozí rozestavení ze scénáře.
 static func default_setup(data: Dictionary, signal_count: int = 1) -> Dictionary:
 	var pos := {}
 	var posture := {}
+	var routes := {}
 	var deploy: Dictionary = data["scenario"]["deploy"]
 	for key: String in deploy:
 		var p: Array = deploy[key]["pos"]
 		pos[key] = Vector2(p[0], p[1])
 		posture[key] = deploy[key]["posture"]
-	return {"signals": signal_count, "pos": pos, "posture": posture, "bearer": String(data["scenario"]["banner_bearer"])}
+		if deploy[key].has("route"):
+			var pts: Array[Vector2] = []
+			for q: Array in deploy[key]["route"]:
+				pts.append(Vector2(q[0], q[1]))
+			routes[key] = pts
+	return {"signals": signal_count, "pos": pos, "posture": posture, "bearer": String(data["scenario"]["banner_bearer"]), "routes": routes}
 
 
 static func _read_json(path: String) -> Dictionary:
@@ -195,6 +228,10 @@ func _make_unit(key: String, side: String, d: Dictionary) -> Unit:
 	u.palette_row = int(d.get("palette_row", 0))
 	u.target_priority = d.get("target_priority", "")
 	u.on_break = d.get("on_break", "")
+	u.mounted = d.get("mounted", false)
+	u.vs_mounted = d.get("dmg_vs_mounted", 1.0)
+	u.ignores = d.get("ignores", [])
+	u.traits = (d.get("traits", []) as Array).duplicate()
 	u.color = Color.html(d.get("color", "#ffffff"))
 	return u
 
@@ -315,7 +352,9 @@ func _no_retreat(u: Unit) -> bool:
 
 func _dmg_mult(u: Unit) -> float:
 	if u.side != SIDE_KNIGHT:
-		return 1.0 + (float(units_data["morale"]["desperate_dmg_bonus"]) if u.desperate else 0.0)
+		if not u.desperate:
+			return 1.0
+		return 1.0 + float(units_data["morale"]["desperate_dmg_bonus"]) + float(_trait_value(u, "desperate_dmg_bonus", 0.0))
 	var m := 1.0
 	var a := in_aura(u)
 	if a:
@@ -389,6 +428,107 @@ func use_signal() -> bool:
 	return true
 
 
+# --------------------------------------------------------------- trasy
+
+## Zjednoduší nakreslenou čáru na nejvýš max_pts bodů (Ramer–Douglas–Peucker, zvětšuje toleranci).
+static func simplify_route(points: Array, max_pts: int = 4) -> Array[Vector2]:
+	var pts: Array[Vector2] = []
+	for p: Vector2 in points:
+		if pts.is_empty() or pts[-1].distance_to(p) > 0.05:
+			pts.append(p)
+	if pts.size() <= max_pts:
+		return pts
+	var eps := 0.25
+	var out: Array[Vector2] = pts
+	while out.size() > max_pts:
+		out = _rdp(pts, eps)
+		eps *= 1.5
+	return out
+
+
+static func _rdp(pts: Array[Vector2], eps: float) -> Array[Vector2]:
+	if pts.size() < 3:
+		return pts.duplicate()
+	var a := pts[0]
+	var b := pts[-1]
+	var best := -1.0
+	var idx := 0
+	for i in range(1, pts.size() - 1):
+		var d := _seg_dist(pts[i], a, b)
+		if d > best:
+			best = d
+			idx = i
+	var res: Array[Vector2] = []
+	if best <= eps:
+		res.append(a)
+		res.append(b)
+		return res
+	var left := _rdp(pts.slice(0, idx + 1), eps)
+	var right := _rdp(pts.slice(idx), eps)
+	res.append_array(left)
+	res.pop_back()
+	res.append_array(right)
+	return res
+
+
+static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var l2 := ab.length_squared()
+	if l2 < 0.0001:
+		return p.distance_to(a)
+	var t := clampf((p - a).dot(ab) / l2, 0.0, 1.0)
+	return p.distance_to(a + ab * t)
+
+
+## Proč trasu nejde nastavit ("" = jde). Body ve vodě se zahazují, ne zamítají.
+func route_problem(id: String, points: Array) -> String:
+	var u := by_id(id)
+	if u == null or u.side != SIDE_KNIGHT or not u.alive():
+		return "Neznámý rytíř."
+	if t > 0.0:
+		return "Trasa se určuje před bitvou."
+	if _no_retreat(u):
+		var front := u.pos.y
+		for p: Vector2 in points:
+			if p.y < front - 1.0:
+				return "Trasa vede zpět a %s složil přísahu „%s“." % [u.name, oath_of(id).get("name", "")]
+			front = maxf(front, p.y)
+	return ""
+
+
+## Nastaví trasu rytíře (jen v rozestavení). Prázdný seznam trasu smaže. Vrací false, když to nejde.
+func set_route(id: String, points: Array) -> bool:
+	if route_problem(id, points) != "":
+		return false
+	_apply_route(by_id(id), points)
+	return true
+
+
+func _apply_route(u: Unit, points: Array) -> void:
+	u.route.clear()
+	u.route_i = 0
+	for p: Vector2 in points:
+		if not _in_water(p) and u.route.size() < 4:
+			u.route.append(p)
+
+
+func on_route(u: Unit) -> bool:
+	return u.route_i < u.route.size() and decided == "" and not charging
+
+
+func has_trait(u: Unit, key: String) -> bool:
+	return u.traits.has(key)
+
+
+func _trait_value(u: Unit, field: String, default: Variant) -> Variant:
+	var all: Dictionary = units_data.get("traits", {})
+	for k: String in u.traits:
+		var tr: Dictionary = all.get(k, {})
+		if tr.has(field):
+			return tr[field]
+	return default
+
+
 ## Povel Do boje!: jednorázový, jen když je morálka nepřítele zlomená. Všichni rytíři útočí.
 func can_charge() -> bool:
 	return over == "" and foes_broken and not charging
@@ -409,6 +549,7 @@ func order_move(id: String, target: Vector2) -> void:
 		return
 	u.home = target
 	u.posture = "drzet"
+	u.route_i = u.route.size()   # rozkaz přesunu ruší zbytek trasy
 	_log("%s: nová pozice" % u.name, false)
 
 
@@ -464,6 +605,44 @@ func _gain_glory(v: float) -> void:
 	glory = minf(float(house["glory"]["max"]), glory + v)
 
 
+## Přechod přes řeku, ve kterém x leží (nebo prázdný slovník).
+func _crossing_at(x: float) -> Dictionary:
+	for c: Dictionary in crossings:
+		if x >= float(c["x0"]) and x <= float(c["x1"]):
+			return c
+	return {}
+
+
+## Nejvýhodnější přechod pro cestu z x_from do x_to.
+func _best_crossing(x_from: float, x_to: float) -> Dictionary:
+	var best: Dictionary = {}
+	var bd := INF
+	for c: Dictionary in crossings:
+		var cx := (float(c["x0"]) + float(c["x1"])) / 2.0
+		var d := absf(x_from - cx) + absf(x_to - cx)
+		if d < bd:
+			bd = d
+			best = c
+	return best
+
+
+## Násobek rychlosti podle terénu (brod, les; stezka lesem nezpomaluje).
+func terrain_speed(u: Unit, p: Vector2) -> float:
+	if p.y >= river_lo and p.y <= river_hi:
+		var c := _crossing_at(p.x)
+		if not c.is_empty():
+			return float(c.get("speed", 1.0))
+	for f: Dictionary in forests:
+		if p.x >= float(f["x0"]) and p.x <= float(f["x1"]) and p.y >= float(f["y0"]) and p.y <= float(f["y1"]):
+			var path: Array = f.get("path", [])
+			if path.size() == 2 and p.x >= float(path[0]) and p.x <= float(path[1]):
+				return 1.0
+			if u.ignores.has("les"):
+				return 1.0
+			return float(f.get("speed", 1.0))
+	return 1.0
+
+
 func _band(y: float) -> int:
 	if y < river_lo:
 		return 0
@@ -473,20 +652,24 @@ func _band(y: float) -> int:
 
 
 func _in_water(p: Vector2) -> bool:
-	return p.y > river_lo - 0.3 and p.y < river_hi + 0.3 and absf(p.x) > bridge
+	return p.y > river_lo - 0.3 and p.y < river_hi + 0.3 and _crossing_at(p.x).is_empty()
 
 
-## Kam jít, aby se jednotka dostala k cíli přes most.
+## Kam jít, aby se jednotka dostala k cíli přes řeku (nejvýhodnějším přechodem).
 func _nav(u: Unit, target: Vector2) -> Vector2:
 	var us := _band(u.pos.y)
 	var ts := _band(target.y)
-	if us == ts or (us == 1 and absf(u.pos.x) <= bridge):
+	var here := _crossing_at(u.pos.x)
+	if us == ts or (us == 1 and not here.is_empty()):
 		if us == 1 and ts != 1:
-			return Vector2(clampf(u.pos.x, -0.9, 0.9), river_lo - 0.5 if ts == 0 else river_hi + 0.5)
+			return Vector2(clampf(u.pos.x, float(here["x0"]) + 0.35, float(here["x1"]) - 0.35), river_lo - 0.5 if ts == 0 else river_hi + 0.5)
 		return target
-	if absf(u.pos.x) <= 1.0 and u.pos.y >= river_lo - 0.7 and u.pos.y <= river_hi + 0.7:
-		return Vector2(clampf(u.pos.x, -0.9, 0.9), river_hi + 0.5 if us == 0 else river_lo - 0.5)
-	return Vector2(clampf(u.pos.x, -0.9, 0.9), river_lo - 0.6 if us == 0 else river_hi + 0.6)
+	var c := _best_crossing(u.pos.x, target.x)
+	var x0 := float(c["x0"]) + 0.35
+	var x1 := float(c["x1"]) - 0.35
+	if u.pos.x >= x0 - 0.1 and u.pos.x <= x1 + 0.1 and u.pos.y >= river_lo - 0.7 and u.pos.y <= river_hi + 0.7:
+		return Vector2(clampf(u.pos.x, x0, x1), river_hi + 0.5 if us == 0 else river_lo - 0.5)
+	return Vector2(clampf(u.pos.x, x0, x1), river_lo - 0.6 if us == 0 else river_hi + 0.6)
 
 
 func _walk(u: Unit, target: Vector2, dt: float, stop: float = 0.0) -> void:
@@ -496,7 +679,7 @@ func _walk(u: Unit, target: Vector2, dt: float, stop: float = 0.0) -> void:
 	if d < 0.000001 or (d <= maxf(stop, 0.05) and w == target):
 		u.moving = false
 		return
-	var st := minf(d, _speed(u) * dt)
+	var st := minf(d, _speed(u) * terrain_speed(u, u.pos) * dt)
 	var old := u.pos
 	u.pos += dv / d * st
 	u.face = dv / d
@@ -525,11 +708,11 @@ func _attack(u: Unit, tg: Unit) -> void:
 		p.pos = u.pos
 		p.target_id = tg.id
 		p.from_id = u.id
-		p.dmg = u.dmg * _dmg_mult(u)
+		p.dmg = u.dmg * _dmg_mult(u) * (u.vs_mounted if tg.mounted else 1.0)
 		projectiles.append(p)
 		events.append({"type": "shoot", "id": u.id})
 	else:
-		_hurt(u, tg, u.dmg * _dmg_mult(u))
+		_hurt(u, tg, u.dmg * _dmg_mult(u) * (u.vs_mounted if tg.mounted else 1.0))
 
 
 func _hurt(att: Unit, tg: Unit, raw: float) -> void:
@@ -550,7 +733,7 @@ func _hurt(att: Unit, tg: Unit, raw: float) -> void:
 		return
 	_log("%s padl" % tg.name, true)
 	var protect: String = scenario["optional_task"]["protect"]
-	if tg.id == protect or (protect == "banner" and tg.id == bearer_id):
+	if tg.id == protect or protect == "all" or (protect == "banner" and tg.id == bearer_id):
 		task_ok = false
 	if tg.id == bearer_id:
 		bearer_id = ""
@@ -600,6 +783,32 @@ func _knight_think(u: Unit, dt: float) -> void:
 			_gain_glory(float(house["glory"]["per_banner_pickup"]))
 			_log("%s zvedl prapor" % u.name, true)
 		return
+
+	# Trasa: rytíř jde po bodech trasy, cestou bojuje jen s tím, kdo je těsně u něj.
+	# Na konci trasy drží místo podle svého postoje.
+	if on_route(u):
+		var close: Array[Unit] = []
+		var close_r := u.reach if u.ranged else u.reach + 1.0
+		for f in foes:
+			if f.pos.distance_to(u.pos) <= close_r:
+				close.append(f)
+		var ct := _choose_target(u, close)
+		if ct != null:
+			if u.pos.distance_to(ct.pos) <= u.reach + ct.radius * 0.5:
+				u.moving = false
+				_attack(u, ct)
+			else:
+				_walk(u, ct.pos, dt, u.reach * 0.8)
+			return
+		var wp := u.route[u.route_i]
+		if u.pos.distance_to(wp) > 0.5:
+			_walk(u, wp, dt, 0.3)
+			if u.moving:
+				return
+		u.route_i += 1
+		u.home = u.pos
+		if u.route_i < u.route.size():
+			return
 
 	# Když je bitva rozhodnutá, všichni dobojují útokem (nikdo nestojí, nikdo nečeká).
 	var posture := u.posture if decided == "" and not charging else "utok"
@@ -765,9 +974,12 @@ func _check_morale() -> void:
 		return
 	foes_broken = true
 	for u in living(SIDE_FOE):
-		if u.on_break == "flee":
+		if bool(_trait_value(u, "never_breaks", false)):
+			continue
+		var reaction := String(_trait_value(u, "on_break", u.on_break))
+		if reaction == "flee":
 			u.fleeing = true
-		elif u.on_break == "desperate":
+		elif reaction == "desperate":
 			u.desperate = true
 	_log("Nepřítel je zlomený: střelci prchají, pěšáci se zoufale vrhají do boje. Můžeš dát povel Do boje!", true)
 

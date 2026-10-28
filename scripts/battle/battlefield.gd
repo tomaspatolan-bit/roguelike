@@ -91,34 +91,80 @@ static func build(root: Node3D, scenario: Dictionary) -> void:
 	ground.material_override = mat(Color("#5f7a45"), 0.95)
 	root.add_child(ground)
 
-	var lo: float = scenario["river_lo"]
-	var hi: float = scenario["river_hi"]
+	var river: Dictionary = scenario["river"]
+	var lo: float = river["y0"]
+	var hi: float = river["y1"]
 	var water := box(root, Vector3(80, 0.04, hi - lo), to_world(Vector2(0, (lo + hi) / 2.0), 0.0), mat(Color("#4f7fa6"), 0.12, 0.1))
 	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for y: float in [lo, hi]:
 		box(root, Vector3(80, 0.12, 0.35), to_world(Vector2(0, y), 0.02), mat(Color("#6b6f5a"), 0.95))
 
-	# --- most ---
+	# --- přechody: most, lávka, brod ---
 	var wood := mat(Color("#7a5230"), 0.9)
-	var half: float = scenario["bridge_half_width"]
-	var bridge_len := hi - lo + 1.6
-	box(root, Vector3(half * 2.4, 0.08, bridge_len), to_world(Vector2(0, (lo + hi) / 2.0), 0.04), wood)
-	for sx: float in [-1.0, 1.0]:
-		box(root, Vector3(0.12, 0.7, bridge_len), to_world(Vector2(sx * half * 1.2, (lo + hi) / 2.0), 0.4), wood)
-		for y in [lo + 0.3, (lo + hi) / 2.0, hi - 0.3]:
-			cylinder(root, 0.16, 0.16, 0.3, to_world(Vector2(sx * half, y), -0.13), mat(Color("#8f8d89")), 8)
+	var stone := mat(Color("#8f8d89"), 0.9)
+	for c: Dictionary in river["crossings"]:
+		var x0: float = c["x0"]
+		var x1: float = c["x1"]
+		var cx := (x0 + x1) / 2.0
+		var half := (x1 - x0) / 2.0
+		var kind: String = c.get("kind", "most")
+		if kind == "brod":
+			var shallow := box(root, Vector3(x1 - x0, 0.05, hi - lo + 0.4), to_world(Vector2(cx, (lo + hi) / 2.0), 0.01), mat(Color("#8fb0b8"), 0.3, 0.05))
+			shallow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var i := 0
+			for y in range(int(lo * 2.0), int(hi * 2.0)):
+				var sx := x0 + 0.4 + fmod(float(i) * 1.37, x1 - x0 - 0.8)
+				box(root, Vector3(0.35, 0.12, 0.3), to_world(Vector2(sx, float(y) / 2.0 + 0.2), 0.05), stone, Vector3(0, float(i) * 0.7, 0))
+				i += 1
+			continue
+		var bridge_len := hi - lo + 1.6
+		box(root, Vector3(half * 2.4, 0.08, bridge_len), to_world(Vector2(cx, (lo + hi) / 2.0), 0.04), wood)
+		var rail_h := 0.7 if kind == "most" else 0.5
+		for sx: float in [-1.0, 1.0]:
+			box(root, Vector3(0.1, rail_h, bridge_len), to_world(Vector2(cx + sx * half * 1.2, (lo + hi) / 2.0), rail_h * 0.57), wood)
+			for y in [lo + 0.3, (lo + hi) / 2.0, hi - 0.3]:
+				cylinder(root, 0.16, 0.16, 0.3, to_world(Vector2(cx + sx * half, y), -0.13), stone, 8)
 
-	# --- stromy a kameny ---
+	# --- les (stezka bez stromů) ---
 	var leaf := mat(Color("#3f6b38"), 0.95)
-	for t: Array in [[-12, -2, 4.5], [-14, 1, 4.0], [-10, 2, 5.0], [-15, -5, 4.2], [-11, 11, 4.6], [-14, 13, 4.0], [12, 13, 4.4], [16, 4, 4.2], [-18, 8, 4.8], [15, -9, 4.6], [-17, -10, 4.4]]:
+	var dark_leaf := mat(Color("#2f5a2c"), 0.95)
+	for f: Dictionary in scenario.get("forests", []):
+		var fx0: float = f["x0"]
+		var fx1: float = f["x1"]
+		var fy0: float = f["y0"]
+		var fy1: float = f["y1"]
+		var floor_mi := box(root, Vector3(fx1 - fx0, 0.02, fy1 - fy0), to_world(Vector2((fx0 + fx1) / 2.0, (fy0 + fy1) / 2.0), 0.01), mat(Color("#4a6236"), 0.95))
+		floor_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var path: Array = f.get("path", [])
+		if path.size() == 2:
+			var pw: float = float(path[1]) - float(path[0])
+			box(root, Vector3(pw, 0.03, fy1 - fy0), to_world(Vector2((float(path[0]) + float(path[1])) / 2.0, (fy0 + fy1) / 2.0), 0.015), mat(Color("#8a7350"), 0.95))
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 7
+		var yy := fy0 + 0.6
+		while yy < fy1:
+			var xx := fx0 + 0.6
+			while xx < fx1:
+				var p := Vector2(xx + rng.randf_range(-0.4, 0.4), yy + rng.randf_range(-0.4, 0.4))
+				var on_path := path.size() == 2 and p.x > float(path[0]) - 0.6 and p.x < float(path[1]) + 0.6
+				if not on_path:
+					var h := rng.randf_range(3.2, 4.6)
+					cylinder(root, 0.14, 0.16, 1.2, to_world(p, 0.6), wood, 6)
+					cylinder(root, 0.0, 0.85, h - 1.0, to_world(p, 1.0 + (h - 1.0) / 2.0), dark_leaf if rng.randf() < 0.5 else leaf, 7)
+				xx += 1.7
+			yy += 1.7
+
+	# --- stromy a kameny okolo ---
+	var trees: Array = scenario.get("trees", [[-12, -2, 4.5], [-14, 1, 4.0], [-10, 2, 5.0], [-15, -5, 4.2], [-11, 11, 4.6], [-14, 13, 4.0], [12, 13, 4.4], [16, 4, 4.2], [-18, 8, 4.8], [15, -9, 4.6], [-17, -10, 4.4]])
+	for t: Array in trees:
 		var p := Vector2(t[0], t[1])
 		var h: float = t[2]
 		cylinder(root, 0.18, 0.2, 1.4, to_world(p, 0.7), wood, 8)
 		cylinder(root, 0.0, 1.1, h - 1.0, to_world(p, 1.0 + (h - 1.0) / 2.0), leaf, 8)
-	var stone := mat(Color("#8f8d89"), 0.9)
-	for r: Array in [[10, -3, 1.2, 20], [12, 0, 0.8, 50], [9, 2, 1.0, 10], [-7, -12, 0.7, 35]]:
-		var s: float = r[2]
-		box(root, Vector3(s * 1.4, s, s * 1.2), to_world(Vector2(r[0], r[1]), s * 0.35), stone, Vector3(0.2, deg_to_rad(r[3]), 0.1))
+	var rocks: Array = scenario.get("rocks", [[10, -3, 1.2, 20], [12, 0, 0.8, 50], [9, 2, 1.0, 10], [-7, -12, 0.7, 35]])
+	for r: Array in rocks:
+		var sz: float = r[2]
+		box(root, Vector3(sz * 1.4, sz, sz * 1.2), to_world(Vector2(r[0], r[1]), sz * 0.35), stone, Vector3(0.2, deg_to_rad(r[3]), 0.1))
 
 
 static func build_banner() -> Node3D:

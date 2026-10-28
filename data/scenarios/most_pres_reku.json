@@ -1,11 +1,10 @@
 {
-  "_info": "Bitva Most přes řeku. Souřadnice v metrech: x doprava, y dopředu (k nepříteli). Řeka vede napříč mezi y = river_lo a river_hi, přejít jde jen po mostě (|x| <= bridge_half_width). banner_bearer = výchozí nositel praporu (hráč ho v rozestavení může změnit). optional_task.protect = id rytíře, nebo 'banner' (nositel praporu nesmí padnout). enemy_morale = kdy se nepřítel zlomí (podíl ztrát) a kam prchá (y okraje bojiště).",
+  "_info": "Bitva Most přes řeku. Souřadnice v metrech: x doprava, y dopředu (k nepříteli). Řeka vede napříč mezi river.y0 a y1, přejít jde jen přechody (crossings: x0–x1, kind most/brod/lavka, speed = násobek rychlosti). forests = lesy (obdélník, speed, path = stezka x0–x1 bez zpomalení). deploy.<rytíř>.route = výchozí trasa. banner_bearer = výchozí nositel praporu (hráč ho v rozestavení může změnit). optional_task.protect = id rytíře, nebo 'banner' (nositel praporu nesmí padnout). enemy_morale = kdy se nepřítel zlomí (podíl ztrát) a kam prchá (y okraje bojiště).",
   "name": "Most přes řeku",
   "subtitle": "Lapkové z Hraběcího lesa · 9 pěšáků, 3 střelci",
   "stage_label": "Akt 1 · Stage 2",
-  "river_lo": 4.0,
-  "river_hi": 8.0,
-  "bridge_half_width": 1.25,
+  "win_title": "Vítězství u mostu",
+  "river": {"y0": 4.0, "y1": 8.0, "crossings": [{"x0": -1.25, "x1": 1.25, "kind": "most", "speed": 1.0}]},
   "deploy_zone": {"x0": -6, "x1": 6, "y0": -8.5, "y1": -3.5},
   "deploy": {
     "tank": {"pos": [0, -4.3], "posture": "drzet"},

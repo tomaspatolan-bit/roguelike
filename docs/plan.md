@@ -33,8 +33,11 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [ ] Zvýraznění aktivního pokřiku a dosahu praporu
   - [ ] Ukazatel postupu volitelného úkolu
 - [ ] 1.5 Druhá bitva s jiným terénem a více průchody (ověří, že data a scéna nejsou šité na jeden scénář)
-  - [ ] Trasy rytířů: kreslení čarou zjednodušenou na 2–4 body, platí od startu bitvy
-  - [ ] Vlastnosti nepřátel (Zoufalec, Fanatik, Zbabělec…) a nový typ nepřátel
+  - [x] Brod a les: dva brody, lávka, les se stezkou; výběr bitvy v rozestavení
+  - [x] Trasy rytířů: kreslení čarou zjednodušenou na 2–4 body, platí od startu bitvy
+  - [x] Vlastnosti nepřátel (Zoufalec, Fanatik, Zbabělec) a kopiníci (proti jízdě)
+  - [ ] Nepřátelé drží pozice (brod, okraj lesu), aby trasy a rozdělení oddílu měly smysl
+  - [ ] Playtest druhé mapy (Tom)
 - [ ] 1.6 Postoje na míru třídám (2 na třídu, data), testy obou scénářů v testu balancu
 - [ ] 1.7 Zkušební běh (celý loop v malém)
   - [ ] 3 bitvy za sebou: Most přes řeku → druhá mapa → závěrečná bitva s vůdcem nepřátel
