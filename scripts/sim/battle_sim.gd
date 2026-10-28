@@ -645,19 +645,6 @@ func _trait_value(u: Unit, field: String, default: Variant) -> Variant:
 	return default
 
 
-func has_trait(u: Unit, key: String) -> bool:
-	return u.traits.has(key)
-
-
-func _trait_value(u: Unit, field: String, default: Variant) -> Variant:
-	var all: Dictionary = units_data.get("traits", {})
-	for k: String in u.traits:
-		var tr: Dictionary = all.get(k, {})
-		if tr.has(field):
-			return tr[field]
-	return default
-
-
 ## Povel Do boje!: jednorázový, jen když je morálka nepřítele zlomená. Všichni hrdinové útočí.
 func can_charge() -> bool:
 	return over == "" and foes_broken and not charging
