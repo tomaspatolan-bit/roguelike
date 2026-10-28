@@ -8,6 +8,7 @@ podporuje aspoň jeden pilíř? kolik stojí? řeší problém, který jsme vid�
 | 2026-10-25 | Pravidla „když–pak“ pro rytíře (např. kněz zvedne prapor) | Velíš rodu, ne vojákovi | čeká na playtest (jen pokud postoje a pokřiky nestačí) |
 | 2026-10-25 | Okamžité povely bez zastavení času („Ke mně!“) | Prapor je srdce oddílu | čeká na playtest (proti pasivitě) |
 | 2026-10-26 | Plášť rozpohybovaný fyzikou | – | vizuál, fáze 3 |
+| 28.10.2026 | Postoje na míru třídám: tank Stát pevně/Krýt/Prorazit, kněz Léčit frontu/U praporu, lučištník Ostřelovat/Krýt postup/Lovit střelce, jezdec Výpad/Záloha, asasín Lovit střelce/Číhat/Doprovod; 2 na třídu, třetí jako odměna | Velíš rodu, ne vojákovi | po druhé mapě (1.5); Tom souhlasí se směrem |
 | 28.10.2026 | Najímání jednotek: každý hrdina si najme vlastní oddíl; prapor nese vždy hrdina | Velíš rodu, ne vojákovi | fáze 2+, ovlivňuje volbu nositele (jen hrdinové) |
 | 28.10.2026 | Trasy: kreslení volnou čarou zjednodušenou na 2–4 body, výchozí „na začátku bitvy vyraz po trase“ | Velíš rodu, ne vojákovi | v plánu 1.5 (s mapou s více průchody) |
 | 28.10.2026 | Podmíněné instrukce: pevný slovník (5 podmínek × 4 akce), 1 instrukce na rytíře, 2. slot jako odměna, přísahy platí | Velíš rodu, ne vojákovi | v plánu 1.7 |

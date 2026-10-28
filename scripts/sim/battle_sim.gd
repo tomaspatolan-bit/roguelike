@@ -41,6 +41,7 @@ class Unit:
 	var hit: float = 0.0
 	var face: Vector2 = Vector2(0, 1)
 	var moving: bool = false
+	var combat_t: float = -INF   # kdy naposledy útočil nebo dostal zásah
 
 	func alive() -> bool:
 		return hp > 0.0
@@ -491,6 +492,7 @@ func _face_to(u: Unit, tg: Unit) -> void:
 
 func _attack(u: Unit, tg: Unit) -> void:
 	_face_to(u, tg)
+	u.combat_t = t
 	if u.t > 0.0:
 		return
 	u.t = u.cd
@@ -514,6 +516,7 @@ func _hurt(att: Unit, tg: Unit, raw: float) -> void:
 		return
 	tg.hp -= raw * _taken_mult(tg)
 	tg.hit = 0.18
+	tg.combat_t = t
 	if att != null and att.side == SIDE_KNIGHT:
 		_gain_glory(float(house["glory"]["per_hit"]))
 	if tg.hp > 0.0:
@@ -630,6 +633,16 @@ func _knight_think(u: Unit, dt: float) -> void:
 			_walk(u, tg.pos, dt, u.reach * 0.8)
 			return
 
+	# Nikdo nestojí bez práce: kdo drží místo a nemá s kým bojovat, jde pomoct
+	# nejbližšímu spolubojovníkovi, který právě bojuje. Rytíř s přísahou Nikdy neustoupí stojí dál.
+	if u.posture == "drzet" and not _no_retreat(u):
+		var mate := _engaged_ally(u)
+		if mate != null:
+			var stop := u.reach * 0.8 if u.ranged else mate.radius + u.radius + 0.3
+			_walk(u, mate.pos, dt, stop)
+			u.home = u.pos
+			return
+
 	if has_anchor:
 		var near := 1.6 if u.posture == "chranit" else 0.25
 		if u.pos.distance_to(anchor) > near:
@@ -638,6 +651,16 @@ func _knight_think(u: Unit, dt: float) -> void:
 			u.moving = false
 	else:
 		u.moving = false
+
+
+## Nejbližší jiný rytíř, který v posledních chvílích bojoval (útočil nebo dostal zásah).
+func _engaged_ally(u: Unit) -> Unit:
+	var window := float(units_data["behavior"]["help_window"])
+	var list: Array[Unit] = []
+	for k in living(SIDE_KNIGHT):
+		if k != u and t - k.combat_t <= window:
+			list.append(k)
+	return _nearest(list, u.pos)
 
 
 func _foe_think(u: Unit, dt: float) -> void:

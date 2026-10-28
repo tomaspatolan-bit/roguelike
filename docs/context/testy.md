@@ -15,7 +15,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 ## Co který test hlídá
 | Test | Hlídá | Očekávaný výsledek |
 | --- | --- | --- |
-| `test_battle_sim.gd` | invarianty simulace, balanc, prapor (volba nositele, efekty podle třídy, zvednutí), přísahy a postoje, „Stát pevně“, cíle asasína; informativně výhry podle nositele | kód 0, „OK: všechny testy prošly“ |
+| `test_battle_sim.gd` | invarianty simulace, balanc, prapor (volba nositele, efekty podle třídy, zvednutí), přísahy a postoje, „Stát pevně“, cíle asasína, pomoc bojujícímu spolubojovníkovi; informativně výhry podle nositele | kód 0, „OK: všechny testy prošly“ |
 | `screenshot_battle.gd` | scéna se načte, drag & drop prohodí rytíře tam i zpět, bitva doběhne bez chyb | „Drag & drop … OK“, „Bitva skončila: win“, žádné ERROR v logu |
 
 ## Invarianty

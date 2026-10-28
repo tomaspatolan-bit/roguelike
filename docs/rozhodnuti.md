@@ -2,6 +2,11 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 28.10.2026 – Nikdo nestojí bez práce, postoje na míru třídám
+- **Rytíř v Držet pozici bez cíle jde pomoct nejbližšímu bojujícímu spolubojovníkovi.** Důvod: na konci bitvy stáli rytíři daleko od sebe a nic nedělali. Tank s přísahou Nikdy neustoupí stojí dál (otevřená otázka pro Toma).
+- **Směr: postoje na míru třídám** (2 na třídu, třetí jako odměna v runu), např. jezdec Výpad/Záloha, asasín Lovit střelce/Číhat. Až po druhé mapě.
+- **Pořadí:** oprava nečinnosti → druhá mapa s trasami → doplnit zážitek → Brána 1 (dává hra smysl?).
+
 ## 28.10.2026 – Prapor, jádro tříd a opakování bitev
 - **Bitvy se neopakují.** Žádné opakování po prohře, žádné vracení času, žádné cvičiště. Prohra v runu znamená ztráty (padlí rytíři, propadlá odměna, ústup), ne nutně konec runu; přesná pravidla ve fázi 2. Tlačítka „Znovu stejně“ a „Nové rozestavení“ zůstávají jen v prototypu pro playtesty.
 - **Hloubka rozhodnutí přes informace o nepříteli:** hráč před bitvou uvidí, kudy nepřátelé půjdou a jaké mají podmínky (stejný slovník jako instrukce hráče). Pojistky proti „hádance s jedním řešením“: trochu náhody v boji, podmínky nepřátel jako odhalovaná informace (průzkum, fáze 2).

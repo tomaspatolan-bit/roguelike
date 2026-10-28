@@ -30,6 +30,7 @@ func _init() -> void:
 	_test_banner_pickup(data)
 	_test_bearer(data)
 	_test_target_priority(data)
+	_test_no_idle(data)
 	_test_oath_and_signal(data)
 	_test_oath_postures(data)
 	_test_stand_firm(data)
@@ -210,3 +211,28 @@ func _test_target_priority(data: Dictionary) -> void:
 	var tank := s.by_id("tank")
 	var tg2 := s._choose_target(tank, s.living(Sim.SIDE_FOE))
 	_check(tg2 != null and not tg2.ranged, "ostatní cílí na nejbližšího")
+
+
+## Rytíř v Držet pozici nestojí, když jeho spolubojovník bojuje jinde (konec bitvy, poslední dva rytíři).
+func _test_no_idle(data: Dictionary) -> void:
+	var setup := Sim.default_setup(data, 0)
+	setup["posture"]["knez"] = "drzet"
+	setup["posture"]["jezdec"] = "drzet"
+	var s := Sim.new(data, setup, 17)
+	for u in s.units:
+		if u.id != "knez" and u.id != "jezdec" and u.id != "e0":
+			u.hp = 0.0
+	var knez := s.by_id("knez")
+	var jezdec := s.by_id("jezdec")
+	knez.pos = Vector2(-5.0, -8.0)
+	knez.home = knez.pos
+	jezdec.pos = Vector2(5.0, -4.0)
+	jezdec.home = jezdec.pos
+	s.by_id("e0").pos = Vector2(5.0, -2.8)
+	var start := knez.pos.distance_to(jezdec.pos)
+	for i in 150:
+		s.step(DT)
+		s.events.clear()
+	var now := knez.pos.distance_to(jezdec.pos)
+	print("Pomoc spolubojovníkovi: kněz %.1f m -> %.1f m od jezdce" % [start, now])
+	_check(now < start - 3.0, "rytíř bez cíle v Držet pozici jde pomoct bojujícímu spolubojovníkovi")

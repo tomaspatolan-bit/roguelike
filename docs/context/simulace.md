@@ -19,6 +19,7 @@ Celá pravidla bitvy bez grafiky. Scéna i testy ji jen volají. Když jde něco
 7. **Přísahy** (data `oaths` v rodu): bonus jen dokud `oath_kept`. Přísaha může **zakázat postoje** (`forbidden_postures`, `set_posture` pak vrací false a nic nemění) a **přejmenovat je** (`posture_names`). `no_retreat` = rytíř nikdy sám necouvne: v postoji `drzet` („Stát pevně“) nechodí za nepřítelem ani se nevrací, jeho místo se posouvá s ním; nezvedá padlý prapor. Porušení stojí slávu podle dat a je nevratné. V kódu simulace nesmí být natvrdo klíč rytíře (`"tank"`), přísahy se hledají v datech.
 8. **Žádný pat:** každá bitva musí skončit. Nepřátelští střelci postupují na 60 % dostřelu právě proto.
 9. **Balanc scénáře Most přes řeku:** bez pokřiků vyhraje nejvýš čtvrtina bitev, s pokřiky aspoň tři čtvrtiny, bitva trvá 30–180 s.
+10. **Nikdo nestojí bez práce:** rytíř v postoji `drzet` bez vlastního cíle jde pomoct nejbližšímu rytíři, který bojoval v posledních `behavior.help_window` s (útok nebo zásah), a jeho místo se posouvá s ním. Výjimka: `no_retreat` („Stát pevně“) stojí dál. Útočný postoj a Chránit prapor tohle nepotřebují.
 
 ## Rozhraní, na které spoléhá scéna a testy
 - Stav: `units`, `projectiles`, `glory`, `fx`, `signals`, `bearer_id`, `aura_radius`, `banner_pos`, `banner_down`, `picker_id`, `oath_kept`, `task_ok`, `over` ("", "win", "lose"), `t`, `events`.
@@ -34,6 +35,7 @@ Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, 
 - Krok simulace je pevný (1/60 s ze scény, 1/30 s v testu). Logika nesmí záviset na velikosti kroku víc, než je nutné.
 
 ## Historie významných změn
+- 28.10.2026: pravidlo „nikdo nestojí bez práce“ (pomoc bojujícímu spolubojovníkovi, `combat_t`). Balanc 0/40 a 40/40, přeživší rytíři 4,0 místo 3,0.
 - 28.10.2026: nositele praporu volí hráč v rozestavení, prapor se nepředává, efekt praporu podle třídy nositele, nositel nesmí Chránit prapor. Asasín cílí přednostně na střelce (`target_priority`). Balanc: 0/40 bez pokřiků, 40/40 s pokřiky.
 - 2026-10-28: přísahy určují povolené postoje, „Stát pevně“ pro `no_retreat` (po playtestu). Balanc beze změny: 0/40 bez pokřiků, 40/40 s pokřiky.
 - 2026-10-28: přenesena z webového dema, čísla z dema beze změny.

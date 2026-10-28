@@ -16,6 +16,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 7. **Jádro tříd rytířů je pevné:** tank, kněz, lučištník, jezdec, asasín. Přidat nebo odebrat třídu jde jen po rozhodnutí v deníku (Tom). Praporečník jako třída neexistuje, prapor nese kterákoli třída.
 8. **Prapor podle třídy** (`knights.<klíč>.banner`): `aura_radius`, `aura_dmg_bonus`, `aura_armor`, `aura_speed`, `aura_heal`, `desc` (text pro hráče). Každá třída musí mít `banner` s `desc`. Nový efekt = nový klíč i kód v simulaci, nová kombinace čísel = jen data.
 9. **Scénář:** `banner_bearer` je výchozí nositel; `optional_task.protect` je id rytíře, nebo `"banner"` (nositel praporu nesmí padnout).
+10. **Obecné chování** (`behavior` v `units.json`): `help_window`. Popisy postojů pro hráče jsou v `posture_desc`.
 
 ## Úskalí
 - JSON nemá komentáře: popis patří do klíče `_info`.
