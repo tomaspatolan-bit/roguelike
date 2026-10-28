@@ -64,20 +64,21 @@ static func build(root: Node3D, scenario: Dictionary) -> void:
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.9
+	env.ambient_light_energy = 0.55
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_exposure = 0.95
 	env.ssao_enabled = true
-	env.fog_enabled = true
-	env.fog_light_color = Color("#b5c1cc")
-	env.fog_density = 0.006
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.12
+	env.adjustment_saturation = 1.1
 	var we := WorldEnvironment.new()
 	we.environment = env
 	root.add_child(we)
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52, 35, 0)
-	sun.light_energy = 1.25
+	sun.light_energy = 1.5
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 70.0
 	root.add_child(sun)
@@ -87,7 +88,7 @@ static func build(root: Node3D, scenario: Dictionary) -> void:
 	var gm := PlaneMesh.new()
 	gm.size = Vector2(80, 80)
 	ground.mesh = gm
-	ground.material_override = mat(Color("#7d9363"), 0.95)
+	ground.material_override = mat(Color("#5f7a45"), 0.95)
 	root.add_child(ground)
 
 	var lo: float = scenario["river_lo"]
@@ -105,7 +106,7 @@ static func build(root: Node3D, scenario: Dictionary) -> void:
 	for sx: float in [-1.0, 1.0]:
 		box(root, Vector3(0.12, 0.7, bridge_len), to_world(Vector2(sx * half * 1.2, (lo + hi) / 2.0), 0.4), wood)
 		for y in [lo + 0.3, (lo + hi) / 2.0, hi - 0.3]:
-			cylinder(root, 0.16, 0.16, 0.5, to_world(Vector2(sx * half, y), -0.1), mat(Color("#8f8d89")), 8)
+			cylinder(root, 0.16, 0.16, 0.3, to_world(Vector2(sx * half, y), -0.13), mat(Color("#8f8d89")), 8)
 
 	# --- stromy a kameny ---
 	var leaf := mat(Color("#3f6b38"), 0.95)
