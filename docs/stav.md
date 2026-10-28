@@ -8,6 +8,7 @@ Aktualizováno: 28.10.2026
 Fáze 1, krok 1.2 (viz `docs/plan.md`). První hratelný build v Godotu: jedna bitva (Most přes řeku) a otázka, jestli nás baví ji hrát opakovaně.
 
 ## Hotovo
+- Test pasivek ve hře (`passives_ingame.gd`): všech 18 pasivek a přísah se ve hře projevuje (sady A a B prošly). Oprava: oheň z Ohnivé salvy dával slávu za zásah v každém snímku.
 - Pasivky a přísahy: 15 pasivek a 3 přísahy v datech i simulaci, v rozestavení jdou zapnout na zkoušku (menu Pasivky na kartě). Testy prošly.
 - Přestavba bitvy na hrdiny: výchozí chování tříd (Drží frontu, Léčí frontu, Střílí zezadu, Výpady, Loví střelce), schopnost na kartě (Výzva, Požehnání, Salva, Nájezd, Úder ze stínu) s použitími za bitvu, sláva platí použití navíc (40), cílení kruhem a klikem, klávesy 1–5. Most +2 lapkové. Testy obou map prošly.
 - Postoje podle třídy (tank Stát pevně/Krýt prapor/Prorazit, kněz Léčit frontu/U praporu, lučištník Ostřelovat/U praporu, jezdec Výpad/Záloha, asasín Lovit střelce/Číhat). Na Brodu nepřátelé drží pozice. Nové UI: lišta velení nahoře, karty rytířů dole, ikonky stavu nad hlavami. Testy prošly.

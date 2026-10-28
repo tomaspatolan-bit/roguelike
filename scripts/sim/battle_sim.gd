@@ -995,7 +995,8 @@ func _attack(u: Unit, tg: Unit) -> void:
 		_hurt(u, tg, u.dmg * m)
 
 
-func _hurt(att: Unit, tg: Unit, raw: float) -> void:
+## glory_hit = false: zranění, které slávu za zásah nedává (oheň a jiné trvalé efekty).
+func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 	if not tg.alive():
 		return
 	tg.hp -= raw * _taken_mult(tg)
@@ -1009,7 +1010,7 @@ func _hurt(att: Unit, tg: Unit, raw: float) -> void:
 		tg.hp = minf(tg.maxhp, tg.hp + tg.maxhp * float(sw["heal_frac"]))
 		events.append({"type": "heal", "id": tg.id})
 		_log("%s: Druhý dech" % tg.name, false)
-	if att != null and att.side == SIDE_KNIGHT:
+	if att != null and att.side == SIDE_KNIGHT and glory_hit:
 		_gain_glory(float(house["glory"]["per_hit"]), att)
 	if tg.hp > 0.0:
 		return
@@ -1529,7 +1530,7 @@ func step(dt: float) -> void:
 		z["t"] = float(z["t"]) - dt
 		for f in living(SIDE_FOE):
 			if f.pos.distance_to(z["pos"]) <= float(z["r"]):
-				_hurt(by_id(z["from"]), f, float(z["dps"]) * dt / maxf(_taken_mult(f), 0.01))
+				_hurt(by_id(z["from"]), f, float(z["dps"]) * dt / maxf(_taken_mult(f), 0.01), false)
 	var keep: Array = []
 	for z: Dictionary in zones:
 		if float(z["t"]) > 0.0:

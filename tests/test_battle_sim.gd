@@ -482,6 +482,11 @@ func _test_passives(data: Dictionary) -> void:
 		s2.step(DT)
 		s2.events.clear()
 	_check(s2.by_id("e5").hp < hp_a, "oheň pálí nepřátele")
+	var g_fire := s2.glory
+	for i in 30:
+		s2.step(DT)
+		s2.events.clear()
+	_check(s2.glory <= g_fire + float(data["house"]["glory"]["per_kill"]) * 3.0, "oheň nedává slávu za každý zásah (%.0f -> %.0f)" % [g_fire, s2.glory])
 	s2.set_passive("tank", "ochrance", false)
 	var s3 := Sim.new(data, Sim.default_setup(data, 0), 63)
 	s3.set_passive("tank", "nikdy_neustoupi", false)
