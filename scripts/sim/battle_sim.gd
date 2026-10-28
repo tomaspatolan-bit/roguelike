@@ -42,6 +42,10 @@ class Unit:
 	var face: Vector2 = Vector2(0, 1)
 	var moving: bool = false
 	var combat_t: float = -INF   # kdy naposledy útočil nebo dostal zásah
+	var on_break: String = ""     # jak reaguje na zlomenou morálku (nepřátelé)
+	var desperate: bool = false
+	var fleeing: bool = false
+	var fled: bool = false        # utekl z bojiště (počítá se jako ztráta, ne jako padlý)
 
 	func alive() -> bool:
 		return hp > 0.0
@@ -84,6 +88,9 @@ var pick_t: float = 0.0
 var oath_kept: bool = true
 var task_ok: bool = true
 var over: String = ""
+var foes_broken: bool = false
+var decided: String = ""        # "k" / "e": strana, která má bitvu rozhodnutou ve svůj prospěch
+var charging: bool = false      # hráč vydal povel Do boje! (jednorázový)
 var _next_id: int = 0
 var _rng := RandomNumberGenerator.new()
 
@@ -187,6 +194,7 @@ func _make_unit(key: String, side: String, d: Dictionary) -> Unit:
 	u.heal_range = d.get("heal_range", 0.0)
 	u.palette_row = int(d.get("palette_row", 0))
 	u.target_priority = d.get("target_priority", "")
+	u.on_break = d.get("on_break", "")
 	u.color = Color.html(d.get("color", "#ffffff"))
 	return u
 
@@ -307,7 +315,7 @@ func _no_retreat(u: Unit) -> bool:
 
 func _dmg_mult(u: Unit) -> float:
 	if u.side != SIDE_KNIGHT:
-		return 1.0
+		return 1.0 + (float(units_data["morale"]["desperate_dmg_bonus"]) if u.desperate else 0.0)
 	var m := 1.0
 	var a := in_aura(u)
 	if a:
@@ -378,6 +386,19 @@ func use_signal() -> bool:
 	signals -= 1
 	signals_used += 1
 	_log("Signál praporu: čas stojí", true)
+	return true
+
+
+## Povel Do boje!: jednorázový, jen když je morálka nepřítele zlomená. Všichni rytíři útočí.
+func can_charge() -> bool:
+	return over == "" and foes_broken and not charging
+
+
+func charge_all() -> bool:
+	if not can_charge():
+		return false
+	charging = true
+	_log("Do boje! Všichni rytíři dobojují", true)
 	return true
 
 
@@ -580,11 +601,13 @@ func _knight_think(u: Unit, dt: float) -> void:
 			_log("%s zvedl prapor" % u.name, true)
 		return
 
+	# Když je bitva rozhodnutá, všichni dobojují útokem (nikdo nestojí, nikdo nečeká).
+	var posture := u.posture if decided == "" and not charging else "utok"
 	var has_anchor := false
 	var anchor := Vector2.ZERO
 	var leash := INF
 	var engage := INF
-	if u.posture == "drzet":
+	if posture == "drzet":
 		has_anchor = true
 		var firm := _no_retreat(u)
 		if firm and u.pos.distance_to(u.home) < 0.4:
@@ -593,7 +616,7 @@ func _knight_think(u: Unit, dt: float) -> void:
 		anchor = u.home
 		leash = 0.0 if firm else 1.5
 		engage = u.reach if u.ranged else u.reach + 3.0
-	elif u.posture == "chranit":
+	elif posture == "chranit":
 		has_anchor = true
 		var c := aura_center()
 		if c != null and c.id != u.id:
@@ -635,7 +658,7 @@ func _knight_think(u: Unit, dt: float) -> void:
 
 	# Nikdo nestojí bez práce: kdo drží místo a nemá s kým bojovat, jde pomoct
 	# nejbližšímu spolubojovníkovi, který právě bojuje. Rytíř s přísahou Nikdy neustoupí stojí dál.
-	if u.posture == "drzet" and not _no_retreat(u):
+	if posture == "drzet" and not _no_retreat(u):
 		var mate := _engaged_ally(u)
 		if mate != null:
 			var stop := u.reach * 0.8 if u.ranged else mate.radius + u.radius + 0.3
@@ -644,9 +667,9 @@ func _knight_think(u: Unit, dt: float) -> void:
 			return
 
 	if has_anchor:
-		var near := 1.6 if u.posture == "chranit" else 0.25
+		var near := 1.6 if posture == "chranit" else 0.25
 		if u.pos.distance_to(anchor) > near:
-			_walk(u, anchor, dt, 1.5 if u.posture == "chranit" else 0.2)
+			_walk(u, anchor, dt, 1.5 if posture == "chranit" else 0.2)
 		else:
 			u.moving = false
 	else:
@@ -664,6 +687,15 @@ func _engaged_ally(u: Unit) -> Unit:
 
 
 func _foe_think(u: Unit, dt: float) -> void:
+	if u.fleeing:
+		var edge := Vector2(u.pos.x, float(_enemy_morale()["flee_y"]))
+		_walk(u, edge, dt, 0.0)
+		if u.pos.y >= edge.y - 0.2:
+			u.fled = true
+			u.hp = 0.0
+			u.moving = false
+			events.append({"type": "fled", "id": u.id})
+		return
 	var ks := living(SIDE_KNIGHT)
 	if ks.is_empty():
 		u.moving = false
@@ -710,6 +742,60 @@ func _separate() -> void:
 					u.pos += n * push * sg
 					if _in_water(u.pos):
 						u.pos = old
+
+
+func _enemy_morale() -> Dictionary:
+	var m: Dictionary = {"break_losses": units_data["morale"]["break_losses"], "flee_y": river_hi + 12.0}
+	m.merge(scenario.get("enemy_morale", {}), true)
+	return m
+
+
+## Zlomí morálku nepřátel, když ztratili dost jednotek.
+func _check_morale() -> void:
+	if foes_broken:
+		return
+	var total := 0
+	var lost := 0
+	for u in units:
+		if u.side == SIDE_FOE:
+			total += 1
+			if not u.alive():
+				lost += 1
+	if total == 0 or float(lost) / total < float(_enemy_morale()["break_losses"]):
+		return
+	foes_broken = true
+	for u in living(SIDE_FOE):
+		if u.on_break == "flee":
+			u.fleeing = true
+		elif u.on_break == "desperate":
+			u.desperate = true
+	_log("Nepřítel je zlomený: střelci prchají, pěšáci se zoufale vrhají do boje. Můžeš dát povel Do boje!", true)
+
+
+## Síla strany: zdraví × poškození za sekundu (hrubý odhad, bez bonusů).
+func power(side: String) -> float:
+	var p := 0.0
+	for u in living(side):
+		if not u.fleeing:
+			p += u.hp * u.dmg / maxf(u.cd, 0.1)
+	return p
+
+
+func _check_decided() -> void:
+	if decided != "":
+		return
+	var r := float(units_data["behavior"]["decided_ratio"])
+	var pk := power(SIDE_KNIGHT)
+	var pe := power(SIDE_FOE)
+	# Po zlomení morálky rozhoduje hráč povelem Do boje!, pojistka se nespouští.
+	if pe < pk * r and not foes_broken:
+		decided = SIDE_KNIGHT
+	elif pk < pe * r:
+		decided = SIDE_FOE
+	else:
+		return
+	events.append({"type": "decided", "side": decided})
+	_log("Bitva je rozhodnutá, rytíři dobojují" if decided == SIDE_KNIGHT else "Bitva je ztracená, rytíři bojují do posledního", true)
 
 
 func step(dt: float) -> void:
@@ -769,6 +855,9 @@ func step(dt: float) -> void:
 		if not p.done:
 			still.append(p)
 	projectiles = still
+
+	_check_morale()
+	_check_decided()
 
 	if living(SIDE_FOE).is_empty():
 		over = "win"

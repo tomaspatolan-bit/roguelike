@@ -17,12 +17,14 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 8. **Prapor podle třídy** (`knights.<klíč>.banner`): `aura_radius`, `aura_dmg_bonus`, `aura_armor`, `aura_speed`, `aura_heal`, `desc` (text pro hráče). Každá třída musí mít `banner` s `desc`. Nový efekt = nový klíč i kód v simulaci, nová kombinace čísel = jen data.
 9. **Scénář:** `banner_bearer` je výchozí nositel; `optional_task.protect` je id rytíře, nebo `"banner"` (nositel praporu nesmí padnout).
 10. **Obecné chování** (`behavior` v `units.json`): `help_window`. Popisy postojů pro hráče jsou v `posture_desc`.
+11. **Morálka** (`morale` v `units.json`): `break_losses`, `desperate_dmg_bonus`; nepřítel má `on_break` (`flee` / `desperate`). Scénář: `enemy_morale` (`break_losses`, `flee_y`). `behavior.decided_ratio` = pojistka dobojování.
 
 ## Úskalí
 - JSON nemá komentáře: popis patří do klíče `_info`.
 - Při exportu hry je potřeba přidat `*.json` do filtru exportovaných souborů (zatím neřešeno).
 
 ## Historie významných změn
+- 28.10.2026: `morale`, `on_break` u nepřátel, `enemy_morale` ve scénáři (práh 0,7, okraj y = 20), `behavior.decided_ratio` 0,15.
 - 28.10.2026: praporečník nahrazen asasínem (řádek palety 5), `banner` u každé třídy, `target_priority`, `posture_desc`, úkol „Prapor nesmí padnout“. Lapka útok 6 → 7. Balanc: bez pokřiků 0/40, s pokřiky 40/40 (62 s); podle nositele s pokřiky: tank, kněz, lučištník, asasín 40/40, jezdec 0/40.
 - 2026-10-28: přísaha `nikdy_neustoupi` dostala `no_retreat`, `forbidden_postures` a `posture_names`.
 - 2026-10-28: založeno, čísla vyladěná simulací webového dema.

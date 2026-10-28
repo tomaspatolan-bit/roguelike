@@ -8,6 +8,8 @@ Claude nemá Godot v cloudu. Testy se pouštějí na Tomově počítači přes B
 - Pracovní kopie: `C:\Users\sirko\Documents\roguelike` (nejdřív `git pull`)
 - Snímky: `C:\Users\sirko\Blender\Roguelike\godot_shots`
 
+Test scény ukládá snímky, jen když dostane složku: `--script res://tests/screenshot_battle.gd -- <složka>`.
+
 Postup: `git pull` → `--headless --import` → test simulace → test scény (otevře okno na ~1 min, spouštět jen když to Tomovi nevadí) → prohlédnout snímky.
 
 **Netestovaný kód se nepushuje.** Změny se na Tomův počítač přenesou jako patch: `git diff --cached --binary` → `/mnt/user-data/outputs/<nové jméno>.patch` → `device_commit_files` do `C:\Users\sirko\Blender\Roguelike\patches\` → v pracovní kopii `git checkout -- .` a `git apply`. **Patch pokaždé pod novým jménem**, stejná cesta se může přenést ze staré cache (ověř md5). Po pushi na Tomově počítači smaž nesledované soubory, které commit přidal (jinak `git pull` odmítne).
@@ -15,8 +17,8 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 ## Co který test hlídá
 | Test | Hlídá | Očekávaný výsledek |
 | --- | --- | --- |
-| `test_battle_sim.gd` | invarianty simulace, balanc, prapor (volba nositele, efekty podle třídy, zvednutí), přísahy a postoje, „Stát pevně“, cíle asasína, pomoc bojujícímu spolubojovníkovi; informativně výhry podle nositele | kód 0, „OK: všechny testy prošly“ |
-| `screenshot_battle.gd` | scéna se načte, drag & drop prohodí rytíře tam i zpět, bitva doběhne bez chyb | „Drag & drop … OK“, „Bitva skončila: win“, žádné ERROR v logu |
+| `test_battle_sim.gd` | invarianty simulace, balanc, prapor (volba nositele, efekty podle třídy, zvednutí), přísahy a postoje, „Stát pevně“, cíle asasína, pomoc bojujícímu spolubojovníkovi, morálka nepřítele, povel Do boje!, rozhodnutá bitva; informativně výhry podle nositele | kód 0, „OK: všechny testy prošly“ |
+| `screenshot_battle.gd` | scéna se načte, drag & drop prohodí rytíře tam i zpět, po zlomení morálky jde dát povel Do boje!, bitva doběhne bez chyb | „Drag & drop … OK“, „povel Do boje!: OK“, „Bitva skončila: win“, žádné ERROR v logu |
 
 ## Invarianty
 1. **Před každým pushem** projde `gdparse` na změněných `.gd` souborech.

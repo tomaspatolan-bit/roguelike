@@ -1,5 +1,5 @@
 {
-  "_info": "Bitva Most přes řeku. Souřadnice v metrech: x doprava, y dopředu (k nepříteli). Řeka vede napříč mezi y = river_lo a river_hi, přejít jde jen po mostě (|x| <= bridge_half_width). banner_bearer = výchozí nositel praporu (hráč ho v rozestavení může změnit). optional_task.protect = id rytíře, nebo 'banner' (nositel praporu nesmí padnout).",
+  "_info": "Bitva Most přes řeku. Souřadnice v metrech: x doprava, y dopředu (k nepříteli). Řeka vede napříč mezi y = river_lo a river_hi, přejít jde jen po mostě (|x| <= bridge_half_width). banner_bearer = výchozí nositel praporu (hráč ho v rozestavení může změnit). optional_task.protect = id rytíře, nebo 'banner' (nositel praporu nesmí padnout). enemy_morale = kdy se nepřítel zlomí (podíl ztrát) a kam prchá (y okraje bojiště).",
   "name": "Most přes řeku",
   "subtitle": "Lapkové z Hraběcího lesa · 9 pěšáků, 3 střelci",
   "stage_label": "Akt 1 · Stage 2",
@@ -16,6 +16,7 @@
   },
   "banner_bearer": "tank",
   "optional_task": {"text": "Prapor nesmí padnout.", "reward": "vzácné znamení", "protect": "banner"},
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 20.0},
   "enemies": [
     ["lapka", -3.0, 11.0], ["lapka", -1.5, 10.5], ["lapka", 0.0, 11.2], ["lapka", 1.5, 10.6], ["lapka", 3.0, 11.0],
     ["lapka", -2.0, 12.6], ["lapka", 2.0, 12.6], ["lapka", -4.5, 12.0], ["lapka", 4.5, 12.0],

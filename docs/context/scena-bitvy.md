@@ -13,10 +13,11 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 4. **Pevný krok 1/60 s**, nejvýš 8 kroků na snímek. Rychlost 2× = víc kroků, ne delší krok.
 5. **Převod souřadnic** `Vector3(x, výška, -y)`, natočení `atan2(face.x, -face.y)` (model kouká po +Z).
 6. **Rytíř z GLB:** očekává `MeshInstance3D` a `AnimationPlayer` s animacemi `A_Knight_Idle` a `A_Knight_Walk`. Barva role přes `role_row` v shaderu, materiál je na jednotku vlastní (kvůli záblesku zásahu).
-7. **Ovládání:** 1, 2 pokřiky · mezerník signál / pokračovat · Enter pokračovat · kamera: WASD nebo šipky a tažení pravým tlačítkem = posun, prostřední tlačítko nebo Q/E = otáčení, kolečko = přiblížení. Klávesa S patří kameře, ne signálu. Změna = upravit README a popisky v UI.
+7. **Ovládání:** 1, 2 pokřiky · F povel Do boje! (po zlomení morálky) · mezerník signál / pokračovat · Enter pokračovat · kamera: WASD nebo šipky a tažení pravým tlačítkem = posun, prostřední tlačítko nebo Q/E = otáčení, kolečko = přiblížení. Klávesa S patří kameře, ne signálu. Změna = upravit README a popisky v UI.
 8. **Výběr a přesun rytířů:** rytíř se vybírá podle své postavy na obrazovce (úsečka nohy–hlava, tolerance `PICK_PX` = 30 px), ne podle bodu na zemi. Drag & drop: v rozestavení přesun v zóně a puštění na jiného rytíře je prohodí; při signálu rozkaz přesunu s kontrolou přísahy. Pohyb a puštění myši se čtou v `_input`, aby táhnutí neuvízlo nad panelem. Klik na rytíře a pak na zem funguje dál.
 9. **Přísahy se ve scéně ověřují přes simulaci** (`posture_allowed`, `has_oath`, `is_retreat`), nikdy podle klíče rytíře.
 10. **Nositel praporu** se mění jen v rozestavení přes `sim.set_bearer` a ukládá se do `setup["bearer"]`. Kruh aury se zvětšuje podle `sim.aura_radius` (měřítko vůči poloměru rodu).
+11. **Rozhodnutá bitva** (událost `decided`) přepne rychlost aspoň na 2×. Uprchlá jednotka (`fled`) je skrytá.
 
 ## Úskalí
 - Proměnná s typem `Node3D` nezná metody skriptu: použij typ skriptu (`var v := UnitView.new()`).
@@ -24,6 +25,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 - Limity testů počítej v čase bitvy, ne ve snímcích (monitor může mít 144 Hz).
 
 ## Historie významných změn
+- 28.10.2026: povel Do boje! (F), rozhodnutá bitva se zrychlí na 2×, uprchlí nepřátelé zmizí.
 - 28.10.2026: volba nositele praporu, kruh aury podle nositele.
 - 2026-10-28: po playtestu drag & drop, výběr podle obrazovky, kamera WASD a pravé tlačítko, signál na mezerníku.
 - 2026-10-28: založeno. Bez mlhy, ACES tonemap, kontrast 1.12.

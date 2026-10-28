@@ -10,6 +10,7 @@ var out_dir := ""
 var scene: Node
 var frame := 0
 var started_at := -1
+var broken_shot := false
 
 
 func _init() -> void:
@@ -50,6 +51,11 @@ func _process(_delta: float) -> bool:
 			_shot("03_bitva.png")
 		if frame == started_at + 900:
 			_shot("04_bitva_pozdeji.png")
+		if sim != null and bool(sim.get("foes_broken")) and not broken_shot:
+			broken_shot = true
+			_shot("04b_zlomeni.png")
+			scene.call("_charge")
+			print("Morálka zlomena v %.0f s, povel Do boje!: %s" % [sim.get("t"), "OK" if bool(sim.get("charging")) else "CHYBA"])
 		var over := sim != null and String(sim.get("over")) != ""
 		if over and frame > started_at + 60:
 			print("Bitva skončila: %s za %.0f s" % [sim.get("over"), sim.get("t")])

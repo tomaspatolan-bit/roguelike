@@ -26,6 +26,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [x] Prapor nese kterákoli třída (volba v rozestavení, nepředává se), efekt podle třídy, nositel nemá Chránit prapor
   - [x] Asasín místo praporečníka, jádro 5 tříd
   - [x] Nikdo nestojí bez práce: Držet pozici jde pomoct bojujícímu spolubojovníkovi
+  - [x] Morálka nepřátel, povel Do boje!, pojistka dobojování
   - [ ] Další body podle dalšího playtestu
 - [ ] 1.4 Čitelnost boje
   - [ ] Animace útoku, zásahu a smrti (zástupné)

@@ -10,6 +10,7 @@ signal signals_count_changed(count: int)
 signal start_pressed
 signal shout_pressed(key: String)
 signal signal_pressed
+signal charge_pressed
 signal resume_pressed
 signal speed_changed(value: float)
 signal continue_pressed
@@ -42,6 +43,7 @@ var _glory_bar: ProgressBar
 var _glory_label: Label
 var _shout_buttons: Dictionary = {}
 var _signal_button: Button
+var _charge_button: Button
 var _log_box: VBoxContainer
 var _oath_break_cb: Callable
 var _oath_keep_cb: Callable
@@ -201,6 +203,7 @@ func _clear() -> void:
 	_roster_hp.clear()
 	_shout_buttons.clear()
 	_signal_button = null
+	_charge_button = null
 	_glory_bar = null
 	_log_box = null
 
@@ -302,6 +305,13 @@ func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, l
 		_shout_buttons[k] = b
 		i += 1
 	content.add_child(grid)
+
+	if sim.foes_broken and not signal_phase:
+		_charge_button = _primary(Button.new())
+		_charge_button.text = "Do boje!  [F]" if not sim.charging else "Rytíři dobojují"
+		_charge_button.tooltip_text = "Jednorázový povel: všichni rytíři opustí postoje a dobojují se zlomeným nepřítelem."
+		_charge_button.pressed.connect(func() -> void: charge_pressed.emit())
+		content.add_child(_charge_button)
 
 	if not signal_phase:
 		var row := HBoxContainer.new()
@@ -463,6 +473,8 @@ func update_dynamic(sim: Sim, signal_phase: bool, paused: bool) -> void:
 		var active: float = sim.fx[k]
 		b.disabled = not sim.can_shout(k) or signal_phase or paused
 		b.add_theme_stylebox_override("normal", _box(Color("#3a3220") if active > 0.0 else Color("#252a31"), 7, 8, GLORY if active > 0.0 else LINE, 1))
+	if _charge_button != null:
+		_charge_button.disabled = not sim.can_charge() or paused
 	if _signal_button != null:
 		_signal_button.text = "Signál praporu [Mezerník] · zbývá %d" % sim.signals
 		_signal_button.disabled = not sim.can_signal() or paused

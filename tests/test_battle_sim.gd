@@ -31,6 +31,8 @@ func _init() -> void:
 	_test_bearer(data)
 	_test_target_priority(data)
 	_test_no_idle(data)
+	_test_morale(data)
+	_test_decided(data)
 	_test_oath_and_signal(data)
 	_test_oath_postures(data)
 	_test_stand_firm(data)
@@ -153,7 +155,7 @@ func _test_stand_firm(data: Dictionary) -> void:
 			s.step(DT)
 			s.events.clear()
 			_auto_shouts(s)
-			if tank.alive() and s.has_oath("tank") and tank.posture == "drzet":
+			if tank.alive() and s.has_oath("tank") and tank.posture == "drzet" and s.decided == "":
 				if tank.moving:
 					walked += 1
 				max_back = maxf(max_back, start_y - tank.pos.y)
@@ -236,3 +238,56 @@ func _test_no_idle(data: Dictionary) -> void:
 	var now := knez.pos.distance_to(jezdec.pos)
 	print("Pomoc spolubojovníkovi: kněz %.1f m -> %.1f m od jezdce" % [start, now])
 	_check(now < start - 3.0, "rytíř bez cíle v Držet pozici jde pomoct bojujícímu spolubojovníkovi")
+
+
+## Po ztrátě 70 % se nepřítel zlomí: střelci prchnou z bojiště, pěšáci zoufale dobojují.
+func _test_morale(data: Dictionary) -> void:
+	var s := Sim.new(data, Sim.default_setup(data, 0), 19)
+	for i in 8:
+		s.by_id("e%d" % i).hp = 0.0
+	s.by_id("e11").hp = 0.0   # 9 z 12 ztrát = 75 %
+	s.step(DT)
+	var lapka := s.by_id("e8")
+	var strelec := s.by_id("e9")
+	_check(s.foes_broken, "po ztrátě 70 % se morálka nepřítele zlomí")
+	_check(lapka.desperate and not lapka.fleeing and s._dmg_mult(lapka) > 1.0, "pěšák se zlomenou morálkou zoufale útočí silněji")
+	_check(strelec.fleeing and not strelec.desperate, "střelec se zlomenou morálkou prchá")
+	for i in 600:
+		s.step(DT)
+		s.events.clear()
+		if strelec.fled:
+			break
+	_check(strelec.fled and not strelec.alive(), "prchající střelec opustí bojiště")
+	print("Morálka: střelec utekl za %.1f s" % s.t)
+	var tank := s.by_id("tank")
+	_check(s.decided == "", "po zlomení morálky se automatické dobojování nespustí, rozhoduje hráč")
+	_check(s.can_charge() and s.charge_all() and not s.can_charge(), "povel Do boje! jde po zlomení morálky použít jen jednou")
+	var before := tank.pos
+	for i in 60:
+		s.step(DT)
+		s.events.clear()
+	_check(tank.pos.distance_to(before) > 0.5 or s.over != "", "po povelu Do boje! jde i tank se Stát pevně dobojovat")
+	var fresh := Sim.new(data, Sim.default_setup(data, 0), 19)
+	_check(not fresh.can_charge(), "bez zlomené morálky povel Do boje! nejde")
+
+
+## Když je bitva rozhodnutá, rytíř v Držet pozici jde do útoku.
+func _test_decided(data: Dictionary) -> void:
+	# pojistka sama: scénář, kde se morálka nezlomí (kopie dat, ostatní testy se nezmění)
+	var d2 := data.duplicate(true)
+	d2["scenario"]["enemy_morale"]["break_losses"] = 1.1
+	var s := Sim.new(d2, Sim.default_setup(d2, 0), 23)
+	for i in 11:
+		s.by_id("e%d" % i).hp = 0.0
+	s.step(DT)
+	var ev := false
+	for e in s.events:
+		if e["type"] == "decided":
+			ev = true
+	_check(s.decided == "k" and ev, "při převaze rytířů je bitva rozhodnutá a ohlásí se")
+	var luc := s.by_id("lucistnik")
+	var before := luc.pos
+	for i in 90:
+		s.step(DT)
+		s.events.clear()
+	_check(luc.pos.distance_to(before) > 1.0 or s.over == "win", "v rozhodnuté bitvě jdou i rytíři v Držet pozici dobojovat")

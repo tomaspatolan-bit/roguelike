@@ -2,6 +2,12 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 28.10.2026 – Morálka a dobojování
+- **Morálka nepřátel:** po ztrátě 70 % se nepřítel zlomí. Reakce podle typu jednotky: pěšáci zoufale dobojují (silnější útok), střelci utečou z bojiště. Důvod: bitva nekončí naháněním posledních nepřátel a dává smysl (bitvy se rozhodovaly útěkem).
+- **Povel Do boje!:** jednorázový, objeví se po zlomení morálky, všichni rytíři opustí postoje a dobojují (i tank se Stát pevně, útok vpřed není ústup).
+- **Pojistka dobojování:** když je síla jedné strany pod 15 % druhé a morálka se nezlomila, rytíři dobojují sami a hra se zrychlí na 2×.
+- **Ústup s praporem** a otázka, jestli prohraná bitva končí run, se řeší ve fázi 2 (stavba runu). Platí zatím: prohra = ztráty, ne konec runu.
+
 ## 28.10.2026 – Nikdo nestojí bez práce, postoje na míru třídám
 - **Rytíř v Držet pozici bez cíle jde pomoct nejbližšímu bojujícímu spolubojovníkovi.** Důvod: na konci bitvy stáli rytíři daleko od sebe a nic nedělali. Tank s přísahou Nikdy neustoupí stojí dál (otevřená otázka pro Toma).
 - **Směr: postoje na míru třídám** (2 na třídu, třetí jako odměna v runu), např. jezdec Výpad/Záloha, asasín Lovit střelce/Číhat. Až po druhé mapě.

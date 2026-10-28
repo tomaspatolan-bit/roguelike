@@ -101,6 +101,7 @@ func _ready() -> void:
 	ui.start_pressed.connect(_start_battle)
 	ui.shout_pressed.connect(_shout)
 	ui.signal_pressed.connect(_use_signal)
+	ui.charge_pressed.connect(_charge)
 	ui.resume_pressed.connect(_resume_signal)
 	ui.speed_changed.connect(func(v: float) -> void:
 		speed = v
@@ -230,6 +231,14 @@ func _shout(key: String) -> void:
 		_refresh_panel()
 
 
+func _charge() -> void:
+	if phase != Phase.BATTLE or paused:
+		return
+	if sim.charge_all():
+		_flush_events()
+		_refresh_panel()
+
+
 func _use_signal() -> void:
 	if phase != Phase.BATTLE or paused:
 		return
@@ -286,6 +295,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_shout_by_index(0)
 			KEY_2:
 				_shout_by_index(1)
+			KEY_F:
+				_charge()
 			KEY_SPACE:
 				if ui.toast.visible:
 					_resume_pause()
@@ -479,6 +490,10 @@ func _flush_events() -> void:
 				relog = true
 				paused = true
 				ui.show_toast(ev["text"])
+			"decided":
+				# rozhodnutá bitva se dohraje zrychleně
+				speed = maxf(speed, 2.0)
+				relog = true
 			"heal":
 				var v: UnitView = views.get(ev["id"])
 				if v != null:

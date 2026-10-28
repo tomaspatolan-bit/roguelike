@@ -81,6 +81,9 @@ static func yaw_for(face: Vector2) -> float:
 
 
 func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> void:
+	visible = not u.fled
+	if u.fled:
+		return
 	var lunge := 0.0
 	if u.atk > 0.0:
 		lunge = sin(u.atk / 0.25 * PI) * 0.3
