@@ -14,6 +14,7 @@ Modely, textury a shadery hry a cesta z Blenderu do Godotu.
 5. **Rozpočet:** rytíř ~5 400 trojúhelníků (LOD1 ~2 200). Nová postava se drží podobně.
 6. **Kolekce v Blenderu:** `KNIGHT_game` (herní), `KN_game_parts` (zdrojové díly), `KNIGHT_hero` (prezentační), `PRESENTATION`. Herní export jen z `KNIGHT_game`.
 7. **Evidence AI obsahu pro Steam:** každý asset vytvořený AI zapiš níže.
+8. Godot si z GLB vytahuje kopie palety (`SK_Knight_T_Knight_Palette_*`); jsou v `.gitignore`, hra používá vlastní materiál s `art/knight/T_Knight_Palette_*.png`.
 
 ## Evidence AI obsahu
 | Asset | Vznik | Poznámka |

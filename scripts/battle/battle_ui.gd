@@ -100,7 +100,8 @@ func _ready() -> void:
 	toast_label.custom_minimum_size = Vector2(380, 0)
 	th.add_child(toast_label)
 	var tb := Button.new()
-	tb.text = "Pokračovat  [Enter]"
+	tb.text = "Pokračovat  [Mezerník]"
+	tb.focus_mode = Control.FOCUS_NONE
 	tb.pressed.connect(func() -> void: continue_pressed.emit())
 	th.add_child(tb)
 	toast.visible = false
@@ -215,7 +216,7 @@ func show_deploy(sim: Sim, setup: Dictionary, selected: String) -> void:
 
 	content.add_child(_heading("Rozestavení"))
 	content.add_child(_roster(sim, selected, true, false))
-	content.add_child(_label("Klikni na rytíře (ve scéně nebo v seznamu) a pak na modrou zónu. Postoj určuje, co rytíř dělá bez rozkazu.", 13, MUTED, true))
+	content.add_child(_label("Přetáhni rytíře myší na místo v modré zóně. Puštěním na jiného rytíře je prohodíš. Postoj určuje, co rytíř dělá bez rozkazu.", 13, MUTED, true))
 
 	content.add_child(_heading(sim.house["name"]))
 	var shouts: Dictionary = sim.house["shouts"]
@@ -244,6 +245,7 @@ func show_deploy(sim: Sim, setup: Dictionary, selected: String) -> void:
 	start.text = "Začít bitvu"
 	start.pressed.connect(func() -> void: start_pressed.emit())
 	content.add_child(start)
+	_no_focus(content)
 
 
 func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, log_lines: Array) -> void:
@@ -257,9 +259,9 @@ func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, l
 		var v := VBoxContainer.new()
 		sb.add_child(v)
 		v.add_child(_label("Signál praporu", 19, BANNER))
-		v.add_child(_label("Čas stojí. Změň postoje, nebo klikni na rytíře a pak na místo, kam se má přesunout a držet ho.", 13, INK, true))
+		v.add_child(_label("Čas stojí. Změň postoje, nebo přetáhni rytíře na místo, které má držet.", 13, INK, true))
 		var rb := _primary(Button.new())
-		rb.text = "Pokračovat  [Enter]"
+		rb.text = "Pokračovat  [Mezerník]"
 		rb.pressed.connect(func() -> void: resume_pressed.emit())
 		v.add_child(rb)
 		content.add_child(sb)
@@ -323,6 +325,7 @@ func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, l
 	content.add_child(_log_box)
 	set_log(log_lines)
 	update_dynamic(sim, signal_phase, false)
+	_no_focus(content)
 
 
 func _task_box(sim: Sim) -> Control:
@@ -336,7 +339,10 @@ func _task_box(sim: Sim) -> Control:
 	return tb
 
 
+## editable: jde měnit postoje. V rozestavení jsou zakázané postoje zašedlé,
+## při signálu jdou zvolit, ale za cenu porušení přísahy (battle.gd se zeptá).
 func _roster(sim: Sim, selected: String, editable: bool, with_hp: bool) -> Control:
+	var signal_mode := with_hp
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
 	for u in sim.knights():
@@ -384,16 +390,24 @@ func _roster(sim: Sim, selected: String, editable: bool, with_hp: bool) -> Contr
 				var postures: Dictionary = sim.units_data["postures"]
 				var idx := 0
 				for pk: String in postures:
-					ob.add_item(postures[pk])
+					var allowed := sim.posture_allowed(u.id, pk)
+					var label := sim.posture_name(u.id, pk)
+					if not allowed and signal_mode:
+						label += " (poruší přísahu)"
+					ob.add_item(label)
 					ob.set_item_metadata(idx, pk)
+					if not allowed and not signal_mode:
+						ob.set_item_disabled(idx, true)
+						ob.set_item_tooltip(idx, "Zakazuje přísaha %s" % sim.oath_of(u.id).get("name", ""))
 					if pk == u.posture:
 						ob.select(idx)
 					idx += 1
+				ob.focus_mode = Control.FOCUS_NONE
 				ob.add_theme_font_size_override("font_size", 13)
 				ob.item_selected.connect(func(index: int) -> void: posture_changed.emit(id, String(ob.get_item_metadata(index))))
 				h.add_child(ob)
 			else:
-				h.add_child(_label(sim.units_data["postures"][u.posture], 12, MUTED))
+				h.add_child(_label(sim.posture_name(u.id, u.posture), 12, MUTED))
 		box.add_child(row)
 	return box
 
@@ -425,7 +439,7 @@ func update_dynamic(sim: Sim, signal_phase: bool, paused: bool) -> void:
 		b.disabled = not sim.can_shout(k) or signal_phase or paused
 		b.add_theme_stylebox_override("normal", _box(Color("#3a3220") if active > 0.0 else Color("#252a31"), 7, 8, GLORY if active > 0.0 else LINE, 1))
 	if _signal_button != null:
-		_signal_button.text = "Signál praporu [S] · zbývá %d" % sim.signals
+		_signal_button.text = "Signál praporu [Mezerník] · zbývá %d" % sim.signals
 		_signal_button.disabled = not sim.can_signal() or paused
 	for id: String in _roster_hp:
 		var u := sim.by_id(id)
@@ -502,10 +516,12 @@ func hide_toast() -> void:
 	toast.visible = false
 
 
-func ask_oath(knight_name: String, on_break: Callable, on_keep: Callable) -> void:
+func ask_oath(knight_name: String, oath: Dictionary, on_break: Callable, on_keep: Callable) -> void:
 	_oath_break_cb = on_break
 	_oath_keep_cb = on_keep
-	oath_dialog.dialog_text = "%s přísahal, že nikdy neustoupí. Tenhle rozkaz je ústup.\n\nKdyž přísahu porušíš, ztratí bonus +25 %% k útoku, oddíl přijde o 20 slávy a zlomená přísaha se nedědí." % knight_name
+	var bonus := roundi(float(oath.get("dmg_bonus", 0.0)) * 100.0)
+	var cost := int(oath.get("break_glory_cost", 0))
+	oath_dialog.dialog_text = "%s složil přísahu „%s“ a tenhle rozkaz ji poruší.\n\nKdyž ji porušíš, ztratí bonus +%d %% k útoku, oddíl přijde o %d slávy a zlomená přísaha se nedědí." % [knight_name, oath.get("name", ""), bonus, cost]
 	oath_dialog.popup_centered()
 
 
@@ -547,8 +563,15 @@ func show_result(sim: Sim, setup: Dictionary) -> void:
 	redeploy.pressed.connect(func() -> void: redeploy_pressed.emit())
 	row.add_child(redeploy)
 	v.add_child(row)
+	_no_focus(result_box)
 	result_box.visible = true
 
 
 func hide_result() -> void:
 	result_box.visible = false
+
+
+## Tlačítka nesmí brát fokus z klávesnice: jinak by mezerník a šipky ovládaly panel místo hry.
+func _no_focus(node: Node) -> void:
+	for c in node.find_children("*", "Control", true, false):
+		(c as Control).focus_mode = Control.FOCUS_NONE

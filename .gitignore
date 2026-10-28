@@ -8,3 +8,5 @@
 # systém
 .DS_Store
 Thumbs.db
+# kopie palety, které Godot vytahuje z GLB (používáme vlastní materiál s paletou)
+art/knight/SK_Knight_T_Knight_Palette_*

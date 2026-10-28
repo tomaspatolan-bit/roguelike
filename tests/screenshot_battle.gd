@@ -33,7 +33,7 @@ func _process(_delta: float) -> bool:
 	frame += 1
 	if frame == 40:
 		_shot("01_rozestaveni.png")
-		scene.call("_select", "tank")
+		_test_drag_swap()
 	if frame == 45:
 		_shot("02_vyber.png")
 		scene.call("_start_battle")
@@ -65,3 +65,34 @@ func _process(_delta: float) -> bool:
 			_shot("05_konec.png")
 			return true
 	return false
+
+
+## Přetáhne tanka myší na kněze: musí si prohodit místa.
+func _test_drag_swap() -> void:
+	var sim: Variant = scene.get("sim")
+	var cam: Camera3D = scene.get("cam")
+	var views: Dictionary = scene.get("views")
+	var tank: Variant = sim.call("by_id", "tank")
+	var knez: Variant = sim.call("by_id", "knez")
+	var tank_before: Vector2 = tank.get("pos")
+	var knez_before: Vector2 = knez.get("pos")
+	var a := cam.unproject_position((views["tank"] as Node3D).global_position + Vector3(0, 1.0, 0))
+	var b := cam.unproject_position((views["knez"] as Node3D).global_position + Vector3(0, 1.0, 0))
+	scene.call("_pointer_down", a)
+	scene.call("_pointer_move", a + Vector2(12, 0))
+	scene.call("_pointer_move", b)
+	scene.call("_pointer_up", b)
+	var ok_t := (tank.get("pos") as Vector2).distance_to(knez_before) < 0.6
+	var ok_k := (knez.get("pos") as Vector2).distance_to(tank_before) < 0.01
+	print("Drag & drop prohození: %s" % ("OK" if ok_t and ok_k else "CHYBA (tank %s, kněz %s)" % [tank.get("pos"), knez.get("pos")]))
+	# prohodit zpátky, aby bitva běžela ve výchozím rozestavení
+	a = cam.unproject_position((views["tank"] as Node3D).global_position + Vector3(0, 1.0, 0))
+	b = cam.unproject_position((views["knez"] as Node3D).global_position + Vector3(0, 1.0, 0))
+	scene.call("_pointer_down", a)
+	scene.call("_pointer_move", a + Vector2(12, 0))
+	scene.call("_pointer_move", b)
+	scene.call("_pointer_up", b)
+	var back_ok := (tank.get("pos") as Vector2).distance_to(tank_before) < 0.6 and (knez.get("pos") as Vector2).distance_to(knez_before) < 0.6
+	print("Drag & drop zpět: %s" % ("OK" if back_ok else "CHYBA"))
+	var posture_label: String = sim.call("posture_name", "tank", "drzet")
+	print("Postoj tanka s přísahou: %s" % posture_label)

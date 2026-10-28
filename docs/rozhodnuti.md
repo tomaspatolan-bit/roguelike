@@ -2,6 +2,12 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum, co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 2026-10-28 – Po prvním playtestu
+- **Přísaha určuje povolené postoje** (data `forbidden_postures`, `posture_names`). Důvod: postoj „Držet pozici“ vracel rytíře na místo, což byl skrytý ústup a porušení přísahy, o kterém hra nevěděla.
+- **„Nikdy neustoupí“ = varianta A:** rytíř smí Útočný a „Stát pevně“ (bojuje s tím, co přijde, nikam se nevrací), Chránit prapor má zakázaný. Porušit přísahu jde jen vědomým rozkazem při signálu. Varianta B („Jen vpřed“) je v `napady.md` jako budoucí přísaha.
+- **Ovládání:** drag & drop rytířů s výběrem podle postavy na obrazovce; kamera WASD/šipky a pravé tlačítko; signál na mezerník (klávesa S patří kameře).
+- **Netestovaný kód se nepushuje**, na Tomův počítač jde jako patch.
+
 ## 2026-10-28 – Prototyp v Godotu
 - **Godot 4.7.2** (verze na Tomově počítači). Repozitář `tomaspatolan-bit/roguelike`, práce na větvích.
 - **Testy běží na Tomově počítači přes Blender MCP**, protože v cloudu Godot stáhnout nejde. Postup v `CLAUDE.md`.

@@ -114,6 +114,8 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		u.posture = setup["posture"][key]
 		u.face = Vector2(0, 1)
 		units.append(u)
+		if not posture_allowed(u.id, u.posture):
+			u.posture = "drzet"
 
 	var foes_data: Dictionary = units_data["foes"]
 	var i := 0
@@ -234,9 +236,38 @@ func can_signal() -> bool:
 	return over == "" and signals > 0 and aura_center() != null
 
 
-func oath_bonus() -> float:
-	var o: Dictionary = house["oaths"]["nikdy_neustoupi"]
-	return o["dmg_bonus"]
+## Přísaha, kterou rytíř právě drží. Prázdný slovník, když žádnou nemá nebo ji porušil.
+func oath_of(id: String) -> Dictionary:
+	if not oath_kept:
+		return {}
+	var oaths: Dictionary = house["oaths"]
+	for k: String in oaths:
+		var o: Dictionary = oaths[k]
+		if o["knight"] == id:
+			return o
+	return {}
+
+
+func has_oath(id: String) -> bool:
+	return not oath_of(id).is_empty()
+
+
+## Smí rytíř mít tento postoj? Přísaha může postoje zakázat.
+func posture_allowed(id: String, posture: String) -> bool:
+	var forbidden: Array = oath_of(id).get("forbidden_postures", [])
+	return not forbidden.has(posture)
+
+
+## Název postoje pro hráče. Přísaha může postoj přejmenovat (u tanka "Držet pozici" = "Stát pevně").
+func posture_name(id: String, posture: String) -> String:
+	var names: Dictionary = oath_of(id).get("posture_names", {})
+	if names.has(posture):
+		return names[posture]
+	return units_data["postures"][posture]
+
+
+func _no_retreat(u: Unit) -> bool:
+	return bool(oath_of(u.id).get("no_retreat", false))
 
 
 func _dmg_mult(u: Unit) -> float:
@@ -249,8 +280,8 @@ func _dmg_mult(u: Unit) -> float:
 	var zarod: float = fx.get("zarod", 0.0)
 	if a and zarod > 0.0:
 		m += float(house["shouts"]["zarod"]["dmg_bonus"])
-	if u.key == "tank" and oath_kept:
-		m += oath_bonus()
+	if has_oath(u.id):
+		m += float(oath_of(u.id).get("dmg_bonus", 0.0))
 	return m
 
 
@@ -304,13 +335,15 @@ func order_move(id: String, target: Vector2) -> void:
 	_log("%s: nová pozice" % u.name, false)
 
 
-func set_posture(id: String, posture: String) -> void:
+## Změna postoje. Vrací false, když ho zakazuje přísaha (pak se nic nemění).
+func set_posture(id: String, posture: String) -> bool:
 	var u := by_id(id)
-	if u == null:
-		return
+	if u == null or not posture_allowed(id, posture):
+		return false
 	u.posture = posture
 	if posture == "drzet":
 		u.home = u.pos
+	return true
 
 
 ## Je rozkaz pro rytíře ústupem? (vzdálí ho od nejbližšího nepřítele o víc než 1 m)
@@ -477,8 +510,12 @@ func _knight_think(u: Unit, dt: float) -> void:
 	var engage := INF
 	if u.posture == "drzet":
 		has_anchor = true
+		var firm := _no_retreat(u)
+		if firm and u.pos.distance_to(u.home) < 0.4:
+			# "Stát pevně": kam ho boj posune, tam stojí. Nikdy se nevrací.
+			u.home = u.pos
 		anchor = u.home
-		leash = 1.5
+		leash = 0.0 if firm else 1.5
 		engage = u.reach if u.ranged else u.reach + 3.0
 	elif u.posture == "chranit":
 		has_anchor = true
@@ -502,7 +539,7 @@ func _knight_think(u: Unit, dt: float) -> void:
 			cand.append(f)
 	var tg := _nearest(cand, u.pos)
 
-	if u.key == "tank" and oath_kept and tg != null and u.pos.distance_to(tg.pos) <= u.reach + 0.3:
+	if has_oath(u.id) and tg != null and u.pos.distance_to(tg.pos) <= u.reach + 0.3:
 		_gain_glory(float(house["glory"]["oath_per_second"]) * dt)
 
 	if tg != null:
@@ -592,7 +629,7 @@ func step(dt: float) -> void:
 		for k in living(SIDE_KNIGHT):
 			if k.posture == "chranit":
 				protectors.append(k)
-			if k.pos.distance_to(banner_pos) < 3.0:
+			if k.pos.distance_to(banner_pos) < 3.0 and not _no_retreat(k):
 				near.append(k)
 		var p := _nearest(protectors if not protectors.is_empty() else near, banner_pos)
 		if p != null:

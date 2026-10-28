@@ -15,10 +15,15 @@ Značení: [x] hotovo · [ ] zbývá · (Tom) = rozhoduje nebo dělá Tom
 Cíl: jedna bitva, kterou chceme hrát opakovaně.
 - [x] 1.1 První build: Most přes řeku v Godotu
 - [ ] 1.2 Playtest (Tom): 3–5 bitev, zápis do `playtesty.md`
+  - [x] První dojmy (2026-10-28): přísaha vs. postoje, kamera, přesouvání rytířů
   - [ ] Baví to? Co je nečitelné? Kdy se nudím?
   - [ ] Signály: 0, 1, nebo 2?
   - [ ] Je jasné, proč jsem prohrál?
-- [ ] 1.3 Úpravy podle playtestu (konkrétní body doplníme po 1.2)
+- [ ] 1.3 Úpravy podle playtestu
+  - [x] Přísaha určuje povolené postoje („Stát pevně“, Chránit prapor zakázán)
+  - [x] Kamera: WASD, šipky, posun pravým tlačítkem; signál na mezerník
+  - [x] Drag & drop rytířů, výběr podle postavy na obrazovce, prohození puštěním
+  - [ ] Další body podle dalšího playtestu
 - [ ] 1.4 Čitelnost boje
   - [ ] Animace útoku, zásahu a smrti (zástupné)
   - [ ] Zvýraznění aktivního pokřiku a dosahu praporu

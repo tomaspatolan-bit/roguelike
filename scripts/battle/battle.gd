@@ -30,9 +30,23 @@ var aura_disc: MeshInstance3D
 var aura_ring: MeshInstance3D
 var select_ring: MeshInstance3D
 var hold_marker: MeshInstance3D
+var hover_ring: MeshInstance3D
+var drop_ring: MeshInstance3D
+var order_line: MeshInstance3D
 var zone: MeshInstance3D
 var _acc := 0.0
 var _ui_t := 0.0
+
+# drag & drop rytířů (rozestavení a rozkazy při signálu)
+const PICK_PX := 30.0          # tolerance výběru rytíře na obrazovce (px)
+const DRAG_START_PX := 6.0     # o kolik se musí myš pohnout, aby začalo táhnutí
+var hover_id := ""
+var _drag_id := ""
+var _drag_active := false
+var _drag_press := Vector2.ZERO
+var _drag_origin := Vector2.ZERO
+var _drag_target := Vector2.ZERO
+var _drag_target_raw := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -62,6 +76,15 @@ func _ready() -> void:
 	hold_marker = Field.ring(0.35, 0.1, Color(1, 1, 1, 0.6))
 	add_child(select_ring)
 	add_child(hold_marker)
+	hover_ring = Field.ring(0.75, 0.08, Color(1.0, 0.92, 0.6, 0.8))
+	drop_ring = Field.ring(0.55, 0.12, Color(0.4, 1.0, 0.5, 0.9))
+	add_child(hover_ring)
+	add_child(drop_ring)
+	order_line = MeshInstance3D.new()
+	order_line.mesh = ImmediateMesh.new()
+	order_line.material_override = Field.transparent_mat(Color(1, 1, 1, 0.85))
+	order_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(order_line)
 	banner = Field.build_banner()
 	add_child(banner)
 
@@ -138,6 +161,7 @@ func _refresh_panel() -> void:
 
 # ================================================================ příkazy
 
+## Klik na jméno v panelu: přepne výběr.
 func _select(id: String) -> void:
 	var u := sim.by_id(id)
 	if u == null or not u.alive():
@@ -148,18 +172,26 @@ func _select(id: String) -> void:
 	_refresh_panel()
 
 
+func _set_selected(id: String) -> void:
+	if selected != id:
+		selected = id
+		_refresh_panel()
+
+
 func _on_posture(id: String, posture: String) -> void:
 	var u := sim.by_id(id)
 	if u == null:
 		return
 	if phase == Phase.DEPLOY:
-		u.posture = posture
-		setup["posture"][id] = posture
+		if sim.set_posture(id, posture):
+			setup["posture"][id] = posture
+		else:
+			_refresh_panel()
 		return
 	if phase != Phase.SIGNAL:
 		return
-	# "Chránit prapor" stáhne tanka zpět k praporu: to je ústup
-	if u.key == "tank" and sim.oath_kept and posture == "chranit":
+	# Postoj, který zakazuje přísaha, jde při signálu zvolit jen za cenu jejího porušení.
+	if not sim.posture_allowed(id, posture):
 		paused = true
 		var on_break := func() -> void:
 			sim.break_oath()
@@ -169,7 +201,7 @@ func _on_posture(id: String, posture: String) -> void:
 		var on_keep := func() -> void:
 			paused = false
 			_refresh_panel()
-		ui.ask_oath(u.name, on_break, on_keep)
+		ui.ask_oath(u.name, sim.oath_of(id), on_break, on_keep)
 		return
 	sim.set_posture(id, posture)
 	_refresh_panel()
@@ -217,7 +249,7 @@ func _order_move(u: Sim.Unit, target: Vector2) -> void:
 		paused = false
 		_flush_events()
 		_refresh_panel()
-	if u.key == "tank" and sim.oath_kept and sim.is_retreat(u.id, target):
+	if sim.has_oath(u.id) and sim.is_retreat(u.id, target):
 		paused = true
 		var on_break := func() -> void:
 			sim.break_oath()
@@ -225,7 +257,7 @@ func _order_move(u: Sim.Unit, target: Vector2) -> void:
 		var on_keep := func() -> void:
 			paused = false
 			_refresh_panel()
-		ui.ask_oath(u.name, on_break, on_keep)
+		ui.ask_oath(u.name, sim.oath_of(u.id), on_break, on_keep)
 	else:
 		apply.call()
 
@@ -239,8 +271,13 @@ func _unhandled_input(event: InputEvent) -> void:
 				_shout_by_index(0)
 			KEY_2:
 				_shout_by_index(1)
-			KEY_S:
-				_use_signal()
+			KEY_SPACE:
+				if ui.toast.visible:
+					_resume_pause()
+				elif phase == Phase.SIGNAL:
+					_resume_signal()
+				else:
+					_use_signal()
 			KEY_ENTER, KEY_KP_ENTER:
 				if ui.toast.visible:
 					_resume_pause()
@@ -250,7 +287,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-			_click(mb.position)
+			_pointer_down(mb.position)
+
+
+func _input(event: InputEvent) -> void:
+	# Pohyb a puštění se sledují i nad panelem, aby táhnutí nikdy "neuvízlo".
+	if event is InputEventMouseMotion:
+		_pointer_move((event as InputEventMouseMotion).position)
+	elif event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and _drag_id != "":
+			_pointer_up(mb.position)
+			get_viewport().set_input_as_handled()
 
 
 func _shout_by_index(i: int) -> void:
@@ -259,41 +307,124 @@ func _shout_by_index(i: int) -> void:
 		_shout(keys[i])
 
 
-func _click(screen_pos: Vector2) -> void:
-	if phase != Phase.DEPLOY and phase != Phase.SIGNAL:
-		return
-	if paused:
-		return
-	var hit: Variant = (cam as OrbitCamera).ground_point(screen_pos)
-	if hit == null:
-		return
-	var w: Vector3 = hit
-	var p := Vector2(w.x, -w.z)
+func _can_command() -> bool:
+	return (phase == Phase.DEPLOY or phase == Phase.SIGNAL) and not paused
 
-	# klik na rytíře = výběr
-	var best: Sim.Unit = null
-	var bd := INF
+
+static func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var l2 := ab.length_squared()
+	if l2 < 0.0001:
+		return p.distance_to(a)
+	var t := clampf((p - a).dot(ab) / l2, 0.0, 1.0)
+	return p.distance_to(a + ab * t)
+
+
+## Rytíř pod kurzorem: měří se vzdálenost od jeho postavy na obrazovce (od nohou po hlavu),
+## takže jde chytit kdekoli na těle, ne jen u nohou.
+func _pick_knight(screen_pos: Vector2, exclude: String = "") -> String:
+	var best := ""
+	var bd := PICK_PX
 	for u in sim.knights():
-		if not u.alive():
+		if not u.alive() or u.id == exclude:
 			continue
-		var d := u.pos.distance_to(p)
+		var base: Vector3 = (views[u.id] as Node3D).global_position
+		if cam.is_position_behind(base):
+			continue
+		var a := cam.unproject_position(base + Vector3(0, 0.2, 0))
+		var b := cam.unproject_position(base + Vector3(0, 1.9, 0))
+		var d := _dist_to_segment(screen_pos, a, b)
 		if d < bd:
 			bd = d
-			best = u
-	if best != null and bd < (1.2 if best.key == "jezdec" else 0.8):
-		_select(best.id)
-		return
+			best = u.id
+	return best
 
+
+func _ground(screen_pos: Vector2) -> Variant:
+	var hit: Variant = (cam as OrbitCamera).ground_point(screen_pos)
+	if hit == null:
+		return null
+	var w: Vector3 = hit
+	return Vector2(w.x, -w.z)
+
+
+func _clamp_zone(p: Vector2) -> Vector2:
+	var z: Dictionary = data["scenario"]["deploy_zone"]
+	return Vector2(clampf(p.x, float(z["x0"]) + 0.4, float(z["x1"]) - 0.4), clampf(p.y, float(z["y0"]) + 0.4, float(z["y1"]) - 0.4))
+
+
+func _pointer_down(screen_pos: Vector2) -> void:
+	if not _can_command():
+		return
+	var id := _pick_knight(screen_pos)
+	if id != "":
+		_drag_id = id
+		_drag_active = false
+		_drag_press = screen_pos
+		_drag_origin = sim.by_id(id).pos
+		_set_selected(id)
+		return
+	# klik na zem s vybraným rytířem = přesun (alternativa k táhnutí)
 	if selected == "":
 		return
+	var gp: Variant = _ground(screen_pos)
+	if gp == null:
+		return
+	var p: Vector2 = gp
 	var u := sim.by_id(selected)
 	if phase == Phase.DEPLOY:
-		var z: Dictionary = data["scenario"]["deploy_zone"]
-		u.pos = Vector2(clampf(p.x, float(z["x0"]) + 0.4, float(z["x1"]) - 0.4), clampf(p.y, float(z["y0"]) + 0.4, float(z["y1"]) - 0.4))
+		u.pos = _clamp_zone(p)
 		u.home = u.pos
 		setup["pos"][u.id] = u.pos
 	else:
 		_order_move(u, p)
+
+
+func _pointer_move(screen_pos: Vector2) -> void:
+	if not _can_command():
+		hover_id = ""
+		return
+	hover_id = _pick_knight(screen_pos, _drag_id if _drag_active else "")
+	if _drag_id == "":
+		return
+	if not _drag_active and screen_pos.distance_to(_drag_press) > DRAG_START_PX:
+		_drag_active = true
+	if not _drag_active:
+		return
+	var gp: Variant = _ground(screen_pos)
+	if gp == null:
+		return
+	_drag_target_raw = gp
+	if phase == Phase.DEPLOY:
+		_drag_target = _clamp_zone(_drag_target_raw)
+		var u := sim.by_id(_drag_id)
+		u.pos = _drag_target
+		u.home = u.pos
+	else:
+		_drag_target = _drag_target_raw
+
+
+func _pointer_up(screen_pos: Vector2) -> void:
+	var id := _drag_id
+	var was_drag := _drag_active
+	_drag_id = ""
+	_drag_active = false
+	if not was_drag or not _can_command():
+		return
+	var u := sim.by_id(id)
+	if phase == Phase.DEPLOY:
+		# puštění na jiného rytíře = prohodit místa
+		var other_id := _pick_knight(screen_pos, id)
+		if other_id != "":
+			var o := sim.by_id(other_id)
+			u.pos = o.pos
+			o.pos = _drag_origin
+			o.home = o.pos
+			setup["pos"][other_id] = o.pos
+		u.home = u.pos
+		setup["pos"][id] = u.pos
+	elif _drag_target.distance_to(u.pos) > 0.5:
+		_order_move(u, _drag_target)
 
 
 # ================================================================ smyčka
@@ -395,6 +526,29 @@ func _sync_markers() -> void:
 		aura_ring.visible = false
 		banner.position = Field.to_world(sim.banner_pos, 0.15)
 		banner.rotation = Vector3(0, 0, deg_to_rad(80))
+
+	hover_ring.visible = hover_id != "" and hover_id != selected
+	if hover_ring.visible:
+		hover_ring.position = Field.to_world(sim.by_id(hover_id).pos, 0.07)
+	var dragging := _drag_id != "" and _drag_active
+	var invalid := false
+	if dragging and phase == Phase.DEPLOY:
+		invalid = _drag_target_raw.distance_to(_drag_target) > 0.05
+	elif dragging:
+		invalid = sim._in_water(_drag_target)
+	drop_ring.visible = dragging and (phase == Phase.SIGNAL or invalid)
+	if drop_ring.visible:
+		drop_ring.position = Field.to_world(_drag_target_raw if invalid else _drag_target, 0.08)
+		(drop_ring.material_override as StandardMaterial3D).albedo_color = Color(1.0, 0.35, 0.3, 0.9) if invalid else Color(0.4, 1.0, 0.5, 0.9)
+	var im := order_line.mesh as ImmediateMesh
+	im.clear_surfaces()
+	if dragging and phase == Phase.SIGNAL:
+		var from := Field.to_world(sim.by_id(_drag_id).pos, 0.1)
+		var to := Field.to_world(_drag_target, 0.1)
+		im.surface_begin(Mesh.PRIMITIVE_LINES)
+		im.surface_add_vertex(from)
+		im.surface_add_vertex(to)
+		im.surface_end()
 
 	var su := sim.by_id(selected) if selected != "" else null
 	select_ring.visible = su != null and su.alive() and (phase == Phase.DEPLOY or phase == Phase.SIGNAL)

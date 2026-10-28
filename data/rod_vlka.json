@@ -13,7 +13,10 @@
       "knight": "tank",
       "dmg_bonus": 0.25,
       "break_glory_cost": 20,
-      "desc": "Bonus +25 % k útoku. Rozkaz k ústupu přísahu poruší: rytíř přijde o bonus a oddíl o 20 slávy."
+      "no_retreat": true,
+      "forbidden_postures": ["chranit"],
+      "posture_names": {"drzet": "Stát pevně"},
+      "desc": "Bonus +25 % k útoku. Nikdy necouvne: v postoji Stát pevně bojuje s tím, co k němu přijde, a nevrací se. Chránit prapor nesmí. Rozkaz k ústupu přísahu poruší: rytíř přijde o bonus a oddíl o 20 slávy."
     }
   },
   "banner": {"pickup_time": 0.8}

@@ -28,6 +28,8 @@ func _init() -> void:
 
 	_test_banner_pickup(data)
 	_test_oath_and_signal(data)
+	_test_oath_postures(data)
+	_test_stand_firm(data)
 
 	if failures.is_empty():
 		print("OK: všechny testy prošly")
@@ -111,3 +113,38 @@ func _test_oath_and_signal(data: Dictionary) -> void:
 	s.glory = 50.0
 	s.break_oath()
 	_check(not s.oath_kept and is_equal_approx(s.glory, 30.0), "porušení přísahy stojí 20 slávy")
+
+
+func _test_oath_postures(data: Dictionary) -> void:
+	var setup := Sim.default_setup(data, 1)
+	setup["posture"]["tank"] = "chranit"
+	var s := Sim.new(data, setup, 5)
+	_check(s.by_id("tank").posture == "drzet", "zakázaný postoj z rozestavení se změní na povolený")
+	_check(not s.posture_allowed("tank", "chranit"), "přísaha zakazuje tankovi Chránit prapor")
+	_check(not s.set_posture("tank", "chranit") and s.by_id("tank").posture == "drzet", "zakázaný postoj nejde nastavit")
+	_check(s.posture_name("tank", "drzet") == "Stát pevně", "přísaha přejmenuje Držet pozici na Stát pevně")
+	_check(s.posture_name("knez", "drzet") == "Držet pozici", "ostatním rytířům zůstane Držet pozici")
+	s.break_oath()
+	_check(s.posture_allowed("tank", "chranit") and s.set_posture("tank", "chranit"), "po porušení přísahy jsou postoje volné")
+	_check(s.posture_name("tank", "drzet") == "Držet pozici", "po porušení přísahy se postoj jmenuje zase normálně")
+
+
+## Tank s přísahou v postoji Stát pevně nikdy sám nejde (necouvá ani se nevrací na místo).
+func _test_stand_firm(data: Dictionary) -> void:
+	var walked := 0
+	var max_back := 0.0
+	for i in 10:
+		var s := Sim.new(data, Sim.default_setup(data, 0), 200 + i)
+		var tank := s.by_id("tank")
+		var start_y := tank.pos.y
+		while s.over == "" and s.t < 400.0:
+			s.step(DT)
+			s.events.clear()
+			_auto_shouts(s)
+			if tank.alive() and s.has_oath("tank") and tank.posture == "drzet":
+				if tank.moving:
+					walked += 1
+				max_back = maxf(max_back, start_y - tank.pos.y)
+	print("Stát pevně: kroků chůze %d, největší odsun dozadu %.2f m" % [walked, max_back])
+	_check(walked == 0, "tank s přísahou v postoji Stát pevně nesmí sám chodit")
+	_check(max_back < 1.0, "tank s přísahou nesmí couvnout (odsun tlačenicí do 1 m je tolerovaný)")
