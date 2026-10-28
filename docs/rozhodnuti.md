@@ -2,6 +2,12 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 28.10.2026 – Rody a hrdinové před pasivkami
+- **Nejdřív rody a hrdinové, pak pasivky a jejich bonusy.**
+- **Hrdina je konkrétní postava** (jméno, třída, povaha), ne jen třída. Když padne, nastoupí nástupce a může zdědit jeho přísahu.
+- **Na zkušební běh jeden rod (Vlk).** Druhý (Medvěd) až bude běh fungovat. Náčrt rodů: Vlk 5 vyvážených, Medvěd 4 odolnější s berserkrem, Sokol 6 lehčích se sokolníkem.
+- Návrh Rodu Vlka a jeho hrdinů je v dokumentu „Rod Vlka a jeho hrdinové“ (ke schválení).
+
 ## 28.10.2026 – Změna směru: hrdinové a jejich schopnosti místo praporu
 - **Nové pilíře:** (1) Velíš rodu: rod určuje, s kým a jak bojuješ, v bitvě ovládáš jeho hrdiny. (2) Přísaha má cenu. (3) Smrt má váhu: padlí zůstávají padlí a odkazují nástupcům. (4) Každý run je příběh rodu. Pilíř „Prapor je srdce oddílu“ je zrušený.
 - **Z bitvy mizí** aura praporu, nositel praporu, pokřiky a postoje. Důvod (Tom, po playtestu): prapor byl jediné, co drželo jednotky naživu, hráč ztrácel kontrolu a bitva byla nepředvídatelná; simulace to potvrzovala (výsledky 0/40 nebo 40/40, smrt nositele rozhodovala).
