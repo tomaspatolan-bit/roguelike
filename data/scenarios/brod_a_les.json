@@ -16,13 +16,12 @@
   "rocks": [[13, -4, 1.2, 20], [-13, -12, 0.7, 35], [12, 22, 1.0, 10]],
   "deploy_zone": {"x0": -10, "x1": 10, "y0": -6, "y1": 2.0},
   "deploy": {
-    "tank": {"pos": [-1.5, 0.5], "posture": "drzet"},
-    "jezdec": {"pos": [1.5, 0.5], "posture": "zaloha"},
-    "asasin": {"pos": [0.5, -0.5], "posture": "zaloha"},
-    "knez": {"pos": [-0.5, -2.0], "posture": "lecit"},
-    "lucistnik": {"pos": [0.0, -3.5], "posture": "drzet"}
+    "tank": {"pos": [-1.5, 0.5]},
+    "jezdec": {"pos": [1.5, 0.5]},
+    "asasin": {"pos": [0.5, -0.5]},
+    "knez": {"pos": [-0.5, -2.0]},
+    "lucistnik": {"pos": [0.0, -3.5]}
   },
-  "banner_bearer": "knez",
   "optional_task": {"text": "Nikdo nepadne.", "reward": "vzácné znamení", "protect": "all"},
   "enemy_morale": {"break_losses": 0.7, "flee_y": 24.0},
   "enemies": [

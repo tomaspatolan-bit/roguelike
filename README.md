@@ -1,6 +1,6 @@
 # Rytíři
 
-Rytířský roguelike pro Steam. Veď rytíře svého rodu: prapor nese sílu oddílu, přísahy sílu jednotlivců, a kdo padne, odkáže je dalším.
+Rytířský roguelike pro Steam. Veď hrdiny svého rodu: každý má svou schopnost a osud, přísahy dávají sílu za cenu a kdo padne, odkáže je dalším.
 
 Engine: Godot 4.7. Prototyp obsahuje jednu bitvu, **Most přes řeku**.
 
@@ -14,12 +14,12 @@ Engine: Godot 4.7. Prototyp obsahuje jednu bitvu, **Most přes řeku**.
 | Akce | Ovládání |
 | --- | --- |
 | Rozestavit rytíře | přetáhnout myší v modré zóně; puštění na jiného rytíře je prohodí |
-| Postoj, nositel praporu, trasa | na kartě rytíře dole (Trasa: pak táhnout myší po zemi, Esc zruší) |
+| Trasa | tlačítko Trasa na kartě hrdiny, pak táhnout myší po zemi (Esc zruší) |
 | Výběr bitvy | nahoře vlevo v rozestavení |
 | Rozkaz přesunu (při signálu) | přetáhnout rytíře na místo, které má držet |
-| Pokřiky praporu | tlačítka v panelu nebo **1**, **2** |
+| Schopnost hrdiny | tlačítko na kartě hrdiny nebo **1–5**; cílená schopnost pak klik na bojiště (**Esc** zruší) |
 | Do boje! (po zlomení morálky nepřítele, jednou) | tlačítko nebo **F** |
-| Signál praporu (zastaví čas) | tlačítko nebo **mezerník**, pokračovat **mezerník** nebo **Enter** |
+| Signál (zastaví čas) | tlačítko nebo **mezerník**, pokračovat **mezerník** nebo **Enter** |
 | Posun kamery | **WASD**, šipky, nebo tažení **pravým tlačítkem** |
 | Otáčení kamery | tažení **prostředním tlačítkem**, nebo **Q/E** |
 | Přiblížení | kolečko myši |

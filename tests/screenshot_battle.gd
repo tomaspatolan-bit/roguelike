@@ -45,11 +45,8 @@ func _process(_delta: float) -> bool:
 	if started_at > 0:
 		var sim: Variant = scene.get("sim")
 		if sim != null and scene.get("phase") == 1:
-			# stejná zásada jako test simulace: Za rod!, a když neběží, Štítová hradba
-			if sim.call("can_shout", "zarod"):
-				scene.call("_shout", "zarod")
-			elif float(sim.get("fx")["zarod"]) <= 0.0 and sim.call("can_shout", "hradba"):
-				scene.call("_shout", "hradba")
+			# stejná zásada jako test simulace: schopnost, když ji rada doporučí; cílené přes klik na bojiště
+			_auto_abilities(sim)
 			if bool(scene.get("paused")):
 				scene.call("_resume_pause")
 		if frame == started_at + 300:
@@ -72,7 +69,7 @@ func _process(_delta: float) -> bool:
 			print("Bitva neskončila do 300 s (rytíři %d, nepřátelé %d)" % [alive_k, alive_e])
 			for u: Variant in sim.get("units"):
 				if u.call("alive"):
-					print("  %s %s pos=%s posture=%s moving=%s" % [u.get("id"), u.get("key"), u.get("pos"), u.get("posture"), u.get("moving")])
+					print("  %s %s pos=%s moving=%s" % [u.get("id"), u.get("key"), u.get("pos"), u.get("moving")])
 			_shot("05_konec.png")
 			return true
 	return false
@@ -105,8 +102,6 @@ func _test_drag_swap() -> void:
 	scene.call("_pointer_up", b)
 	var back_ok := (tank.get("pos") as Vector2).distance_to(tank_before) < 0.6 and (knez.get("pos") as Vector2).distance_to(knez_before) < 0.6
 	print("Drag & drop zpět: %s" % ("OK" if back_ok else "CHYBA"))
-	var posture_label: String = sim.call("posture_name", "tank", "drzet")
-	print("Postoj tanka s přísahou: %s" % posture_label)
 	_test_route_draw()
 
 
@@ -130,3 +125,37 @@ func _test_route_draw() -> void:
 func _prefix() -> String:
 	var sid: String = scene.get("scenario_id")
 	return "" if sid == "most_pres_reku" else sid + "_"
+
+
+
+var _aimed := 0
+
+
+## Použije schopnosti jako hráč: bez cíle tlačítkem, s cílem přes cílení a klik na bojiště.
+func _auto_abilities(sim: Variant) -> void:
+	var cam: Camera3D = scene.get("cam")
+	var views: Dictionary = scene.get("views")
+	for u: Variant in sim.call("living", "k"):
+		var id: String = u.get("id")
+		var h: Array = sim.call("ability_hint", id)
+		if not h[0]:
+			continue
+		var kind: String = sim.call("ability_target", id)
+		if kind == "none":
+			scene.call("_ability", id)
+			continue
+		scene.call("_ability", id)
+		var screen := Vector2.ZERO
+		if kind == "enemy":
+			screen = cam.unproject_position((views[String(h[1])] as Node3D).global_position + Vector3(0, 1.0, 0))
+		else:
+			var p: Vector2 = h[1]
+			screen = cam.unproject_position(Vector3(p.x, 0.0, -p.y))
+		scene.call("_pointer_move", screen)
+		scene.call("_aim_click", screen)
+		if String(scene.get("_aim_id")) == "":
+			_aimed += 1
+			if _aimed == 1:
+				print("Cílená schopnost přes klik: OK (%s)" % id)
+		else:
+			scene.set("_aim_id", "")

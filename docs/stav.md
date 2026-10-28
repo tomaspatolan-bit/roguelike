@@ -3,11 +3,12 @@
 Aktualizováno: 28.10.2026
 
 ## Aktuální cíl
-**Změna směru (28.10.2026):** prapor, pokřiky a postoje z bitvy mizí, místo nich schopnosti hrdinů a pasivky z běhu (viz `rozhodnuti.md`). Kód to zatím neodráží; další krok je návrh hrdinů ke schválení (plán 1.6c).
+**Změna směru (28.10.2026):** prapor, pokřiky a postoje z bitvy zmizely, místo nich výchozí chování tříd a schopnosti hrdinů (viz `rozhodnuti.md` a dokument „Rod Vlka a jeho hrdinové“). Další: pasivky a přísahy jako odměny, pak zkušební běh (1.7).
 
 Fáze 1, krok 1.2 (viz `docs/plan.md`). První hratelný build v Godotu: jedna bitva (Most přes řeku) a otázka, jestli nás baví ji hrát opakovaně.
 
 ## Hotovo
+- Přestavba bitvy na hrdiny: výchozí chování tříd (Drží frontu, Léčí frontu, Střílí zezadu, Výpady, Loví střelce), schopnost na kartě (Výzva, Požehnání, Salva, Nájezd, Úder ze stínu) s použitími za bitvu, sláva platí použití navíc (40), cílení kruhem a klikem, klávesy 1–5. Most +2 lapkové. Testy obou map prošly.
 - Postoje podle třídy (tank Stát pevně/Krýt prapor/Prorazit, kněz Léčit frontu/U praporu, lučištník Ostřelovat/U praporu, jezdec Výpad/Záloha, asasín Lovit střelce/Číhat). Na Brodu nepřátelé drží pozice. Nové UI: lišta velení nahoře, karty rytířů dole, ikonky stavu nad hlavami. Testy prošly.
 - Druhá mapa Brod a les (brody zpomalí, lávka, les se stezkou, asasína les nezpomalí), výběr bitvy v rozestavení, kreslení tras, kopiníci (2× proti jízdě, Fanatik), vlastnosti nepřátel. Testy obou map prošly.
 - Morálka nepřátel (po 70 % ztrát střelci prchají, pěšáci zoufale dobojují), jednorázový povel Do boje! (F), pojistka dobojování. Bitva s pokřiky trvá ~37 s. Testy prošly.
