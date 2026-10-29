@@ -14,10 +14,10 @@
     "vudce": {"name": "Hejtman Kuno", "role": "Vůdce", "hp": 480, "dmg": 12, "reach": 1.6, "speed": 2.3, "cd": 1.2, "armor": 0.3, "radius": 0.5, "on_break": "desperate", "leader": true, "traits": ["fanatik"]}
   },
   "battle_modes": {
-    "_info": "Typ bitvy (scenario.mode) určuje, jak se oddíl chová, když nikdo nebojuje. utok = nepřítel drží pozice a sám nepřijde: vůdce postupu (podle leaders) jde k nejbližšímu nepříteli, ostatní za ním do follow m, vůdce počká, když je střed oddílu dál než cohesion m. stret = oba jdou proti sobě, oddíl čeká na nepřítele. obrana = hrdinové bojují jen s tím, kdo přijde do leash m od bráněného místa (scenario.objective, jinak střed výchozích míst; střelec na dostřel), jinak se vrací; mezi vlnami se oddíl vrátí na místa a kněz léčí.",
+    "_info": "Typ bitvy (scenario.mode) určuje, jak se oddíl chová, když nikdo nebojuje. utok = nepřítel drží pozice a sám nepřijde: vůdce postupu (podle leaders) jde k nejbližšímu nepříteli, ostatní za ním do follow m, vůdce počká, když je střed oddílu dál než cohesion m. stret = oba jdou proti sobě, oddíl čeká na nepřítele. obrana = hrdinové bojují jen s tím, kdo přijde do leash m od bráněného místa (scenario.objective, jinak střed výchozích míst; střelec na dostřel), jinak se vrací; mezi vlnami se oddíl vrátí na místa a kněz léčí; když nikdo hunt_after s nebojuje a nepřítel se drží stranou, oddíl ho jde dorazit.",
     "utok": {"name": "Útok", "desc": "Nepřítel drží pozice. Oddíl postupuje k němu.", "leaders": ["frontline", "rider"], "follow": 3.0, "cohesion": 6.0},
     "stret": {"name": "Střet", "desc": "Nepřítel jde proti vám. Oddíl ho čeká a bojuje s tím, kdo přijde."},
-    "obrana": {"name": "Obrana", "desc": "Držíte místo, nepřítel útočí ve vlnách. Hrdinové nevybíhají dál než pár metrů od svých míst.", "leash": 7.0}
+    "obrana": {"name": "Obrana", "desc": "Držíte místo, nepřítel útočí ve vlnách. Hrdinové nevybíhají dál než pár metrů od svých míst.", "leash": 7.0, "hunt_after": 6.0}
   },
   "behaviors": {
     "_info": "Výchozí chování tříd hrdinů. _common: help_window = jak dlouho (s) po útoku nebo zásahu se hrdina počítá jako bojující; decided_ratio = když síla jedné strany klesne pod tento podíl síly druhé, hrdinové dobojují sami.",

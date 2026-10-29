@@ -2,6 +2,9 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 29.10.2026 – Oprava obrany
+- V obraně hrdinové pomáhají každému z oddílu, s kým nepřítel bojuje (i kousek za hranicí obrany), a nepřítele, který se drží stranou, jdou po chvíli dorazit. Mezi vlnami stojí na místech a lišta ukazuje odpočet další vlny. Tom: hrdinové se v obraně nehýbali a v jednu chvíli se zastavili úplně.
+
 ## 29.10.2026 – Ragdoll a postoj rytíře
 - **Padlí padají jako ragdoll** (fyzika): hrdinové s fyzikálními kostmi, nepřátelé jako tuhé tělo. Těla zůstávají ležet na bojišti. Tom chtěl, aby smrt vypadala opravdově (pilíř Smrt má váhu).
 - **Rytíř drží paže u těla** ve všech animacích; stál v A-póze kostry jako „Y“.

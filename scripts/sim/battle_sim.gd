@@ -126,6 +126,7 @@ var mode: String = "stret"         # typ bitvy: utok (nepřítel drží pozice, 
 var objective_reached: bool = false  # útok: oddíl už došel k cíli postupu (scenario.objective)
 var pending: Array[Unit] = []      # nepřátelé z dalších vln, ještě nedorazili (nejsou v units)
 var waves_left: int = 0            # kolik vln ještě přijde
+var _threat_t: float = 0.0         # obrana: kdy byl naposled nepřítel uvnitř obrany (do leash)
 var over: String = ""
 var foes_broken: bool = false
 var broken_t: float = -1.0         # kdy se zlomila morálka nepřítele
@@ -710,6 +711,23 @@ func _hint_in_reach(u: Unit, p: Vector2) -> bool:
 	return p.distance_to(_defend_point()) <= leash + 2.0
 
 
+## Obrana: nepřítel, který bojuje s někým z oddílu (stojí u hrdiny uvnitř obrany nebo hned u jejího kraje).
+## Takového oddíl napadne, i když je kousek za hranicí obrany; jinak by hrdinu bili a nikdo mu nepomohl.
+func _threatens_squad(f: Unit, anchor: Vector2, leash: float) -> bool:
+	for k in living(SIDE_KNIGHT):
+		if k.pos.distance_to(anchor) <= leash + 1.0 and f.pos.distance_to(k.pos) <= f.reach + k.radius + 1.0:
+			return true
+	return false
+
+
+## Kdy přijde další vlna (INF = žádná).
+func next_wave_t() -> float:
+	var best := INF
+	for p in pending:
+		best = minf(best, p.arrive_t)
+	return best
+
+
 ## Obrana: bráněné místo (scenario.objective, jinak střed výchozích míst hrdinů).
 func _defend_point() -> Vector2:
 	if scenario.has("objective"):
@@ -1283,12 +1301,19 @@ func _knight_act(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	# (cíl ze scénáře, jinak střed výchozích míst hrdinů); střelec s tím, na koho dostřelí.
 	# Jinak se hrdina vrátí na své místo. Brání se spolu, nikdo nejde sám dopředu.
 	if mode == "obrana":
-		var leash := float(units_data.get("battle_modes", {}).get("obrana", {}).get("leash", 6.0))
+		var md: Dictionary = units_data.get("battle_modes", {}).get("obrana", {})
+		var leash := float(md.get("leash", 6.0))
 		var anchor := _defend_point()
 		var near: Array[Unit] = []
+		# Nikdo nečeká věčně: když do obrany dlouho nikdo nepřišel a nepřítel se drží stranou
+		# (třeba střelci, kteří z dálky střílí), oddíl ho jde dorazit.
+		var idle_all := t - _threat_t > float(md.get("hunt_after", 6.0))
 		for f in foes:
-			if f.pos.distance_to(anchor) <= leash or (u.ranged and f.pos.distance_to(u.pos) <= u.reach):
+			var lingers := idle_all and t - f.arrive_t > 2.0 * float(md.get("hunt_after", 6.0))   # nově příchozí ne: ti teprve jdou
+			if lingers or f.pos.distance_to(anchor) <= leash or _threatens_squad(f, anchor, leash):
 				near.append(f)
+			elif u.ranged and f.pos.distance_to(anchor) <= leash + u.reach:
+				near.append(f)   # střelec smí popojít na kraj obrany a střílet
 		if near.is_empty():
 			_settle(u, u.home, dt, 0.4, foes)
 			return
@@ -1779,6 +1804,13 @@ func step(dt: float) -> void:
 		return
 	t += dt
 	_arrivals()
+	if mode == "obrana":
+		var leash := float(units_data.get("battle_modes", {}).get("obrana", {}).get("leash", 6.0))
+		var anchor := _defend_point()
+		for f in living(SIDE_FOE):
+			if f.pos.distance_to(anchor) <= leash:
+				_threat_t = t
+				break
 	for u in units:
 		if not u.alive():
 			continue

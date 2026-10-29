@@ -2,7 +2,7 @@
   "_info": "Obrana: rod drží Lesní ves proti třem vlnám lapků. Nepřítel s rozkazem arrive dorazí v daný čas bitvy (s). Hrdinové nevybíhají (battle_modes.obrana.leash). Chalupy jsou zástupná grafika (houses: x, y, šířka, hloubka, otočení). objective = bráněné místo (střed vsi); hrdinové bojují s tím, kdo přijde do leash m od něj.",
   "mode": "obrana",
   "name": "Obrana Lesní vsi",
-  "subtitle": "Lapkové táhnou na ves ve třech vlnách · 16 pěšáků, 1 kopiník, 5 střelců",
+  "subtitle": "Lapkové táhnou na ves ve třech vlnách · 17 pěšáků, 3 kopiníci, 5 střelců",
   "stage_label": "Akt 1",
   "win_title": "Ves ubráněna",
   "river": {
@@ -287,7 +287,7 @@
       }
     ],
     [
-      "lapka",
+      "kopinik",
       -11.0,
       19.0,
       {
@@ -295,7 +295,7 @@
       }
     ],
     [
-      "lapka",
+      "kopinik",
       -13.0,
       19.0,
       {
@@ -314,6 +314,30 @@
       "strelec",
       -10.5,
       21.0,
+      {
+        "arrive": 45
+      }
+    ],
+    [
+      "lapka",
+      -1.0,
+      19.0,
+      {
+        "arrive": 22
+      }
+    ],
+    [
+      "lapka",
+      1.0,
+      19.0,
+      {
+        "arrive": 22
+      }
+    ],
+    [
+      "lapka",
+      0.0,
+      20.0,
       {
         "arrive": 45
       }

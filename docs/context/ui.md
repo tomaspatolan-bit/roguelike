@@ -27,6 +27,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 - Místní proměnná se nesmí jmenovat jako metoda `CanvasLayer` (`hide`, `show`).
 
 ## Historie významných změn
+- 29.10.2026: v obraně ukazuje lišta odpočet další vlny („vlna za 12 s“).
 - 29.10.2026: karta bitvy ukazuje typ bitvy (útok, střet, obrana) s popisem; Požehnání se míří kruhem jako Salva.
 - 29.10.2026: tlačítko schopnosti ukazuje nabíjení („12 s“) a „vyčerpáno“, nápověda řekne proč schopnost nejde (`ability_problem`).
 - 28.10.2026: režim běhu (`run_mode`, `run_label`, `run_continue_pressed`).

@@ -39,6 +39,7 @@ Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, 
 - Krok simulace je pevný (1/60 s ze scény, 1/30 s v testu). Logika nesmí záviset na velikosti kroku víc, než je nutné.
 
 ## Historie významných změn
+- 29.10.2026: oprava obrany: hrdinové se brání i nepříteli, který bojuje s někým z oddílu kousek za hranicí obrany (`_threatens_squad`; tank s přísahou se nesměl vrátit a nikdo mu nepomohl, bitva stála), nepřítel, který se drží stranou, se po `hunt_after` s bez hrozby jde dorazit (`_threat_t`), lučištník smí na kraj obrany, `next_wave_t()` pro odpočet vlny. Lesní ves +3 lapkové: 0/40 a se schopnostmi ~90 %.
 - 29.10.2026: obrana (`leash` kolem bráněného místa, rada pro schopnosti nevybíhá), vlny nepřátel (`arrive`, `pending`, událost `arrive`), kněz léčí i mezi vlnami (`_priest_heal`), pohyb v pásu u břehu (`_not_deeper`, oprava zaseknutí po odtlačení). Lesní ves: 0/40 a 36/40.
 - 29.10.2026: typ bitvy (útok: oddíl postupuje k cíli a k nepříteli), `alarm_radius`, `objective`, mířené Požehnání (kruh 4 m do 10 m), léčení kněze do 9 m. Balanc: všechny scénáře bez schopností prohrávají, se schopnostmi vyhrávají (elity ≥ 50 %).
 - 29.10.2026: varianty scénářů (`read_scenario`, `base`), zranění z běhu (`setup.hp`, `result.hp`), samočinné Do boje! po 25 s od zlomení (pat u brodu v běhu), lučištník, který zbyl sám, jde střílet místo nekonečného ústupu.

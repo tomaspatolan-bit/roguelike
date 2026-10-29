@@ -1,5 +1,5 @@
 {
-  "_info": "Boss aktu 1. Za potokem tábor lapků, vzadu jejich vůdce (Hejtman Kuno) se stráží. Když vůdce padne, morálka nepřátel se zlomí. returnees = kde se objeví uprchlíci z předchozích bitev běhu (pos = střed, spread = rozestup v metrech).",
+  "_info": "Boss aktu 1. Za potokem tábor lapků, vzadu jejich vůdce (Hejtman Kuno) se stráží. Když vůdce padne, morálka nepřátel se zlomí. returnees = kde se objeví uprchlíci z předchozích bitev běhu (pos = střed, spread = rozestup v metrech, max = kolik se jich nejvýš vrátí, ostatní se rozutekli nadobro).",
   "alarm_radius": 30,
   "mode": "utok",
   "name": "Tábor na Vraní skále",
@@ -24,7 +24,7 @@
     "asasin": {"pos": [2.0, -0.5]}
   },
   "optional_task": {"text": "Hejtman Kuno padne.", "reward": "vzácné znamení", "kill": "vudce"},
-  "returnees": {"pos": [0.0, 19.0], "spread": 1.2},
+  "returnees": {"pos": [0.0, 19.0], "spread": 1.2, "max": 3},
   "enemy_morale": {"break_losses": 0.7, "flee_y": 26.0},
   "enemies": [
     ["lapka", -3.0, 10.0], ["lapka", -1.5, 9.6], ["lapka", 0.0, 10.2], ["lapka", 1.5, 9.6], ["lapka", 3.0, 10.0],

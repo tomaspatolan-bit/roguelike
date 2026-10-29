@@ -211,7 +211,7 @@ func returnee_rows(scenario: Dictionary) -> Array:
 	var c := Vector2(r["pos"][0], r["pos"][1])
 	var spread: float = r.get("spread", 1.2)
 	var per_row := 5
-	for i in fled.size():
+	for i in mini(fled.size(), int(r.get("max", 99))):
 		var col := i % per_row
 		var row := i / per_row
 		var x := c.x + (col - (per_row - 1) / 2.0) * spread
@@ -236,7 +236,7 @@ func record_battle(res: Dictionary) -> void:
 	# vrácení uprchlíci se do kroniky zapíšou a jejich dluh je splacen
 	returned = []
 	if sc.has("returnees") and not fled.is_empty():
-		returned = fled.duplicate()
+		returned = fled.slice(0, int(sc["returnees"].get("max", 99)))
 		fled.clear()
 		_note(sname, "Vrátili se uprchlíci: %s (z: %s)." % [_count_foes(returned), _stages_of(returned)])
 

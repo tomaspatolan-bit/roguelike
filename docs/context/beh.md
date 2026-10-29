@@ -15,7 +15,7 @@ Spojit bitvy do příběhu rodu na mapě aktu. Struktura hry: `docs/struktura-hr
 6. **Zranění se nesou** (`heroes[cls].hp`, podíl 0–1, do bitvy přes `setup.hp`): po bitvě se hrdina doléčí o `regen` (0,2), tábor o `camp_heal` (vše), jednou za tábor. Zranění z události nikoho nezabije (minimum 10 %). **Sláva se přenáší**, nejvýš `glory.carry_max` (50).
 7. **Odměna po vítězné bitvě:** `offers` nabídek {hrdina, pasivka} a 1 výběr; elita `elite_offers` (4) a `elite_picks` (2). Pasivka sedí na třídu (nebo `any`), hrdina ji nemá, druhou přísahu nedostane; po první volbě u elity se neplatné nabídky vyřadí.
 8. **Události** (`udalosti.json`): volby s efekty `glory`, `heal`, `wound`, `gift` (náhodná pasivka/přísaha náhodnému hrdinovi, kterému sedí), `fled` (nepřátelé, kteří se vrátí u bosse). Volba bez dost slávy nebo bez možného příjemce nejde (`event_option_problem`). Text volby jde do kroniky.
-9. **Uprchlíci:** nepřátelé, kteří utečou v bitvě bez `returnees` (nebo z události), se vrátí v bitvě, která `returnees` má (boss).
+9. **Uprchlíci:** nepřátelé, kteří utečou v bitvě bez `returnees` (nebo z události), se vrátí v bitvě, která `returnees` má (boss), nejvýš `returnees.max` (u Hejtmana 3), ostatní se rozutekli nadobro.
 10. **Prohra = padli všichni** v jedné bitvě → běh končí (`over = "lose"`). Po bossovi `over = "win"`.
 11. **Kronika** (`chronicle`: {stage, text}): vítězství a porážky, padlí a jejich sláva, nástupci, útěky a návraty, přísahy (složené, převzaté, porušené, zaniklé), odměny, události, tábor.
 12. **Bitva v běhu** (`battle.gd` s `run` ≠ null): scénář z uzlu, bez výběru bitvy, pasivky jen ke čtení, výsledek s „Pokračovat v běhu“ → `battle_done(result)`.
@@ -34,6 +34,7 @@ Spojit bitvy do příběhu rodu na mapě aktu. Struktura hry: `docs/struktura-hr
 - Vzhled obrazovek a mapy je zástupný (půjčuje si téma z `battle_ui.gd`); finální UI navrhne Tom.
 
 ## Historie významných změn
+- 29.10.2026: u Hejtmana se vrátí nejvýš 3 uprchlíci (auto-hraní vyhrávalo jen 3–4 běhy z 20, skoro vždy se prohrálo u bosse).
 - 29.10.2026: Lesní ves (obrana) mezi bitvami aktu, po bitvě se hrdina doléčí o 30 %, tábory častěji (váha 2).
 - 29.10.2026: na mapě (najetí na uzel, tooltip) je vidět typ bitvy.
 - 29.10.2026: mapa aktu 1 (2.1): 7 pater, bitvy, elity (2 ze 4 odměn), události (4), tábor, boss; zranění se nesou; nástupci v datech rodu; zkušební běh nahrazen. Auto-hraní s náhodnou cestou: ~50–65 % vítězných běhů, nejčastěji se prohrává u bosse.

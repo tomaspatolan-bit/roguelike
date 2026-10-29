@@ -620,6 +620,9 @@ func set_log(lines: Array) -> void:
 func update_dynamic(sim: Sim, signal_phase: bool, paused: bool) -> void:
 	if _time_label != null:
 		_time_label.text = "%d:%02d" % [int(sim.t) / 60, int(sim.t) % 60]
+		var nw := sim.next_wave_t()
+		if nw < INF:
+			_time_label.text += "  ·  vlna za %d s" % ceili(nw - sim.t)
 	if _glory_bar != null:
 		_glory_bar.max_value = float(sim.house["glory"]["max"])
 		_glory_bar.value = sim.glory
