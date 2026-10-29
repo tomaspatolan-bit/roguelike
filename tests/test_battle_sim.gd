@@ -28,6 +28,7 @@ func _init() -> void:
 	_test_target_priority(data)
 	_test_morale(data)
 	_test_decided(data)
+	_test_waves()
 	for sid: String in Sim.scenario_list():
 		_test_calm(sid)
 		_test_mode(sid)
@@ -183,6 +184,32 @@ func _test_glory_extra_use(data: Dictionary) -> void:
 		s2.step(DT)
 		s2.events.clear()
 	_check(s2.can_use_ability("knez"), "po nabití jde Požehnání za slávu znovu")
+
+
+## Obrana: vlny přicházejí postupně, bitva neskončí, dokud nepřijdou všechny, hrdinové nevybíhají.
+func _test_waves() -> void:
+	var data := Sim.load_data("lesni_ves")
+	var s := Sim.new(data, Sim.default_setup(data, 0), 9)
+	var first := s.living(Sim.SIDE_FOE).size()
+	_check(s.mode == "obrana" and s.pending.size() > 0 and s.waves_left == 2, "obrana: na začátku je jen první vlna, další dvě čekají")
+	# první vlna zmizí: bitva nekončí, protože přijdou další
+	for f in s.living(Sim.SIDE_FOE):
+		f.hp = 0.0
+	s.step(DT)
+	_check(s.over == "", "bitva neskončí, dokud nepřijdou všechny vlny")
+	var arrived := 0
+	var far := 0.0
+	while s.t < 24.0 and s.over == "":
+		s.step(DT)
+		for e in s.events:
+			if e["type"] == "arrive":
+				arrived += 1
+		s.events.clear()
+		var tank := s.by_id("tank")
+		far = maxf(far, tank.pos.distance_to(tank.home))
+	_check(arrived > 0 and s.living(Sim.SIDE_FOE).size() > 0, "druhá vlna dorazila (%d nepřátel, první vlna měla %d)" % [arrived, first])
+	var leash: float = data["units"]["battle_modes"]["obrana"]["leash"]
+	_check(far <= leash + 2.0, "obránce nevybíhá dál než leash + dosah (%.1f m)" % far)
 
 
 ## Typ bitvy: v útoku oddíl postupuje k nepříteli (nečeká, až přijde), ve střetu drží místo.

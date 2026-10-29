@@ -3,9 +3,10 @@
 Aktualizováno: 28.10.2026
 
 ## Aktuální cíl
-**Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotový typ bitvy (útok/střet) a mířené Požehnání. Další: první obranná mapa (2.2b), pak instrukce pro hrdiny (2.2c). Otevřené: playtest s hráčem mimo nás (1.8).
+**Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotové všechny tři typy bitev (útok, střet, obrana s Lesní vsí) a animace boje hrdinů. Další: instrukce pro hrdiny (2.2c). Otevřené: playtest s hráčem mimo nás (1.8).
 
 ## Hotovo
+- Obrana Lesní vsi: tři vlny lapků (0 s, 22 s, 45 s), oddíl brání ves a nevybíhá, kněz léčí mezi vlnami, chalupy na bojišti. Animace boje: každá třída má vlastní útok (meč, palcát, dýka, luk), schopnost, zásah a smrt; zástupné zbraně v ruce. Oprava zaseknutí jednotek u břehu.
 - Typ bitvy: v útoku (Brod, elity, boss) oddíl postupuje k cíli a k nepříteli místo čekání, ve střetu (Most) čeká. Typ je vidět na mapě i v bitvě. Požehnání se míří kruhem, kněz léčí do 9 m. Poplach mezi nepřáteli na pozici (`alarm_radius`). Balanc všech 7 scénářů prošel.
 - Mapa aktu 1 (2.1): generovaná mapa 7 pater po 2–3 uzlech, bitvy (4 varianty map), elity (2, odměna 2 ze 4), události (Poutník, Vypálená ves, Zajatý lapka, Lesní kaple), tábor (odpočinek), boss. Zranění se nesou (+20 % po bitvě), sláva do další bitvy nejvýš 50. Pojistka: hrdinové po 25 s od zlomení dobojují sami. Struktura hry v `docs/struktura-hry.md`.
 - Po playtestu běhu: hrdinové bez trasy nekmitají (klidová místa s tolerancí, lučištník couvá s odstupem), kněz nestojí (jde k bojujícímu i přes přechod, když nikdo nepotřebuje léčit, pomáhá v boji), oddíl nechodí za asasínem přes řeku. Schopnost navíc za slávu jen 1× za bitvu, Požehnání se nabíjí 20 s, do další bitvy nejvýš 50 slávy.
@@ -32,6 +33,7 @@ Aktualizováno: 28.10.2026
 
 ## Čeká na Toma
 - **Zahrát běh na mapě** (Nový běh): dávají volby cesty smysl? Je vidět, co tě v uzlu čeká? Jsou události zajímavé? Mapa a obrazovky jsou zástupné, UI převezmeš.
+- Podívat se na animace (snímky `sheet_*.png`, nebo rovnou ve hře) a na obranu vsi: čtou se? Jsou zbraně v ruce v pořádku jako zástupné?
 - Asasín v simulaci často padá (sám loví střelce za řekou). Chtěná cena, nebo upravit?
 - Smazat na GitHubu větev `hrdinove-wip`.
 - Projít nové UI a navrhnout vlastní podobu (rozvržení, ikonky). Kód UI je v `scripts/battle/battle_ui.gd` a `ui_icon.gd`.

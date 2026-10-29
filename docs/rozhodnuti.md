@@ -2,6 +2,11 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 29.10.2026 – Obrana a animace boje
+- **Obrana:** nepřítel přichází ve vlnách, oddíl brání společné místo (do 7 m od něj), nikdo nevybíhá sám. Morálka nepřítele se nezlomí, dokud přicházejí vlny. První obranná mapa: Obrana Lesní vsi (3 vlny).
+- **Animace boje hrdinů** podle třídy: tank a jezdec seknutí mečem, kněz palcátem, asasín bodnutí dýkou, lučištník výstřel z luku; schopnost (Výzva, Požehnání = zvednuté paže), zásah, smrt (hrdina padne a leží). Zbraně v ruce jsou zatím zástupné.
+- Po bitvě se hrdina doléčí o 30 % (bylo 20 %) a tábory jsou na mapě častější; auto-hraní běhu s Lesní vsí bez toho vyhrávalo jen 1 z 20.
+
 ## 29.10.2026 – Typ bitvy řídí chování oddílu
 - **Výchozí chování se řídí typem bitvy:** útok (nepřítel drží pozice, oddíl postupuje k cíli a k nepříteli), střet (oba jdou proti sobě, oddíl čeká), obrana (držíte místo; zatím jako střet, první obranná mapa přijde). Důvod: chování „reaguj na toho, kdo přijde“ proti nepříteli na pozici vedlo k patu.
 - **Pak instrukce pro hrdiny** (úkoly), společné pro všechny typy bitev, případně zvlášť pro typ. Až po typech bitev.

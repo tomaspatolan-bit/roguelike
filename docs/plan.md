@@ -66,7 +66,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
 Cíl: celý krátký run od výběru rodu po bosse.
 - [x] 2.1 Mapa aktu: uzly bitva, elita, událost, tábor, boss (kovář odložen, až bude výbava); zranění se nesou
 - [x] 2.2a Typ bitvy (útok, střet, obrana) řídí výchozí chování oddílu; mířené Požehnání
-- [ ] 2.2b První obranná mapa (vlny)
+- [x] 2.2b První obranná mapa (vlny): Obrana Lesní vsi
 - [ ] 2.2c Instrukce (úkoly) pro hrdiny: Zadržet/Prorazit, Zavraždit skupinu, Výpad, Ostřelovat, Doprovázet; pojmenované skupiny nepřátel s viditelným rozkazem
 - [ ] 2.2 Karta stage a volitelné úkoly z dat
 - [ ] 2.3 Odměny po stagi: pasivky, přísahy, nové schopnosti (2. a 3. slot u hrdiny)
@@ -82,7 +82,7 @@ Cíl: celý krátký run od výběru rodu po bosse.
 ## Fáze 3 – Vizuální identita a zvuk
 - [ ] 3.1 Finální styl (Tom schvaluje): rytíř, nepřátelé, prostředí
 - [ ] 3.2 Kůň pro jezdce, sada nepřátel, kit bojiště (les, vesnice, most, pahorek)
-- [ ] 3.3 Animace boje
+- [ ] 3.3 Animace boje (zástupné hotové 29.10.2026: útok podle třídy, schopnost, zásah, smrt; finální podle stylu)
 - [ ] 3.4 Styl UI
 - [ ] 3.5 Zvuky a hudba (koupit nebo zadat, Tom)
 **Hotovo, když:** snímek obrazovky vypadá jako hra, kterou by si člověk koupil.

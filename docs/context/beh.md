@@ -34,6 +34,7 @@ Spojit bitvy do příběhu rodu na mapě aktu. Struktura hry: `docs/struktura-hr
 - Vzhled obrazovek a mapy je zástupný (půjčuje si téma z `battle_ui.gd`); finální UI navrhne Tom.
 
 ## Historie významných změn
+- 29.10.2026: Lesní ves (obrana) mezi bitvami aktu, po bitvě se hrdina doléčí o 30 %, tábory častěji (váha 2).
 - 29.10.2026: na mapě (najetí na uzel, tooltip) je vidět typ bitvy.
 - 29.10.2026: mapa aktu 1 (2.1): 7 pater, bitvy, elity (2 ze 4 odměn), události (4), tábor, boss; zranění se nesou; nástupci v datech rodu; zkušební běh nahrazen. Auto-hraní s náhodnou cestou: ~50–65 % vítězných běhů, nejčastěji se prohrává u bosse.
 - 28.10.2026: založeno se zkušebním během (krok 1.7). Auto-hraní se schopnostmi a náhodnými odměnami: 17/20 vítězných běhů.

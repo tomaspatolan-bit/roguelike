@@ -631,8 +631,19 @@ func _flush_events() -> void:
 			"log":
 				log_lines.append(ev)
 				relog = true
+			"arrive":
+				# další vlna nepřátel vstoupila na bojiště
+				var nu := sim.by_id(String(ev["id"]))
+				if nu != null and not views.has(nu.id):
+					var nv := UnitView.new()
+					nv.setup(nu)
+					add_child(nv)
+					views[nu.id] = nv
 			"ability":
 				_spawn_fx(String(ev["key"]), ev["pos"])
+				var av: UnitView = views.get(String(ev.get("id", "")))
+				if av != null:
+					av.play_ability(speed)
 			"decided":
 				# rozhodnutá bitva se dohraje zrychleně
 				speed = maxf(speed, 2.0)
