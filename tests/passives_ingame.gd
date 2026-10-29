@@ -71,6 +71,10 @@ func _process(_delta: float) -> bool:
 		_enable_passives()
 	if frame == 36:
 		_shot("rozestaveni")
+		var plan: Dictionary = (scene.get("sim") as Object).call("suggest_orders")
+		if (SETS[set_key]["passives"]["jezdec"] as Array).has("rozbeh"):
+			plan["jezdec"] = ["group", (scene.get("sim") as Object).call("group_of", "e0")]   # Rozběh: jezdec vyráží na skupinu
+		(scene.get("setup") as Dictionary)["orders"] = plan
 		scene.call("_start_battle")
 		scene.set("speed", 1.0)
 		started_at = frame

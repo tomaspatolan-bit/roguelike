@@ -3,6 +3,7 @@
   "base": "brod_a_les",
   "alarm_radius": 14,
   "mode": "utok",
+  "auto_plan": "attack",
   "name": "Brod za svítání",
   "subtitle": "Lapkové a kopiníci u Černého brodu, tentokrát obráceně · 9 pěšáků, 4 kopiníci, 3 střelci",
   "win_title": "Brod je náš",

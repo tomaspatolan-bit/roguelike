@@ -56,7 +56,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [x] Kronika rodu na konci běhu (kdo padl, kdo co přísahal, kdo utekl a vrátil se)
   - [x] Bez výběru rodu, meta progrese, ukládání a finální grafiky
 - [ ] 1.8 Playtest běhu: Tom + aspoň jeden hráč mimo nás
-  - Otázka k testu: **používá hráč signál (zastavení času)?** Tom ho za celý běh nepoužil ani jednou. Když ho nepoužije ani hráč mimo nás, signál vymažeme (29.10.2026).
+  - Otázka k testu: **používá hráč signál (zastavení času)?** Od 29.10.2026 je signál jediná cesta, jak v bitvě změnit rozkazy; sledovat, jestli to hráč pochopí bez tutoriálu.
 - [ ] (podle 1.8) Podmíněné instrukce a úmysly nepřátel, jen když postoje na míru nestačí
 **Hotovo, když:** Tom řekne, že bitvy baví hrát opakovaně, a aspoň jeden člověk mimo nás to potvrdí.
 **Brána 1: prošla 29.10.2026** (Tom, odměny vážně zvažoval; hráč mimo nás zatím chybí, doplní se).
@@ -67,7 +67,7 @@ Cíl: celý krátký run od výběru rodu po bosse.
 - [x] 2.1 Mapa aktu: uzly bitva, elita, událost, tábor, boss (kovář odložen, až bude výbava); zranění se nesou
 - [x] 2.2a Typ bitvy (útok, střet, obrana) řídí výchozí chování oddílu; mířené Požehnání
 - [x] 2.2b První obranná mapa (vlny): Obrana Lesní vsi
-- [ ] 2.2c Instrukce (úkoly) pro hrdiny: Zadržet/Prorazit, Zavraždit skupinu, Výpad, Ostřelovat, Doprovázet; pojmenované skupiny nepřátel s viditelným rozkazem
+- [x] 2.2c Rozkazy pro hrdiny (29.10.2026): na místo, na skupinu nepřátel, ke spojenci, bez rozkazu drží místo; rozkazy v rozestavení a při signálu; pojmenované skupiny nepřátel; trasy a výchozí chování zrušeny. Hotovo, když: Tom odehraje bitvu každého typu jen s rozkazy a nikdo nestojí bez práce.
 - [ ] 2.2 Karta stage a volitelné úkoly z dat
 - [ ] 2.3 Odměny po stagi: pasivky, přísahy, nové schopnosti (2. a 3. slot u hrdiny)
 - [ ] 2.4 Více pasivek, přísah a schopností (obsah)

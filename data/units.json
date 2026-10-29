@@ -1,32 +1,28 @@
 {
-  "_info": "Statistiky jednotek. hp = zdraví, dmg = poškození za úder, reach = dosah útoku v m, speed = m/s, cd = prodleva mezi útoky v s, armor = podíl pohlceného poškození, radius = poloměr těla v m, palette_row = řádek paletové textury (barva látky). target_priority = koho rytíř přednostně napadá ('ranged' = střelce). mounted = jízda (kopiníci proti ní dávají dmg_vs_mounted). ignores = terén, který jednotku nezpomaluje ('les'). behavior = výchozí chování třídy (behaviors), ability = schopnost (abilities).",
+  "_info": "Statistiky jednotek. hp = zdraví, dmg = poškození za úder, reach = dosah útoku v m, speed = m/s, cd = prodleva mezi útoky v s, armor = podíl pohlceného poškození, radius = poloměr těla v m, palette_row = řádek paletové textury (barva látky). target_priority = koho rytíř přednostně napadá ('ranged' = střelce). mounted = jízda (kopiníci proti ní dávají dmg_vs_mounted). ignores = terén, který jednotku nezpomaluje ('les'). ability = schopnost (abilities).",
   "knights": {
-    "tank": {"anim_attack": "A_Knight_Attack_Slash", "anim_ability": "A_Knight_Cast", "weapon": "sword", "name": "Sir Bořek", "role": "Tank", "hp": 375, "dmg": 11, "reach": 1.5, "speed": 2.2, "cd": 1.1, "armor": 0.35, "radius": 0.45, "palette_row": 1, "color": "#4d66a6", "behavior": "frontline", "ability": "vyzva"},
-    "knez": {"anim_attack": "A_Knight_Attack_Slash", "anim_ability": "A_Knight_Cast", "weapon": "mace", "name": "Otec Jan", "role": "Kněz", "hp": 185, "dmg": 5, "reach": 1.4, "speed": 2.3, "cd": 1.2, "armor": 0.05, "radius": 0.4, "palette_row": 3, "color": "#d9d1b3", "heal": 14, "heal_cd": 2.5, "heal_range": 9, "behavior": "healer", "ability": "pozehnani"},
-    "lucistnik": {"anim_attack": "A_Knight_Attack_Shoot", "anim_ability": "A_Knight_Attack_Shoot", "weapon": "bow", "name": "Matěj", "role": "Lučištník", "hp": 165, "dmg": 9, "reach": 9.0, "speed": 2.6, "cd": 1.3, "armor": 0.05, "radius": 0.4, "palette_row": 2, "color": "#4d8c4d", "ranged": true, "behavior": "archer", "ability": "salva"},
-    "jezdec": {"anim_attack": "A_Knight_Attack_Slash", "anim_ability": "A_Knight_Attack_Slash", "weapon": "sword", "name": "Sir Radek", "role": "Jezdec", "hp": 285, "dmg": 17, "reach": 1.8, "speed": 5.0, "cd": 1.4, "armor": 0.2, "radius": 0.75, "palette_row": 4, "color": "#bf8c26", "mounted": true, "behavior": "rider", "ability": "najezd"},
-    "asasin": {"anim_attack": "A_Knight_Attack_Stab", "anim_ability": "A_Knight_Attack_Stab", "weapon": "dagger", "name": "Kryštof", "role": "Asasín", "hp": 170, "dmg": 18, "reach": 1.3, "speed": 3.4, "cd": 0.85, "armor": 0.1, "radius": 0.38, "palette_row": 5, "color": "#6a5a8c", "target_priority": "ranged", "ignores": ["les"], "behavior": "assassin", "ability": "uder"}
+    "tank": {"anim_attack": "A_Knight_Attack_Slash", "anim_ability": "A_Knight_Cast", "weapon": "sword", "name": "Sir Bořek", "role": "Tank", "hp": 375, "dmg": 11, "reach": 1.5, "speed": 2.2, "cd": 1.1, "armor": 0.35, "radius": 0.45, "palette_row": 1, "color": "#4d66a6", "ability": "vyzva"},
+    "knez": {"anim_attack": "A_Knight_Attack_Slash", "anim_ability": "A_Knight_Cast", "weapon": "mace", "name": "Otec Jan", "role": "Kněz", "hp": 185, "dmg": 5, "reach": 1.4, "speed": 2.3, "cd": 1.2, "armor": 0.05, "radius": 0.4, "palette_row": 3, "color": "#d9d1b3", "heal": 14, "heal_cd": 2.5, "heal_range": 9, "ability": "pozehnani"},
+    "lucistnik": {"anim_attack": "A_Knight_Attack_Shoot", "anim_ability": "A_Knight_Attack_Shoot", "weapon": "bow", "name": "Matěj", "role": "Lučištník", "hp": 165, "dmg": 9, "reach": 9.0, "speed": 2.6, "cd": 1.3, "armor": 0.05, "radius": 0.4, "palette_row": 2, "color": "#4d8c4d", "ranged": true, "ability": "salva"},
+    "jezdec": {"anim_attack": "A_Knight_Attack_Slash", "anim_ability": "A_Knight_Attack_Slash", "weapon": "sword", "name": "Sir Radek", "role": "Jezdec", "hp": 285, "dmg": 17, "reach": 1.8, "speed": 5.0, "cd": 1.4, "armor": 0.2, "radius": 0.75, "palette_row": 4, "color": "#bf8c26", "mounted": true, "ability": "najezd"},
+    "asasin": {"anim_attack": "A_Knight_Attack_Stab", "anim_ability": "A_Knight_Attack_Stab", "weapon": "dagger", "name": "Kryštof", "role": "Asasín", "hp": 170, "dmg": 18, "reach": 1.3, "speed": 3.4, "cd": 0.85, "armor": 0.1, "radius": 0.38, "palette_row": 5, "color": "#6a5a8c", "target_priority": "ranged", "ignores": ["les"], "ability": "uder"}
   },
   "foes": {
-    "lapka": {"name": "Lapka", "role": "Lapka", "hp": 120, "dmg": 7, "reach": 1.3, "speed": 2.5, "cd": 1.1, "armor": 0.0, "radius": 0.4, "on_break": "desperate", "traits": ["zoufalec"]},
-    "kopinik": {"name": "Kopiník", "role": "Kopiník", "hp": 150, "dmg": 8, "reach": 2.2, "speed": 2.2, "cd": 1.3, "armor": 0.15, "radius": 0.4, "on_break": "desperate", "dmg_vs_mounted": 2.0, "traits": ["fanatik"]},
-    "strelec": {"name": "Střelec", "role": "Střelec", "hp": 90, "dmg": 5, "reach": 8.0, "speed": 2.4, "cd": 1.6, "armor": 0.0, "radius": 0.4, "ranged": true, "on_break": "flee"},
-    "vudce": {"name": "Hejtman Kuno", "role": "Vůdce", "hp": 480, "dmg": 12, "reach": 1.6, "speed": 2.3, "cd": 1.2, "armor": 0.3, "radius": 0.5, "on_break": "desperate", "leader": true, "traits": ["fanatik"]}
+    "lapka": {"name": "Lapka", "plural": "Lapkové", "role": "Lapka", "hp": 120, "dmg": 7, "reach": 1.3, "speed": 2.5, "cd": 1.1, "armor": 0.0, "radius": 0.4, "on_break": "desperate", "traits": ["zoufalec"]},
+    "kopinik": {"name": "Kopiník", "plural": "Kopiníci", "role": "Kopiník", "hp": 150, "dmg": 8, "reach": 2.2, "speed": 2.2, "cd": 1.3, "armor": 0.15, "radius": 0.4, "on_break": "desperate", "dmg_vs_mounted": 2.0, "traits": ["fanatik"]},
+    "strelec": {"name": "Střelec", "plural": "Střelci", "role": "Střelec", "hp": 90, "dmg": 5, "reach": 8.0, "speed": 2.4, "cd": 1.6, "armor": 0.0, "radius": 0.4, "ranged": true, "on_break": "flee"},
+    "vudce": {"name": "Hejtman Kuno", "plural": "Družina", "role": "Vůdce", "hp": 480, "dmg": 12, "reach": 1.6, "speed": 2.3, "cd": 1.2, "armor": 0.3, "radius": 0.5, "on_break": "desperate", "leader": true, "traits": ["fanatik"]}
   },
   "battle_modes": {
-    "_info": "Typ bitvy (scenario.mode) určuje, jak se oddíl chová, když nikdo nebojuje. utok = nepřítel drží pozice a sám nepřijde: vůdce postupu (podle leaders) jde k nejbližšímu nepříteli, ostatní za ním do follow m, vůdce počká, když je střed oddílu dál než cohesion m. stret = oba jdou proti sobě, oddíl čeká na nepřítele. obrana = hrdinové bojují jen s tím, kdo přijde do leash m od bráněného místa (scenario.objective, jinak střed výchozích míst; střelec na dostřel), jinak se vrací; mezi vlnami se oddíl vrátí na místa a kněz léčí; když nikdo hunt_after s nebojuje a nepřítel se drží stranou, oddíl ho jde dorazit.",
-    "utok": {"name": "Útok", "desc": "Nepřítel drží pozice. Oddíl postupuje k němu.", "leaders": ["frontline", "rider"], "follow": 3.0, "cohesion": 6.0},
-    "stret": {"name": "Střet", "desc": "Nepřítel jde proti vám. Oddíl ho čeká a bojuje s tím, kdo přijde."},
-    "obrana": {"name": "Obrana", "desc": "Držíte místo, nepřítel útočí ve vlnách. Hrdinové nevybíhají dál než pár metrů od svých míst.", "leash": 7.0, "hunt_after": 6.0}
+    "_info": "Typ bitvy (scenario.mode). Mění nepřítele a podobu bitvy, ne hrdiny (ti jednají podle rozkazů): utok = nepřítel drží pozice a čeká, stret = nepřítel jde proti vám, obrana = nepřítel útočí ve vlnách.",
+    "utok": {"name": "Útok", "desc": "Nepřítel drží pozice. Pošli hrdiny na jeho skupiny."},
+    "stret": {"name": "Střet", "desc": "Nepřítel jde proti vám. Rozmísti hrdiny tam, kde ho chceš potkat."},
+    "obrana": {"name": "Obrana", "desc": "Držíte místo, nepřítel útočí ve vlnách. Rozmísti hrdiny tam, kudy přijde."}
   },
-  "behaviors": {
-    "_info": "Výchozí chování tříd hrdinů. _common: help_window = jak dlouho (s) po útoku nebo zásahu se hrdina počítá jako bojující; decided_ratio = když síla jedné strany klesne pod tento podíl síly druhé, hrdinové dobojují sami.",
-    "_common": {"help_window": 1.5, "decided_ratio": 0.15},
-    "frontline": {"name": "Drží frontu", "desc": "Stojí kus před oddílem a napadne každého, kdo se přiblíží k němu nebo ke spojenci.", "engage": 4.5, "guard": 3.0, "ahead": 1.5},
-    "healer": {"name": "Léčí frontu", "desc": "Drží se kousek za tím, kdo bojuje, a léčí nejzraněnějšího hrdinu v dosahu.", "behind": 2.0, "defend": 2.5, "assist": 1},
-    "archer": {"name": "Střílí zezadu", "desc": "Střílí na dostřel. Když se k němu nepřítel přiblíží, couvne.", "kite": 3.0, "kite_step": 4.0, "behind": 2.0},
-    "rider": {"name": "Výpady", "desc": "Na nepřítele do 7 m od oddílu vyrazí, udeří a vrátí se k oddílu.", "engage": 7.0},
-    "assassin": {"name": "Loví střelce", "desc": "Jde po nepřátelských střelcích, když nejsou, po nejslabším nepříteli.", "roams": 1}
+  "orders": {
+    "_info": "Rozkazy hrdinům (na místo, na skupinu nepřátel, ke spojenci). Bez rozkazu a po splnění rozkazu hrdina drží místo: bojuje s tím, kdo přijde do hold_radius m od místa, a brání se tomu, kdo na něj útočí do dvojnásobku; střelec střílí na dostřel. Cestou (na místo, na skupinu) bojuje jen s tím, kdo je u něj (reach + on_way, střelec do on_way_ranged). Se spojencem: drží se do ally_dist m (střelec a léčitel ally_dist_back m za ním) a bojuje s tím, kdo je do ally_guard m od spojence; kdo je od spojence dál než ally_dist + ally_guard + ally_leash m (třeba po Nájezdu), vrátí se k němu. settle = tolerance klidového místa (proti kmitání). group_link = nepřátelé stejné vlny a stejného druhu boje (střelec, pěší) do tolika m od sebe tvoří skupinu.",
+    "hold_radius": 4.0, "on_way": 1.0, "on_way_ranged": 2.5, "ally_dist": 2.0, "ally_dist_back": 4.0, "ally_guard": 3.0, "ally_leash": 0.5, "settle": 1.0, "group_link": 3.0,
+    "names": {"none": "Bez rozkazu: drží místo", "point": "Na místo", "point_done": "Drží místo", "group": "Na skupinu", "group_done": "Skupina padla, drží místo", "ally": "Se spojencem", "ally_done": "Spojenec padl, drží místo"}
   },
   "abilities": {
     "_info": "Schopnosti hrdinů. uses = použití za bitvu (obnova po bitvě), target = none / point (místo na zemi) / enemy (nepřítel), range = dosah cílení v m. Další čísla podle schopnosti.",
@@ -55,13 +51,14 @@
     "lovec": {"name": "Lovec", "class": "asasin", "kind": "passive", "desc": "Proti střelcům +30 % útok.", "vs_ranged": 0.3},
     "veteran": {"name": "Veterán", "class": "any", "kind": "passive", "desc": "+15 % zdraví.", "stat_mult": {"hp": 1.15}},
     "mstitel": {"name": "Mstitel", "class": "any", "kind": "passive", "desc": "Když padne spojenec, +30 % útok do konce bitvy.", "dmg_bonus": 0.3},
-    "nikdy_neustoupi": {"name": "Nikdy neustoupí", "class": "any", "kind": "oath", "desc": "+25 % útok. Nikdy necouvne: nejde za nepřítelem dozadu, trasa ani rozkaz nesmí vést zpět. Rozkaz k ústupu přísahu poruší: hrdina přijde o bonus a rod o 20 slávy.", "dmg_bonus": 0.25, "no_retreat": true, "break_glory_cost": 20},
-    "pomsta": {"name": "Přísaha pomsty", "class": "any", "kind": "oath", "desc": "+40 % útok proti tomu, kdo zranil spojence. Dokud takový nepřítel žije, neposlouchá rozkazy přesunu.", "vs_grudge": 0.4, "ignores_orders": true},
+    "nikdy_neustoupi": {"name": "Nikdy neustoupí", "class": "any", "kind": "oath", "desc": "+25 % útok. Nikdy necouvne: nejde dál od nepřítele, rozkaz nesmí vést zpět. Rozkaz k ústupu přísahu poruší: hrdina přijde o bonus a rod o 20 slávy.", "dmg_bonus": 0.25, "no_retreat": true, "break_glory_cost": 20},
+    "pomsta": {"name": "Přísaha pomsty", "class": "any", "kind": "oath", "desc": "+40 % útok proti tomu, kdo zranil spojence. Dokud takový nepřítel žije, jde po něm a neposlouchá rozkazy.", "vs_grudge": 0.4, "ignores_orders": true},
     "chudoba": {"name": "Slib chudoby", "class": "any", "kind": "oath", "desc": "Schopnost má o 1 použití víc, ale hrdina nepřinese rodu žádnou slávu.", "extra_uses": 1, "no_glory": true}
   },
   "morale": {
-    "_info": "Morálka nepřátel. Když nepřítel ztratí podíl break_losses jednotek (padlí i uprchlí), morálka se zlomí a každá jednotka zareaguje podle on_break: desperate = zoufale dobojuje (útok + desperate_dmg_bonus), flee = uteče za okraj bojiště (flee_y ve scénáři). Scénář může break_losses přepsat. auto_charge_after = za kolik s po zlomení hrdinové sami dobojují, když hráč nedá Do boje! (pojistka proti patu).",
+    "_info": "Morálka nepřátel. Když nepřítel ztratí podíl break_losses jednotek (padlí i uprchlí), morálka se zlomí a každá jednotka zareaguje podle on_break: desperate = zoufale dobojuje (útok + desperate_dmg_bonus), flee = uteče za okraj bojiště (flee_y ve scénáři). Scénář může break_losses přepsat. auto_charge_after = za kolik s po zlomení hrdinové sami dobojují, když hráč nedá Do boje! (pojistka proti patu). decided_ratio = když síla jedné strany klesne pod tento podíl síly druhé, hrdinové dobojují sami.",
     "break_losses": 0.7,
+    "decided_ratio": 0.15,
     "desperate_dmg_bonus": 0.2,
     "auto_charge_after": 25.0
   },

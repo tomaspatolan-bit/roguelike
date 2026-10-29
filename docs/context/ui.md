@@ -8,25 +8,27 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 
 ## Invarianty
 1. **Žádná herní logika.** UI nemění simulaci, jen emituje signály, které zpracuje `battle.gd`.
-2. **Signály:** `knight_clicked`, `ability_pressed`, `passive_toggled`, `scenario_changed`, `route_draw_pressed`, `route_clear_pressed`, `signals_count_changed`, `start_pressed`, `signal_pressed`, `charge_pressed`, `resume_pressed`, `speed_changed`, `continue_pressed`, `retry_pressed`, `redeploy_pressed`, `run_continue_pressed`.
+2. **Signály:** `knight_clicked`, `ability_pressed`, `passive_toggled`, `scenario_changed`, `order_pressed`, `order_clear_pressed`, `signals_count_changed`, `start_pressed`, `signal_pressed`, `charge_pressed`, `resume_pressed`, `speed_changed`, `continue_pressed`, `retry_pressed`, `redeploy_pressed`, `run_continue_pressed`.
 3. **Rozvržení:** nahoře uprostřed lišta velení (`top_row`: v rozestavení signály a Začít bitvu; v bitvě čas, sláva, signál, Do boje!, rychlost), vlevo nahoře karta bitvy (`info_box`), dole karty hrdinů (`cards_row`), vpravo nahoře sbalitelný deník. Přestavuje se jen při změně stavu (`show_deploy`, `show_battle`); plynulé věci aktualizuje `update_dynamic` (každých 0,1 s) a `update_hp_bars` (každý snímek). Ikonky se mění jen při změně podpisu (`_sig`).
 4. **Hráč se soustředí na hrdiny:** žádné bonusy pro celý oddíl v UI. Musí vždy vidět: slávu, použití schopností na kartách, zbývající signály, stav úkolu, zda čas stojí.
 5. **Texty česky,** krátce. Zkratky kláves na tlačítkách odpovídají `battle.gd`.
 6. **Font:** systémový (Segoe UI na Windows), musí umět českou diakritiku.
-7. **Karta hrdiny:** ikona třídy, jméno, zdraví, ikonky stavu, název výchozího chování (popis v nápovědě), tlačítko schopnosti s klávesou 1–5 a použitími (●) nebo cenou ve slávě; při cílení je tlačítko zvýrazněné. V rozestavení menu Pasivky (na zkoušku, zaškrtávací) a Trasa (a ✕). Ikonky pasivek a přísahy s popisem. Klik na kartu = výběr hrdiny.
+7. **Karta hrdiny:** ikona třídy, jméno, zdraví, ikonky stavu, text rozkazu (`order_text`; v rozestavení bez rozkazu červeně), tlačítko schopnosti s klávesou 1–5 a použitími (●) nebo cenou ve slávě; při cílení je tlačítko zvýrazněné. V rozestavení a při signálu tlačítko Poslat (při výběru cíle zvýrazněné „Vyber cíl…“) a ✕ (zrušit rozkaz); v rozestavení menu Pasivky (na zkoušku, zaškrtávací). Ikonky pasivek a přísahy s popisem. Klik na kartu = výběr hrdiny.
 8. **Žádné tlačítko nesmí brát fokus klávesnice** (`_no_focus` po každé přestavbě panelu).
 9. **Povel Do boje!** se ukáže až po zlomení morálky nepřítele (klávesa F).
 10. **Rozestavení:** vlevo nahoře výběr bitvy (`scenario_choices` nastavuje `battle.gd`). Výsledek bitvy bere nadpis ze scénáře (`win_title`) a ukáže, kdo přinesl nejvíc slávy.
-11. **Ikonky** (`ui_icon.gd`, vektorově, zástupné; finální navrhne Tom): třída, schopnosti (`ABILITY_ICONS`), stav z `_status_icons` (přísaha/zlomená, Výzva, drží místo z rozkazu, trasa; u nepřátel omráčený, drží pozici, zoufalý, prchá, Fanatik, Zbabělec, kopí). Každá má popisek.
+11. **Ikonky** (`ui_icon.gd`, vektorově, zástupné; finální navrhne Tom): třída, schopnosti (`ABILITY_ICONS`), stav z `_status_icons` (přísaha/zlomená, Výzva, rozkaz: drží místo / jde na místo / na skupinu / se spojencem; u nepřátel omráčený, drží pozici, zoufalý, prchá, Fanatik, Zbabělec, kopí). Každá má popisek.
 12. **`flash_hint`:** krátká nápověda nahoře uprostřed (např. proč cíl nejde), sama zmizí.
 
 13. **Režim běhu** (`run_mode`): bez výběru bitvy a volby počtu signálů, menu Pasivky jen ukazuje, co hrdina má, nad názvem bitvy `run_label` („Zkušební běh · bitva 2 ze 3“), výsledek má jediné tlačítko „Pokračovat v běhu“ / „Kronika rodu“.
+14. **Dialog Hrdinové bez rozkazu** (`ask_start`): před bitvou vyjmenuje, kdo nemá rozkaz; Začít i tak / Zpět k rozkazům.
 
 ## Úskalí
 - Kořenový `Control` má `mouse_filter = IGNORE`, jinak spolkne kliky do scény.
 - Místní proměnná se nesmí jmenovat jako metoda `CanvasLayer` (`hide`, `show`).
 
 ## Historie významných změn
+- 29.10.2026: rozkazy: karta ukazuje rozkaz místo výchozího chování, Poslat a ✕ místo Trasy, dialog před bitvou bez rozkazů, popis rozkazů v kartě bitvy.
 - 29.10.2026: v obraně ukazuje lišta odpočet další vlny („vlna za 12 s“).
 - 29.10.2026: karta bitvy ukazuje typ bitvy (útok, střet, obrana) s popisem; Požehnání se míří kruhem jako Salva.
 - 29.10.2026: tlačítko schopnosti ukazuje nabíjení („12 s“) a „vyčerpáno“, nápověda řekne proč schopnost nejde (`ability_problem`).

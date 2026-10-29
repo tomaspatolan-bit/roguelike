@@ -2,6 +2,12 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 29.10.2026 – Rozkazy místo tras a výchozího chování
+- **Hrdina jedná podle rozkazu hráče:** na místo (dojde a drží ho), na skupinu nepřátel (jde po celé skupině, i když se hýbe) nebo ke spojenci (zůstane s ním). Bez rozkazu a po splnění rozkazu drží místo a brání se tomu, kdo přijde. Před bitvou hra varuje, kdo rozkaz nemá. Tom: „řídil bych se hlavně tím, kam uživatel vyšle svoje hrdiny; předejdeme tím bugům, kdy jednotky nebudou nic dělat“.
+- **Zrušeno:** trasy, výchozí chování tříd (Drží frontu, Léčí frontu…), postup oddílu v útoku a obranný obvod. Typ bitvy mění jen nepřítele (útok: drží pozice, střet: jde proti vám, obrana: vlny).
+- **Signál zůstává a dostal úkol:** zastaví čas a jen při něm jde rozkazy během bitvy měnit. V tutoriálu se to vysvětlí. Tím padá otázka z 29.10., jestli signál vymazat.
+- Zůstává: schopnosti, Do boje!, léčení kněze, přísahy (Nikdy neustoupí: rozkaz k ústupu při signálu přísahu poruší; Přísaha pomsty: dokud žije viník, jde po něm a rozkaz neposlechne).
+
 ## 29.10.2026 – Oprava obrany
 - V obraně hrdinové pomáhají každému z oddílu, s kým nepřítel bojuje (i kousek za hranicí obrany), a nepřítele, který se drží stranou, jdou po chvíli dorazit. Mezi vlnami stojí na místech a lišta ukazuje odpočet další vlny. Tom: hrdinové se v obraně nehýbali a v jednu chvíli se zastavili úplně.
 

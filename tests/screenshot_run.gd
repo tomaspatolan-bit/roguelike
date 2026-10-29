@@ -140,6 +140,7 @@ func _drive_battle(battle: Node) -> void:
 	var phase: int = battle.get("phase")
 	if phase == 0:
 		_shot("b%d_rozestaveni.png" % (battles + 1))
+		(battle.get("setup") as Dictionary)["orders"] = (battle.get("sim") as Object).call("suggest_orders")
 		battle.call("_start_battle")
 		battle.set("speed", 4.0)
 		return

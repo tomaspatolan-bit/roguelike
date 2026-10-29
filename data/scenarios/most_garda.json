@@ -4,6 +4,7 @@
   "elite": true,
   "alarm_radius": 10,
   "mode": "utok",
+  "auto_plan": "attack",
   "name": "Lapkovská garda",
   "subtitle": "Elita · garda kopiníků drží most, za ní lapkové a střelci · 9 pěšáků, 3 kopiníci, 3 střelci",
   "win_title": "Garda je rozprášena",

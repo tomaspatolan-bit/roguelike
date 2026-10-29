@@ -2,7 +2,7 @@
   "_info": "Bitva Brod a les. Řeku jde přejít dvěma brody po stranách (zpomalí) a úzkou lávkou uprostřed. Za lávkou je les se stezkou, za lesem střelci. Nepřátelé drží pozice: vlevo lapkové a vpravo kopiníci (proti jízdě) hlídají brody, střelci stojí na břehu před lesem a střílí přes řeku. Pěšák, kterého něco zasáhne, vyrazí; po hold_time s postupují všichni. Asasína les nezpomaluje. Řádek nepřítele: [typ, x, y, (vlastnosti), (rozkazy {hold, engage, hold_time})].",
   "alarm_radius": 30,
   "mode": "utok",
-  "objective": [-8.5, 4.0],
+  "auto_plan": "hold",
   "name": "Brod a les",
   "subtitle": "Lapkové a kopiníci od Černého brodu · 8 pěšáků, 4 kopiníci, 4 střelci",
   "stage_label": "Akt 1",

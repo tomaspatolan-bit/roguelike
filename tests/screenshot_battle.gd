@@ -39,7 +39,8 @@ func _process(_delta: float) -> bool:
 		_test_drag_swap()
 	if frame == 45:
 		_shot("02_vyber.png")
-		scene.call("_start_battle")
+		scene.call("_try_start")
+		print("Start se všemi rozkazy: %s" % ("OK" if int(scene.get("phase")) == 1 and (scene.get("sim") as Object).call("unordered").is_empty() else "CHYBA"))
 		scene.set("speed", 2.0)
 		started_at = frame
 	if started_at > 0:
@@ -102,24 +103,51 @@ func _test_drag_swap() -> void:
 	scene.call("_pointer_up", b)
 	var back_ok := (tank.get("pos") as Vector2).distance_to(tank_before) < 0.6 and (knez.get("pos") as Vector2).distance_to(knez_before) < 0.6
 	print("Drag & drop zpět: %s" % ("OK" if back_ok else "CHYBA"))
-	_test_route_draw()
+	_test_orders_by_click()
 
 
-## Nakreslí asasínovi trasu myší (režim Kreslit trasu) a ověří, že ji simulace přijala.
-func _test_route_draw() -> void:
+## Rozkazy klikem jako hráč: Začít bez rozkazů se zeptá, pak Poslat (výběr cíle) a klik na nepřítele,
+## spojence nebo zem podle rady automatického velitele.
+func _test_orders_by_click() -> void:
 	var sim: Variant = scene.get("sim")
 	var cam: Camera3D = scene.get("cam")
-	var asasin: Variant = sim.call("by_id", "asasin")
-	var start: Vector2 = asasin.get("pos")
-	scene.set("_route_id", "asasin")
-	var pts: Array[Vector2] = [start, start + Vector2(0.5, 1.5), start + Vector2(1.0, 3.0), start + Vector2(1.0, 3.5)]
-	scene.call("_pointer_down", cam.unproject_position(Vector3(pts[0].x, 0, -pts[0].y)))
-	for p in pts:
-		scene.call("_pointer_move", cam.unproject_position(Vector3(p.x, 0, -p.y)))
-	scene.call("_pointer_up", cam.unproject_position(Vector3(pts[-1].x, 0, -pts[-1].y)))
-	var route: Array = asasin.get("route")
-	print("Kreslení trasy: %s (%d bodů)" % ["OK" if route.size() >= 1 and route.size() <= 4 else "CHYBA", route.size()])
-	scene.call("_clear_route", "asasin")   # bitva pak běží ve výchozím rozestavení
+	var views: Dictionary = scene.get("views")
+	var ui: Variant = scene.get("ui")
+	scene.call("_try_start")
+	var asked := bool((ui.get("start_dialog") as Window).visible) and int(scene.get("phase")) == 0
+	(ui.get("start_dialog") as Window).hide()
+	print("Varování před bitvou bez rozkazů: %s" % ("OK" if asked else "CHYBA"))
+	var plan: Dictionary = sim.call("suggest_orders")
+	var ok := true
+	for id: String in plan:
+		var o: Array = plan[id]
+		var kind: String = o[0]
+		if kind == "":
+			continue
+		var screen := Vector2.ZERO
+		if kind == "group":
+			var members: Array = sim.call("group_members", int(o[1]))
+			screen = cam.unproject_position((views[String(members[0].get("id"))] as Node3D).global_position + Vector3(0, 1.0, 0))
+		elif kind == "ally":
+			screen = cam.unproject_position((views[String(o[1])] as Node3D).global_position + Vector3(0, 1.0, 0))
+		ui.emit_signal("order_pressed", id)
+		scene.call("_pointer_move", screen)
+		scene.call("_pointer_down", screen)
+		var u: Variant = sim.call("by_id", id)
+		var got: String = u.get("order")
+		if got != kind:
+			ok = false
+			print("  %s: čekal jsem %s, je %s" % [id, kind, got])
+		if kind == "group" and int(u.get("order_group")) != int(o[1]):
+			print("  %s: jiná skupina (%d místo %d), cíl byl přesto přijat" % [id, u.get("order_group"), o[1]])
+	# kdo má podle rady držet místo, dostane rozkaz na místo, kde stojí (klik na zem)
+	for id: String in plan:
+		if String((plan[id] as Array)[0]) == "":
+			var p: Vector2 = sim.call("by_id", id).get("pos")
+			ui.emit_signal("order_pressed", id)
+			scene.call("_pointer_down", cam.unproject_position(Vector3(p.x + 0.3, 0.0, -p.y)))
+			ok = ok and String(sim.call("by_id", id).get("order")) == "point"
+	print("Rozkazy klikem: %s (%s)" % ["OK" if ok else "CHYBA", sim.call("unordered")])
 
 
 func _prefix() -> String:

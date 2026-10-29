@@ -3,7 +3,7 @@
   "alarm_radius": 30,
   "mode": "utok",
   "name": "Tábor na Vraní skále",
-  "subtitle": "Hejtman Kuno a jeho tlupa · 9 pěšáků, 4 kopiníci, 3 střelci, vůdce",
+  "subtitle": "Hejtman Kuno a jeho tlupa · 12 pěšáků, 4 kopiníci, 3 střelci, vůdce",
   "stage_label": "Akt 1 · Boss",
   "win_title": "Hejtman Kuno je poražen",
   "river": {"y0": 5.0, "y1": 7.5, "crossings": [
@@ -29,6 +29,7 @@
   "enemies": [
     ["lapka", -3.0, 10.0], ["lapka", -1.5, 9.6], ["lapka", 0.0, 10.2], ["lapka", 1.5, 9.6], ["lapka", 3.0, 10.0],
     ["lapka", -2.0, 11.6], ["lapka", 2.0, 11.6], ["lapka", 0.0, 12.4], ["lapka", -4.0, 12.0],
+    ["lapka", -5.5, 11.0], ["lapka", 5.5, 11.0], ["lapka", 0.0, 8.8],
     ["kopinik", 6.5, 10.0, {"hold": true, "engage": 4.0, "hold_time": 25}], ["kopinik", 8.5, 10.0, {"hold": true, "engage": 4.0, "hold_time": 25}],
     ["strelec", -3.0, 14.0], ["strelec", 0.0, 14.5], ["strelec", 3.0, 14.0],
     ["kopinik", -1.2, 16.5, {"hold": true, "engage": 5.0, "hold_time": 40}], ["kopinik", 1.2, 16.5, {"hold": true, "engage": 5.0, "hold_time": 40}],

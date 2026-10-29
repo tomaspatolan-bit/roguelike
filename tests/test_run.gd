@@ -323,6 +323,7 @@ func _test_full_runs() -> void:
 				"bitva", "elita", "boss":
 					var data := r.load_stage_data()
 					var s := Sim.new(data, r.battle_setup(data), 500 + i * 7 + guard)
+					s.apply_orders(s.suggest_orders())
 					while s.over == "" and s.t < 400.0:
 						s.step(DT)
 						s.events.clear()

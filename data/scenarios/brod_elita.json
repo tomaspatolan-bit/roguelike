@@ -4,6 +4,7 @@
   "elite": true,
   "alarm_radius": 10,
   "mode": "utok",
+  "auto_plan": "attack",
   "name": "Posádka Černého brodu",
   "subtitle": "Elita · posádka drží oba brody i lávku · 10 pěšáků, 4 kopiníci, 4 střelci",
   "win_title": "Černý brod padl",

@@ -13,6 +13,11 @@ Nejnovější nahoře. Každý záznam: datum, kdo hrál, build (větev nebo com
 - Z toho plyne (úkol v plan.md / nápad v napady.md / rozhodnutí):
 ```
 
+## 29.10.2026 – Tom, rozhovor o ovládání (po buildu `faze2-mapa` c1db378)
+- Nebavilo: asasín má zabudované chování, že rushuje dopředu; ve střetu všichni stojí na místě a působí to divně. Výchozí chování neodpovídá všem typům bitev.
+- Návrh Toma: smazat trasy, řídit se tím, kam hráč hrdiny vyšle; kdo nedostane rozkaz, nic nedělá. Signál použít ke změně rozkazů, v tutoriálu vysvětlit.
+- Z toho plyne: rozhodnutí „Rozkazy místo tras a výchozího chování“, krok 2.2c.
+
 ## 29.10.2026 – Tom, build `faze2-mapa` (7ab345d), obrana a ragdoll
 - Nebavilo: v obraně se hrdinové vůbec nehýbou a v jednu chvíli (asi po vyhrané vlně) se zastaví úplně.
 - Příčina: tank s přísahou Nikdy neustoupí stál kousek za hranicí obrany, nesměl se vrátit a ostatní mu nepomohli, protože nepřítel byl „mimo obranu“; nepřítel ho bil a bitva stála.

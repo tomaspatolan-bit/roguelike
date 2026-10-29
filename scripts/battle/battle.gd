@@ -37,13 +37,12 @@ var drop_ring: MeshInstance3D
 var order_line: MeshInstance3D
 var zone: MeshInstance3D
 var field_root: Node3D
-var route_mesh: MeshInstance3D
+var orders_mesh: MeshInstance3D   # čáry rozkazů (rozestavení a signál)
 var scenario_id: String = Sim.DEFAULT_SCENARIO
 
-# kreslení trasy v rozestavení
-var _route_id := ""          # rytíř, kterému se kreslí trasa (režim kreslení)
-var _route_drawing := false
-var _route_raw: Array[Vector2] = []
+# výběr cíle rozkazu (Poslat na kartě): hrdina, kterému se vybírá cíl
+var _order_id := ""
+var _pointer := Vector2.ZERO        # poslední místo kurzoru na zemi
 var _acc := 0.0
 ## Běh (scripts/run/run_state.gd), když je bitva jeho součástí; jinak null (volná bitva).
 ## Nastavuje run_main.gd před přidáním do stromu.
@@ -85,11 +84,13 @@ func _ready() -> void:
 	zone.material_override = Field.transparent_mat(Color(0.31, 0.47, 0.78, 0.28))
 	add_child(zone)
 	_build_zone()
-	route_mesh = MeshInstance3D.new()
-	route_mesh.mesh = ImmediateMesh.new()
-	route_mesh.material_override = Field.transparent_mat(Color(1.0, 0.92, 0.55, 0.9))
-	route_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(route_mesh)
+	orders_mesh = MeshInstance3D.new()
+	orders_mesh.mesh = ImmediateMesh.new()
+	var om := Field.transparent_mat(Color(1, 1, 1, 0.9))
+	om.vertex_color_use_as_albedo = true
+	orders_mesh.material_override = om
+	orders_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(orders_mesh)
 
 	aim_ring = Field.ring(1.0, 0.1, Color(1.0, 0.85, 0.4, 0.9))
 	aim_ring.visible = false
@@ -118,10 +119,13 @@ func _ready() -> void:
 	ui.ability_pressed.connect(_ability)
 	ui.passive_toggled.connect(_on_passive)
 	ui.scenario_changed.connect(_load_scenario)
-	ui.route_draw_pressed.connect(func(id: String) -> void:
-		_route_id = id if _route_id != id else ""
+	ui.order_pressed.connect(func(id: String) -> void:
+		if not _can_command():
+			return
+		_aim_id = ""
+		_order_id = id if _order_id != id else ""
 		_refresh_panel())
-	ui.route_clear_pressed.connect(_clear_route)
+	ui.order_clear_pressed.connect(_clear_order)
 	var choices: Array = []
 	for sid: String in ([] if run != null else Sim.scenario_list()):
 		choices.append([sid, String(Sim._read_json("res://data/scenarios/%s.json" % sid).get("name", sid))])
@@ -129,7 +133,7 @@ func _ready() -> void:
 	ui.signals_count_changed.connect(func(n: int) -> void:
 		setup["signals"] = n
 		_fresh_deploy())
-	ui.start_pressed.connect(_start_battle)
+	ui.start_pressed.connect(_try_start)
 	ui.signal_pressed.connect(_use_signal)
 	ui.charge_pressed.connect(_charge)
 	ui.resume_pressed.connect(_resume_signal)
@@ -171,35 +175,74 @@ func _load_scenario(id: String) -> void:
 	add_child(field_root)
 	Field.build(field_root, data["scenario"])
 	_build_zone()
-	_route_id = ""
+	_order_id = ""
 	_fresh_deploy()
 
 
-func _clear_route(id: String) -> void:
-	if phase != Phase.DEPLOY:
+## Zruší rozkaz: hrdina drží místo, kde stojí.
+func _clear_order(id: String) -> void:
+	if not _can_command():
 		return
-	sim.set_route(id, [])
-	(setup["routes"] as Dictionary).erase(id)
-	_route_id = ""
+	sim.set_order(id, "")
+	(setup["orders"] as Dictionary).erase(id)
+	_order_id = ""
 	_refresh_panel()
 
 
-func _finish_route() -> void:
-	var id := _route_id
-	_route_drawing = false
-	_route_id = ""
-	if id == "" or _route_raw.size() < 2:
+## Klik při výběru cíle rozkazu: nepřítel = jeho skupina, hrdina = spojenec, jinak místo na zemi.
+func _order_click(screen_pos: Vector2) -> void:
+	var id := _order_id
+	var kind := "point"
+	var target: Variant = null
+	var foe := _pick_foe(screen_pos)
+	var mate := _pick_knight(screen_pos, id)
+	if foe != "":
+		kind = "group"
+		target = sim.group_of(foe)
+	elif mate != "":
+		kind = "ally"
+		target = mate
+	else:
+		var gp: Variant = _ground(screen_pos)
+		if gp == null:
+			return
+		target = gp
+	var problem := sim.order_problem(id, kind, target)
+	if problem != "":
+		ui.flash_hint(problem)
+		return
+	_order_id = ""
+	_give_order(sim.by_id(id), kind, target)
+
+
+## Dá rozkaz (při signálu se u přísahy Nikdy neustoupí zeptá, jestli ji porušit).
+func _give_order(u: Sim.Unit, kind: String, target: Variant) -> void:
+	var problem := sim.order_problem(u.id, kind, target)
+	if problem != "":
+		ui.flash_hint(problem)
 		_refresh_panel()
 		return
-	var pts := Sim.simplify_route(_route_raw, 5)
-	pts.remove_at(0)   # první bod je rytíř sám
-	var problem := sim.route_problem(id, pts)
-	if problem != "":
-		ui.show_toast(problem)
-	elif sim.set_route(id, pts):
-		setup["routes"][id] = sim.by_id(id).route.duplicate()
-	_route_raw.clear()
-	_refresh_panel()
+	var apply := func() -> void:
+		if sim.set_order(u.id, kind, target) and phase == Phase.DEPLOY:
+			setup["orders"][u.id] = [kind, target]
+		paused = false
+		_flush_events()
+		_refresh_panel()
+	var retreat := kind == "point" and bool(sim.oath_of(u.id).get("no_retreat", false)) and sim.is_retreat(u.id, target)
+	if retreat and phase == Phase.DEPLOY:
+		ui.flash_hint("%s složil přísahu „%s“: rozkaz nesmí vést zpět." % [u.name, sim.oath_of(u.id).get("name", "")])
+		_refresh_panel()
+	elif retreat:
+		paused = true
+		var on_break := func() -> void:
+			sim.break_oath(u.id)
+			apply.call()
+		var on_keep := func() -> void:
+			paused = false
+			_refresh_panel()
+		ui.ask_oath(u.name, sim.oath_of(u.id), on_break, on_keep)
+	else:
+		apply.call()
 
 func _new_sim() -> void:
 	sim = Sim.new(data, setup)
@@ -227,6 +270,18 @@ func _fresh_deploy() -> void:
 	_refresh_panel()
 
 
+## Začít bitvu: když někdo nemá rozkaz, nejdřív se zeptá.
+func _try_start() -> void:
+	if phase != Phase.DEPLOY:
+		return
+	_order_id = ""
+	var missing := sim.unordered()
+	if missing.is_empty():
+		_start_battle()
+	else:
+		ui.ask_start(missing, _start_battle)
+
+
 func _start_battle() -> void:
 	for u in sim.knights():
 		setup["pos"][u.id] = u.pos
@@ -238,9 +293,9 @@ func _start_battle() -> void:
 
 func _refresh_panel() -> void:
 	if phase == Phase.DEPLOY:
-		ui.show_deploy(sim, setup, selected, scenario_id, _route_id)
+		ui.show_deploy(sim, setup, selected, scenario_id, _order_id)
 	else:
-		ui.show_battle(sim, phase == Phase.SIGNAL, selected, speed, log_lines, _aim_id)
+		ui.show_battle(sim, phase == Phase.SIGNAL, selected, speed, log_lines, _aim_id, _order_id)
 	ui.update_dynamic(sim, phase == Phase.SIGNAL, paused)
 
 
@@ -291,6 +346,7 @@ func _ability(id: String) -> void:
 			_refresh_panel()
 		return
 	_aim_id = "" if _aim_id == id else id
+	_order_id = ""
 	_refresh_panel()
 
 
@@ -363,6 +419,7 @@ func _resume_signal() -> void:
 		return
 	phase = Phase.BATTLE
 	selected = ""
+	_order_id = ""
 	_refresh_panel()
 
 
@@ -374,29 +431,11 @@ func _resume_pause() -> void:
 	_refresh_panel()
 
 
+## Přetažení hrdiny při signálu = rozkaz na místo.
 func _order_move(u: Sim.Unit, target: Vector2) -> void:
 	if sim._in_water(target):
 		return
-	var problem := sim.order_problem(u.id)
-	if problem != "":
-		ui.flash_hint(problem)
-		return
-	var apply := func() -> void:
-		sim.order_move(u.id, target)
-		paused = false
-		_flush_events()
-		_refresh_panel()
-	if bool(sim.oath_of(u.id).get("no_retreat", false)) and sim.is_retreat(u.id, target):
-		paused = true
-		var on_break := func() -> void:
-			sim.break_oath(u.id)
-			apply.call()
-		var on_keep := func() -> void:
-			paused = false
-			_refresh_panel()
-		ui.ask_oath(u.name, sim.oath_of(u.id), on_break, on_keep)
-	else:
-		apply.call()
+	_give_order(u, "point", target)
 
 
 # ================================================================ vstup
@@ -427,10 +466,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				if _aim_id != "":
 					_aim_id = ""
 					_refresh_panel()
-				elif _route_id != "":
-					_route_id = ""
-					_route_drawing = false
-					_route_raw.clear()
+				elif _order_id != "":
+					_order_id = ""
 					_refresh_panel()
 			KEY_ENTER, KEY_KP_ENTER:
 				if ui.toast.visible:
@@ -450,7 +487,7 @@ func _input(event: InputEvent) -> void:
 		_pointer_move((event as InputEventMouseMotion).position)
 	elif event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and (_drag_id != "" or _route_drawing):
+		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and _drag_id != "":
 			_pointer_up(mb.position)
 			get_viewport().set_input_as_handled()
 
@@ -507,14 +544,8 @@ func _pointer_down(screen_pos: Vector2) -> void:
 		return
 	if not _can_command():
 		return
-	if phase == Phase.DEPLOY and _route_id != "":
-		# režim kreslení trasy: čára začíná u rytíře a vede tam, kam táhneš
-		_route_drawing = true
-		_route_raw.clear()
-		_route_raw.append(sim.by_id(_route_id).pos)
-		var gp0: Variant = _ground(screen_pos)
-		if gp0 != null:
-			_route_raw.append(gp0)
+	if _order_id != "":
+		_order_click(screen_pos)
 		return
 	var id := _pick_knight(screen_pos)
 	if id != "":
@@ -545,13 +576,11 @@ func _pointer_move(screen_pos: Vector2) -> void:
 		var ga: Variant = _ground(screen_pos)
 		if ga != null:
 			_aim_point = ga
+	var gq: Variant = _ground(screen_pos)
+	if gq != null:
+		_pointer = gq
 	if not _can_command():
 		hover_id = ""
-		return
-	if _route_drawing:
-		var gpr: Variant = _ground(screen_pos)
-		if gpr != null and (gpr as Vector2).distance_to(_route_raw[-1]) > 0.4:
-			_route_raw.append(gpr)
 		return
 	hover_id = _pick_knight(screen_pos, _drag_id if _drag_active else "")
 	if _drag_id == "":
@@ -574,9 +603,6 @@ func _pointer_move(screen_pos: Vector2) -> void:
 
 
 func _pointer_up(screen_pos: Vector2) -> void:
-	if _route_drawing:
-		_finish_route()
-		return
 	var id := _drag_id
 	var was_drag := _drag_active
 	_drag_id = ""
@@ -745,49 +771,55 @@ func _sync_markers() -> void:
 		im.surface_add_vertex(to)
 		im.surface_end()
 
-	_draw_routes()
+	_draw_orders()
 
 	var su := sim.by_id(selected) if selected != "" else null
 	select_ring.visible = su != null and su.alive() and (phase == Phase.DEPLOY or phase == Phase.SIGNAL)
 	if select_ring.visible:
 		select_ring.position = Field.to_world(su.pos, 0.06)
-	hold_marker.visible = su != null and su.alive() and phase == Phase.SIGNAL and su.holding
+	hold_marker.visible = su != null and su.alive() and phase == Phase.SIGNAL and (su.order == "" or su.order_done)
 	if hold_marker.visible:
 		hold_marker.position = Field.to_world(su.home, 0.06)
 
 
-## Trasy rytířů: v rozestavení celé, v bitvě jen zbytek. Kreslená čára se ukazuje celá.
-func _draw_routes() -> void:
-	var im := route_mesh.mesh as ImmediateMesh
+## Čáry rozkazů v rozestavení a při signálu: na místo (žlutá se šipkou), na skupinu (červená ke středu
+## skupiny), ke spojenci (zelená). Při výběru cíle vede čára od hrdiny ke kurzoru.
+func _draw_orders() -> void:
+	var im := orders_mesh.mesh as ImmediateMesh
 	im.clear_surfaces()
-	var segs: Array = []
-	if phase != Phase.OVER:
+	var segs: Array = []   # [od, do, barva]
+	if phase == Phase.DEPLOY or phase == Phase.SIGNAL:
 		for u in sim.knights():
-			if not u.alive() or u.route_i >= u.route.size():
+			if not u.alive() or u.order == "" or u.order_done:
 				continue
-			var prev := u.pos
-			for i in range(u.route_i, u.route.size()):
-				segs.append([prev, u.route[i]])
-				prev = u.route[i]
-	if _route_drawing:
-		for i in range(1, _route_raw.size()):
-			segs.append([_route_raw[i - 1], _route_raw[i]])
+			match u.order:
+				"point":
+					segs.append([u.pos, u.order_pos, Color(1.0, 0.92, 0.55, 0.9)])
+				"group":
+					if not sim.group_members(u.order_group).is_empty():
+						segs.append([u.pos, sim.group_center(u.order_group), Color(1.0, 0.4, 0.35, 0.9)])
+				"ally":
+					var a := sim.by_id(u.order_ally)
+					if a != null and a.alive():
+						segs.append([u.pos, a.pos, Color(0.45, 1.0, 0.55, 0.9)])
+		if _order_id != "" and sim.by_id(_order_id) != null:
+			segs.append([sim.by_id(_order_id).pos, _pointer, Color(1, 1, 1, 0.7)])
 	if segs.is_empty():
 		return
 	im.surface_begin(Mesh.PRIMITIVE_LINES)
 	for sg: Array in segs:
 		var a: Vector2 = sg[0]
 		var b: Vector2 = sg[1]
+		var c: Color = sg[2]
+		im.surface_set_color(c)
 		im.surface_add_vertex(Field.to_world(a, 0.12))
 		im.surface_add_vertex(Field.to_world(b, 0.12))
-		# šipka na konci úseku
 		var d := (b - a).normalized()
 		var n := Vector2(-d.y, d.x)
 		for side: float in [-1.0, 1.0]:
 			im.surface_add_vertex(Field.to_world(b, 0.12))
 			im.surface_add_vertex(Field.to_world(b - d * 0.45 + n * side * 0.25, 0.12))
 	im.surface_end()
-
 
 
 ## Krátký efekt schopnosti: kruh na zemi, který zmizí.

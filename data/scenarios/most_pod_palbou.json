@@ -3,10 +3,12 @@
   "base": "most_pres_reku",
   "mode": "stret",
   "name": "Most pod palbou",
-  "subtitle": "Lapkové se střelci na druhém břehu · 9 pěšáků, 5 střelců",
+  "subtitle": "Lapkové se střelci na druhém břehu · 12 pěšáků, 5 střelců",
+  "auto_plan": "attack",
   "win_title": "Most je volný",
   "optional_task": {"text": "Matěj nesmí padnout.", "reward": "vzácné znamení", "protect": "lucistnik"},
   "enemies": [
+    ["lapka", -2.0, 10.0], ["lapka", 2.0, 10.0], ["lapka", -5.0, 12.0],
     ["lapka", -2.5, 11.0], ["lapka", -1.0, 10.5], ["lapka", 0.5, 11.2], ["lapka", 2.0, 10.6],
     ["lapka", -3.5, 12.4], ["lapka", 3.5, 12.4], ["lapka", -1.5, 12.8], ["lapka", 1.5, 12.8], ["lapka", 0.0, 13.6],
     ["strelec", -4.0, 14.5], ["strelec", -2.0, 14.0], ["strelec", 0.0, 14.6], ["strelec", 2.0, 14.0], ["strelec", 4.0, 14.5]
