@@ -57,6 +57,7 @@ var _ui_t := 0.0
 
 # drag & drop rytířů (rozestavení; v bitvě přetažení = rozkaz na místo)
 const PICK_PX := 30.0          # tolerance výběru rytíře na obrazovce (px)
+const MATE_PICK_PX := 16.0     # rozkaz ke spojenci jen při kliku přímo na něj (jinak je to rozkaz na místo)
 const DRAG_START_PX := 6.0     # o kolik se musí myš pohnout, aby začalo táhnutí
 var hover_id := ""
 var _drag_id := ""
@@ -67,10 +68,12 @@ var _drag_target := Vector2.ZERO
 var _drag_target_raw := Vector2.ZERO
 var _rpress := Vector2.ZERO          # kde se stisklo pravé tlačítko (klik = rozkaz, táhnutí = kamera)
 var _rdown := false
-const CLICK_PX := 6.0
+const CLICK_PX := 12.0   # pravé tlačítko: do tolika px pohybu je to klik (rozkaz), dál posun kamery
 var _sel_rings: Array = []           # kroužky pod vybranými hrdiny
 var _box_pending := false            # levé tlačítko stisknuté na zemi: klik, nebo tažení obdélníku výběru
 var _box_active := false
+var _box_on_hero := false            # obdélník začal stiskem na hrdinovi (klik bez tažení výběr neruší)
+var _hover_cmd: Array = []           # co by teď udělalo pravé tlačítko: [druh, místo, poloměr]
 var _box_start := Vector2.ZERO
 
 
@@ -305,7 +308,8 @@ func _refresh_panel() -> void:
 
 # ================================================================ příkazy
 
-## Klik na kartu: vybere hrdinu (Shift přidá nebo ubere), znovu klik výběr zruší.
+## Klik na kartu: vybere jen tohoto hrdinu (Shift přidá nebo ubere), druhý klik na vybraného
+## na něj natočí kameru. Výběr ruší Esc nebo klik na zem.
 func _select(id: String) -> void:
 	var u := sim.by_id(id)
 	if u == null or not u.alive() or phase == Phase.OVER:
@@ -313,22 +317,40 @@ func _select(id: String) -> void:
 	if Input.is_key_pressed(KEY_SHIFT):
 		_toggle_in_selection(id)
 	elif selection == [id]:
-		_clear_selection()
+		_focus_camera(u.pos)
 	else:
 		selection = [id]
 		selected = id
 	_refresh_panel()
 
 
-## Klik na hrdinu na bojišti: vybere ho (Shift přidá); už vybraného nechá ve výběru (kvůli táhnutí).
+## Klik na hrdinu na bojišti: vybere jen jeho (jako v RTS); Shift ho přidá nebo ubere.
 func _set_selected(id: String) -> void:
 	if Input.is_key_pressed(KEY_SHIFT):
-		if not selection.has(id):
-			selection.append(id)
-	elif not selection.has(id):
+		_toggle_in_selection(id)
+	else:
 		selection = [id]
-	selected = id
+		selected = id
 	_refresh_panel()
+
+
+## Ctrl+A: vybere všechny živé hrdiny.
+func _select_all() -> void:
+	if phase == Phase.OVER:
+		return
+	selection = []
+	for u in sim.knights():
+		if u.alive():
+			selection.append(u.id)
+	selected = String(selection[0]) if not selection.is_empty() else ""
+	_refresh_panel()
+
+
+## Kamera se natočí na místo na bojišti (druhý klik na kartu vybraného hrdiny).
+func _focus_camera(p: Vector2) -> void:
+	var oc := cam as OrbitCamera
+	oc.target = Vector3(p.x, 0.0, -p.y)
+	oc.call("_apply")
 
 
 func _toggle_in_selection(id: String) -> void:
@@ -494,6 +516,9 @@ func _order_move(u: Sim.Unit, target: Vector2) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		match (event as InputEventKey).keycode:
+			KEY_A:
+				if (event as InputEventKey).ctrl_pressed:
+					_select_all()
 			KEY_1:
 				_ability_by_index(0)
 			KEY_2:
@@ -565,7 +590,7 @@ func _command_click(screen_pos: Vector2) -> void:
 		return
 	_order_id = ""
 	var foe := _pick_foe(screen_pos)
-	var mate := _pick_knight(screen_pos)
+	var mate := _pick_knight(screen_pos, "", MATE_PICK_PX)
 	if foe != "":
 		for id: String in ids:
 			_give_order(sim.by_id(id), "group", sim.group_of(foe))
@@ -595,6 +620,23 @@ func _command_click(screen_pos: Vector2) -> void:
 		_give_order(sim.by_id(String(ids[i])), "point", q)
 
 
+## Náhled pravého tlačítka pod kurzorem (pro kruh): skupina nepřátel, spojenec, nebo místo.
+func _preview_command(screen_pos: Vector2) -> Array:
+	if _aim_id != "" or _order_id != "" or _selection_alive().is_empty() or phase == Phase.DEPLOY:
+		return []
+	var foe := _pick_foe(screen_pos)
+	if foe != "":
+		var g := sim.group_of(foe)
+		return ["group", g]
+	var mate := _pick_knight(screen_pos, "", MATE_PICK_PX)
+	if mate != "" and not (selection.size() == 1 and selection[0] == mate):
+		return ["ally", mate]
+	var gp: Variant = _ground(screen_pos)
+	if gp == null:
+		return []
+	return ["point", gp]
+
+
 static func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
 	var ab := b - a
 	var l2 := ab.length_squared()
@@ -606,9 +648,9 @@ static func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
 
 ## Rytíř pod kurzorem: měří se vzdálenost od jeho postavy na obrazovce (od nohou po hlavu),
 ## takže jde chytit kdekoli na těle, ne jen u nohou.
-func _pick_knight(screen_pos: Vector2, exclude: String = "") -> String:
+func _pick_knight(screen_pos: Vector2, exclude: String = "", tol: float = PICK_PX) -> String:
 	var best := ""
-	var bd := PICK_PX
+	var bd := tol
 	for u in sim.knights():
 		if not u.alive() or u.id == exclude:
 			continue
@@ -647,6 +689,14 @@ func _pointer_down(screen_pos: Vector2) -> void:
 		_order_click(screen_pos)
 		return
 	var id := _pick_knight(screen_pos)
+	if id != "" and phase != Phase.DEPLOY:
+		# v bitvě se hrdinové netahají (náhodné rozkazy); stisk na hrdinovi = výběr, tažení = obdélník
+		_set_selected(id)
+		_box_pending = true
+		_box_active = false
+		_box_start = screen_pos
+		_box_on_hero = true
+		return
 	if id != "":
 		_drag_id = id
 		_drag_active = false
@@ -658,6 +708,7 @@ func _pointer_down(screen_pos: Vector2) -> void:
 	_box_pending = true
 	_box_active = false
 	_box_start = screen_pos
+	_box_on_hero = false
 
 
 ## Klik na zem: v rozestavení přesune vybraného hrdinu, v bitvě zruší výběr.
@@ -690,6 +741,7 @@ func _pointer_move(screen_pos: Vector2) -> void:
 		hover_id = ""
 		return
 	hover_id = _pick_knight(screen_pos, _drag_id if _drag_active else "")
+	_hover_cmd = _preview_command(screen_pos)
 	if _box_pending:
 		if not _box_active and screen_pos.distance_to(_box_start) > DRAG_START_PX:
 			_box_active = true
@@ -725,7 +777,7 @@ func _pointer_up(screen_pos: Vector2) -> void:
 		if _box_active:
 			_box_active = false
 			_box_select(Rect2(_box_start, Vector2.ZERO).expand(screen_pos))
-		else:
+		elif not _box_on_hero:
 			_ground_click(screen_pos)
 		return
 	var id := _drag_id
@@ -995,6 +1047,17 @@ func _sync_order_marks() -> void:
 						marks.append([a.pos, 0.9 + 0.12 * i, col])
 		if _order_id != "" and sim.by_id(_order_id) != null:
 			marks.append([_pointer, 0.45, hero_color(sim.by_id(_order_id), 0.6)])
+		elif not _hover_cmd.is_empty() and not _selection_alive().is_empty():
+			match String(_hover_cmd[0]):
+				"group":
+					if not sim.group_members(_hover_cmd[1]).is_empty():
+						marks.append([sim.group_center(_hover_cmd[1]), 1.6, Color(1.0, 0.35, 0.3, 0.7)])
+				"ally":
+					var hm := sim.by_id(String(_hover_cmd[1]))
+					if hm != null and hm.alive():
+						marks.append([hm.pos, 1.0, Color(0.6, 0.85, 1.0, 0.6)])
+				"point":
+					marks.append([_hover_cmd[1], 0.35, Color(1, 1, 1, 0.45)])
 	while _order_marks.size() < marks.size():
 		var r := Field.ring(1.0, 0.12, Color.WHITE)
 		add_child(r)

@@ -13,6 +13,12 @@ Nejnovější nahoře. Každý záznam: datum, kdo hrál, build (větev nebo com
 - Z toho plyne (úkol v plan.md / nápad v napady.md / rozhodnutí):
 ```
 
+## 30.10.2026 – Tom, build `faze2-mapa` (3d1ac35), bitva ve fázích
+- Bavilo: shluky jsou v pohodě.
+- Nebavilo / nečitelné: „mega těžký“, nepřešel ani první bitvu. Nešel odznačit celý oddíl, často misclick. Trochu prolínání pořád je, hlavně na mostě (spíš design mapy).
+- Nápad (Tom): ovládat hrdiny jen z karet, ne klikáním na bojišti.
+- Z toho plyne: každá schopnost 3× za bitvu; výběr a rozkazy podle zvyklostí RTS (klik vybere jen hrdinu, bez přetahování v bitvě, Ctrl+A, náhled pravého tlačítka); most na mapách širší nebo víc přechodů (napady.md).
+
 ## 29.10.2026 – Tom, build `faze2-mapa` (22e78a5), barvy hrdinů a uhýbání
 - Nebavilo / nečitelné: nepřátel je moc, vznikají situace, kdy je spousta lidí na jednom místě, a nefeeluje to dobře (shluky, prolínání).
 - Nápady (Tom): polovina nepřátel, ale každá bitva má svého „bosse“ nebo významnější postavy; skupinky nepřátel potkávat postupně (most → 2 strážci → kemp se zbytkem), tím odpadne plánování kromě obrany; omezit schopnosti pevným počtem a nabíjením místo slávy (léčení 1× za mapu, Nájezd 1×), aby se nešlo po každé skupince doléčit.

@@ -176,7 +176,7 @@ func _test_abilities(data: Dictionary) -> void:
 func _test_ability_limits(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 54)
 	var tank := s.by_id("tank")
-	_check(tank.uses == 3 and s.by_id("knez").uses == 1 and s.by_id("jezdec").uses == 1 and s.by_id("lucistnik").uses == 3 and s.by_id("asasin").uses == 2, "počty použití podle schopnosti (Výzva 3, Požehnání 1, Nájezd 1, Salva 3, Úder 2)")
+	_check(tank.uses == 3 and s.by_id("knez").uses == 3 and s.by_id("jezdec").uses == 3 and s.by_id("lucistnik").uses == 3 and s.by_id("asasin").uses == 3, "každá schopnost má 3 použití za bitvu")
 	s.glory = 100.0
 	_check(s.use_ability("tank") and not s.can_use_ability("tank") and s.ability_problem("tank").contains("nabíjí"), "po použití se Výzva nabíjí")
 	var cd: float = s.ability_of("tank").get("cooldown", 0.0)
@@ -705,9 +705,9 @@ func _test_passives(data: Dictionary) -> void:
 	_check(s.set_passive("tank", "veteran", true) and is_equal_approx(tank.maxhp, 375.0 * 1.15), "Veterán: +15 % zdraví")
 	_check(s.set_passive("knez", "milosrdenstvi", true) and is_equal_approx(knez.heal, 14.0 * 1.5), "Milosrdenství: léčení +50 %")
 	_check(s.set_passive("lucistnik", "rychle_ruce", true) and is_equal_approx(luc.cd, 1.3 * 0.8), "Rychlé ruce: rychlejší střelba")
-	_check(s.set_passive("jezdec", "druhy_najezd", true) and jezdec.uses == 2, "Druhý nájezd: 2 použití")
+	_check(s.set_passive("jezdec", "druhy_najezd", true) and jezdec.uses == 4, "Druhý nájezd: 4 použití")
 	_check(s.set_passive("tank", "hlasita_vyzva", true) and is_equal_approx(float(s.ability_of("tank")["radius"]), 9.0), "Hlasitá výzva: dosah 9 m")
-	_check(s.set_passive("asasin", "chudoba", true) and asasin.uses == 3, "Slib odříkání: použití navíc")
+	_check(s.set_passive("asasin", "chudoba", true) and asasin.uses == 4, "Slib odříkání: použití navíc")
 	var foe := s.by_id("e0")
 	asasin.hp = asasin.maxhp * 0.5
 	asasin.pos = knez.pos + Vector2(1.0, 0.0)

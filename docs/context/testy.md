@@ -23,7 +23,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 | `screenshot_run.gd` | běh přes obrazovky: start → mapa → bitvy (auto), elita, událost, tábor, dědictví, odměna → boss → kronika; s oknem: `--script res://tests/screenshot_run.gd -- <složka>` | „VÝSLEDEK: OK“, snímky `beh_*.png` |
 | `anim_sheet.gd` | řada pěti hrdinů se zbraněmi, jejich útok v několika okamžicích, schopnost, zásah a smrt (kontrola vzhledu animací bez bitvy); s oknem: `--script res://tests/anim_sheet.gd -- <složka>` | „VÝSLEDEK: OK“, žádné „CHYBÍ animace“, snímky `sheet_*.png` |
 | `ragdoll_sheet.gd` | pět hrdinů a dva nepřátelé padnou: vznikne ragdoll, těla nepropadnou zemí a po 3 s leží (nikdo nestojí, neletí); s oknem: `--script res://tests/ragdoll_sheet.gd -- <složka>` | „VÝSLEDEK: OK“, snímky `ragdoll_*.png` |
-| `screenshot_battle.gd` | scéna se načte, bitva začíná v pauze (drag & drop jen v rozestavení obrany), po zlomení morálky jde dát povel Do boje!, bitva doběhne bez chyb | „Bitva začíná v pauze: OK“, „povel Do boje!: OK“, „Rozkazy klikem: OK“, „Start: OK“, „Pauza: OK“, „Rozkaz pravým tlačítkem v pauze: OK (čas stál: OK)“, „Rozkaz pravým tlačítkem na spojence: OK“, „Výběr tažením: OK“, schopnosti jako v testu simulace, cílené přes klik („Cílená schopnost přes klik: OK“), u mostu „Bitva skončila: win“ (u jiných scénářů jen doběhne), žádné ERROR v logu |
+| `screenshot_battle.gd` | scéna se načte, bitva začíná v pauze (drag & drop jen v rozestavení obrany), po zlomení morálky jde dát povel Do boje!, bitva doběhne bez chyb | „Bitva začíná v pauze: OK“, „povel Do boje!: OK“, „Rozkazy klikem: OK“, „Start: OK“, „Pauza: OK“, „Rozkaz pravým tlačítkem v pauze: OK (čas stál: OK)“, „Rozkaz pravým tlačítkem na spojence: OK“, „Výběr tažením: OK“, „Klik na hrdinu vybere jen jeho: OK“, „Karta a Ctrl+A: OK“, „Náhled rozkazu nad nepřítelem: OK“, schopnosti jako v testu simulace, cílené přes klik („Cílená schopnost přes klik: OK“), u mostu „Bitva skončila: win“ (u jiných scénářů jen doběhne), žádné ERROR v logu |
 
 ## Invarianty
 1. **Před každým pushem** projde `gdparse` na změněných `.gd` souborech.
@@ -38,6 +38,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 - Kontrola: exe se spustí (`--quit-after 600 --log-file …`) bez chyb, v souboru jsou JSONy. Pro testera ZIP s exe a návodem „Jak hrát.txt“ (ovládání, SmartScreen: Další informace → Přesto spustit).
 
 ## Historie významných změn
+- 30.10.2026: `passives_ingame.gd` sada B požehná tanka, kterého test sám zraní (jinak se Požehnaná zbroj nemusela projevit); cílená schopnost na nepřítele, kterého by klik netrefil (překryv), se použije přímo. `screenshot_battle.gd` testuje výběr podle zvyklostí RTS (klik vybere jen hrdinu a nepohne s ním, Ctrl+A, karta) a náhled pravého tlačítka.
 - 29.10.2026: bitva ve fázích: testy skupinek, míst kolem hrdiny, léčení jen v boji, počtu použití; auto-hraní volá `auto_command` každý krok; balanc bez dávky „bez rozkazů“; scéna začíná v pauze.
 - 29.10.2026: první export pro testera (`Rytiri_test_2026-10-29.zip`).
 - 29.10.2026: reálný čas: `screenshot_battle.gd` testuje pauzu a rozkaz pravým tlačítkem v pauze; test signálu v simulaci zrušen.

@@ -14,9 +14,9 @@ Engine: Godot 4.7. Prototyp obsahuje jednu bitvu, **Most přes řeku**.
 | Akce | Ovládání |
 | --- | --- |
 | Rozestavit rytíře (jen obrana) | přetáhnout myší v modré zóně; puštění na jiného rytíře je prohodí |
-| Výběr hrdiny | klik na hrdinu nebo jeho kartu, nebo **tažení obdélníku** levým tlačítkem přes víc hrdinů; **Shift** přidá k výběru; klik na zem nebo **Esc** výběr zruší |
+| Výběr hrdiny | klik na hrdinu nebo jeho kartu (vybere jen jeho), **tažení obdélníku** levým tlačítkem přes víc hrdinů, **Ctrl+A** všichni; **Shift** přidá nebo ubere; klik na zem nebo **Esc** výběr zruší; druhý klik na kartu vybraného natočí kameru |
 | Rozkaz (kdykoli, i v bitvě) | **pravé tlačítko**: na zem = jdi tam (bez boje, tak hrdinu stáhneš z boje) a drž místo, na nepřítele = na celou jeho skupinu, na hrdinu = drž se ho; nebo **Poslat** na kartě a klik |
-| Rozkaz na místo v bitvě | přetáhnout hrdinu |
+| Co udělá pravé tlačítko | kruh pod kurzorem: červený = skupina nepřátel, modrý = ke spojenci, bílý = na místo |
 | Cíl rozkazu | kruh v barvě hrdiny (v pauze u všech, v bitvě u vybraných) |
 | Ohlášená schopnost velitele | červený kruh, který sílí; uhni, nebo velitele omrač (Nájezd) |
 | Výběr bitvy | nahoře vlevo v úvodní pauze (obrana: v rozestavení) |

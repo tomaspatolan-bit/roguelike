@@ -698,6 +698,8 @@ func ability_hint(id: String) -> Array:
 		return [false, null]
 	var a := ability_of(id)
 	var foes := living(SIDE_FOE)
+	if (u.ability == "najezd" or u.ability == "uder") and u.hp < u.maxhp * _ord("hint_dive_hp", 0.6):
+		return [false, null]   # rada: zraněný hrdina se znovu nevrhá mezi nepřátele
 	match u.ability:
 		"vyzva":
 			var n := 0
@@ -728,12 +730,14 @@ func ability_hint(id: String) -> Array:
 				for f in foes:
 					if f.casting and f.pos.distance_to(u.pos) <= float(a["range"]) and not (a.get("land", false) and _in_water(f.pos)):
 						return [true, f.pos]
+				if mode == "obrana":
+					return [false, null]   # rada: v obraně se nevybíhá, nájezd jen proti veliteli
 			for f in foes:
 				if f.pos.distance_to(u.pos) > float(a["range"]) or (a.get("land", false) and _in_water(f.pos)):
 					continue
 				if f.asleep or _near_sleeper(f.pos):
 					continue   # rada: spící skupinku nebudit schopností
-				if u.ability == "najezd" and not _near_other_knight(u, f.pos):
+				if u.ability == "najezd" and (not _near_other_knight(u, f.pos) or _outnumbered(u, f.pos)):
 					continue   # rada: nájezd jen tam, kde už bojuje někdo z oddílu (ne sám do přesily)
 				var n := 0
 				for g in foes:
@@ -745,9 +749,11 @@ func ability_hint(id: String) -> Array:
 			var need := 3 if u.ability == "salva" else 2
 			return [best != null and best_n >= need, best.pos if best != null else null]
 		"uder":
+			if mode == "obrana":
+				return [false, null]   # rada: v obraně se nevybíhá
 			var pick: Unit = null
 			for f in foes:
-				if f.pos.distance_to(u.pos) <= float(a["range"]) and (f.ranged or f.hp < f.maxhp * 0.4) and not f.asleep and not _near_sleeper(f.pos) and _near_other_knight(u, f.pos):
+				if f.pos.distance_to(u.pos) <= float(a["range"]) and (f.ranged or f.hp < f.maxhp * 0.4) and not f.asleep and not _near_sleeper(f.pos) and _near_other_knight(u, f.pos) and not _outnumbered(u, f.pos):
 					pick = f
 					break
 			return [pick != null, pick.id if pick != null else null]
@@ -762,6 +768,20 @@ func _near_sleeper(p: Vector2) -> bool:
 			if f.pos.distance_to(p) <= wake + 2.0:
 				return true
 	return false
+
+
+## Rada: je u místa víc nepřátel než hrdinů (bez toho, kdo by tam skočil)? Do přesily se neskáče.
+func _outnumbered(u: Unit, p: Vector2) -> bool:
+	var r := _ord("hint_support", 5.0)
+	var foes := 0
+	for f in living(SIDE_FOE):
+		if not f.asleep and f.pos.distance_to(p) <= r:
+			foes += 1
+	var mates := 0
+	for k in living(SIDE_KNIGHT):
+		if k != u and k.pos.distance_to(p) <= r:
+			mates += 1
+	return foes > mates + 1
 
 
 ## Rada: stojí u místa (do `hint_support` m) jiný hrdina? Skok a nájezd nemají vést samotného hrdinu do přesily.

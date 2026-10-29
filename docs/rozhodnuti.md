@@ -2,6 +2,11 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 30.10.2026 – Schopnosti 3× a ovládání podle zvyklostí RTS
+- **Každá schopnost má 3 použití za bitvu** (Požehnání a Nájezd se nabíjejí 20 s, Výzva 15 s, Salva 12 s, Úder 15 s). Tom: bitva ve fázích byla moc těžká, nepřešel ani první bitvu. Automatický velitel vyhrával, protože schopnosti používá dokonale, takže balanc „se schopnostmi“ je pro člověka horní mez.
+- **Ovládání podle zvyklostí RTS:** klik na hrdinu vybere jen jeho, v bitvě se hrdinové netahají, Ctrl+A vybere všechny, druhý klik na kartu natočí kameru, pod kurzorem náhled, co udělá pravé tlačítko, rozkaz ke spojenci jen při kliku přímo na něj. Tom: nešlo odznačit celý oddíl a často misclickoval. Ovládání jen z karet zatím ne: výběr na bojišti je zvyklost žánru; rozhodne se po dalším hraní.
+- Prolínání na mostě je spíš věc mapy (úzký most), ne pohybu (Tom).
+
 ## 29.10.2026 – Bitva ve fázích, méně nepřátel, schopnosti bez slávy
 - **Polovina nepřátel a v každé bitvě velitel:** běžná bitva 7–8 nepřátel, elita 9, boss 9, obrana 12 ve 3 vlnách po 4. Tom: moc nepřátel dělalo shluky na jednom místě a jednotky se do sebe prolínaly; méně, ale významnějších postav.
 - **Bitva ve fázích:** nepřátelé stojí ve skupinkách (u mostu stráž, na břehu střelci, dál tábor) a skupinka se probudí, až se hrdinové přiblíží, až ji někdo zasáhne, nebo když se bojuje kousek od ní. Rozestavení před bitvou zůstává jen v obraně; ostatní bitvy začínají v pauze. Tom: „kdyby to bylo ve fázích, kdy přejdu most, najdu 2 strážce, přijdu do kempu, bude tam zbytek“.

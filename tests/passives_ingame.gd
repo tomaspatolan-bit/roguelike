@@ -121,6 +121,18 @@ func _enable_passives() -> void:
 func _auto_abilities(sim: Variant) -> void:
 	var cam: Camera3D = scene.get("cam")
 	var views: Dictionary = scene.get("views")
+	# sada B: test sám zraní tanka (Druhý dech); hráč by ho požehnal, tím se ověří Požehnaná zbroj
+	var knez: Variant = sim.call("by_id", "knez")
+	var tank: Variant = sim.call("by_id", "tank")
+	if set_key == "B" and not seen.has("bless_tank") and bool(knez.call("alive")) and bool(tank.call("alive")) \
+			and float(tank.get("hp")) < float(tank.get("maxhp")) * 0.6 and bool(sim.call("can_use_ability", "knez")):
+		seen["bless_tank"] = true
+		var tp: Vector2 = tank.get("pos")
+		var ts := cam.unproject_position(Vector3(tp.x, 0.0, -tp.y))
+		scene.call("_ability", "knez")
+		scene.call("_pointer_move", ts)
+		scene.call("_aim_click", ts)
+		scene.set("_aim_id", "")
 	for u: Variant in sim.call("living", "k"):
 		var id: String = u.get("id")
 		var h: Array = sim.call("ability_hint", id)
@@ -133,6 +145,11 @@ func _auto_abilities(sim: Variant) -> void:
 		var screen := Vector2.ZERO
 		if kind == "enemy":
 			screen = cam.unproject_position((views[String(h[1])] as Node3D).global_position + Vector3(0, 1.0, 0))
+			if String(scene.call("_pick_foe", screen)) != String(h[1]):
+				# klik by trefil jiného nepřítele (překryv na obrazovce): rada míří jinam, použij ji přímo
+				sim.call("use_ability", id, h[1])
+				scene.set("_aim_id", "")
+				continue
 		else:
 			var p: Vector2 = h[1]
 			screen = cam.unproject_position(Vector3(p.x, 0.0, -p.y))
@@ -157,13 +174,13 @@ func _observe(sim: Variant) -> void:
 			_ok("veteran", is_equal_approx(float(tank.get("maxhp")), 375.0 * 1.15), "tank má %d zdraví místo 375" % int(tank.get("maxhp")))
 			_ok("milosrdenstvi", is_equal_approx(float(knez.get("heal")), 21.0), "kněz léčí %d místo 14" % int(knez.get("heal")))
 			_ok("rychle_ruce", is_equal_approx(float(luc.get("cd")), 1.04), "lučištník střílí každých %.2f s místo 1,30 s" % float(luc.get("cd")))
-			_ok("druhy_najezd", int(jezdec.get("uses")) == 2, "Nájezd má %d použití" % int(jezdec.get("uses")))
+			_ok("druhy_najezd", int(jezdec.get("uses")) == 4, "Nájezd má %d použití" % int(jezdec.get("uses")))
 			var labs: Array = (ui.get("_ability_buttons")["jezdec"] as Node).find_children("*", "Label", true, false)
 			seen["jezdec_label"] = (labs[0] as Label).text if not labs.is_empty() else ""
 			_ok("lovec", is_equal_approx(float(sim.call("_dmg_mult", asasin, _first_ranged(sim))), 1.3), "asasín má proti střelcům ×%.2f útok" % float(sim.call("_dmg_mult", asasin, _first_ranged(sim))))
 		else:
 			_ok("hlasita_vyzva", is_equal_approx(float(sim.call("ability_of", "tank")["radius"]), 9.0), "Výzva má dosah %d m" % int(sim.call("ability_of", "tank")["radius"]))
-			_ok("chudoba", int(asasin.get("uses")) == 3, "Úder ze stínu má %d použití (Slib odříkání)" % int(asasin.get("uses")))
+			_ok("chudoba", int(asasin.get("uses")) == 4, "Úder ze stínu má %d použití (Slib odříkání)" % int(asasin.get("uses")))
 	# ikonky nad hlavou a na kartě
 	var oh: Dictionary = ui.get("_overhead")
 	if oh.has("tank") and not seen.has("icons"):

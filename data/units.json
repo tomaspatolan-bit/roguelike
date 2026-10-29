@@ -31,16 +31,16 @@
   },
   "orders": {
     "_info": "Rozkazy hrdinům (na místo, na skupinu nepřátel, ke spojenci). Bez rozkazu a po splnění rozkazu hrdina drží místo: bojuje s tím, kdo přijde do hold_radius m od místa, a brání se tomu, kdo na něj útočí do dvojnásobku; střelec střílí na dostřel. Na místo jde bez boje (tak se hrdina stáhne z boje). Na skupinu bojuje jen s jejími členy, přednostně s tím, kdo je u něj (reach + on_way, střelec do on_way_ranged). Se spojencem: drží se do ally_dist m (střelec a léčitel ally_dist_back m za ním) a bojuje s tím, kdo je do ally_guard m od spojence; kdo je od spojence dál než ally_dist + ally_guard + ally_leash m (třeba po Nájezdu), vrátí se k němu. settle = tolerance klidového místa (proti kmitání). Po Úderu ze stínu a Nájezdu hrdina zůstane na cíli nejvýš focus_time s (dokud cíl žije a je do reach + focus_leash m), pak se vrátí k rozkazu. melee_slots: nejvýš tolik pěších nepřátel bojuje s jedním hrdinou najednou, ostatní čekají wait_gap m za dosahem. body_gap: těla se odtlačují na tento násobek součtu poloměrů (1 = žádný překryv). hint_support: rada pro automatické hraní dá Úder a Nájezd jen na nepřítele do tolika m od jiného hrdiny. Jednotky v pohybu obcházejí spojence, kteří jim stojí v cestě do avoid_look m (síla avoid_strength). group_link = nepřátelé stejné vlny a stejného druhu boje (střelec, pěší) do tolika m od sebe tvoří skupinu.",
-    "hold_radius": 4.0, "on_way": 1.0, "on_way_ranged": 2.5, "ally_dist": 2.0, "ally_dist_back": 4.0, "ally_guard": 3.0, "ally_leash": 0.5, "focus_leash": 4.0, "focus_time": 3.0, "hint_support": 5.0, "melee_slots": 3, "wait_gap": 1.6, "body_gap": 1.0, "avoid_look": 1.6, "avoid_strength": 1.5, "settle": 1.0, "group_link": 3.0,
+    "hold_radius": 4.0, "on_way": 1.0, "on_way_ranged": 2.5, "ally_dist": 2.0, "ally_dist_back": 4.0, "ally_guard": 3.0, "ally_leash": 0.5, "focus_leash": 4.0, "focus_time": 3.0, "hint_support": 5.0, "hint_dive_hp": 0.6, "melee_slots": 3, "wait_gap": 1.6, "body_gap": 1.0, "avoid_look": 1.6, "avoid_strength": 1.5, "settle": 1.0, "group_link": 3.0,
     "names": {"none": "Bez rozkazu: drží místo", "point": "Na místo", "point_done": "Drží místo", "group": "Na skupinu", "group_done": "Skupina padla, drží místo", "ally": "Se spojencem", "ally_done": "Spojenec padl, drží místo"}
   },
   "abilities": {
     "_info": "Schopnosti hrdinů. uses = použití za bitvu (pevný počet, mezi fázemi bitvy se nedoplňuje, obnova po bitvě), cooldown = nabíjení po použití (s), target = none / point (místo na zemi) / enemy (nepřítel), range = dosah cílení v m. Další čísla podle schopnosti.",
     "vyzva": {"name": "Výzva", "desc": "Na 4 s přitáhne útoky nepřátel do 6 m a dostává o 50 % menší zranění.", "uses": 3, "cooldown": 15.0, "target": "none", "radius": 6.0, "duration": 4.0, "damage_taken": 0.5},
-    "pozehnani": {"name": "Požehnání", "desc": "Vyléčí hrdiny v kruhu (4 m) o 30 % jejich zdraví. Míří se do 10 m od kněze.", "uses": 1, "target": "point", "range": 10.0, "radius": 4.0, "heal_frac": 0.3},
+    "pozehnani": {"name": "Požehnání", "desc": "Vyléčí hrdiny v kruhu (4 m) o 30 % jejich zdraví. Míří se do 10 m od kněze.", "uses": 3, "cooldown": 20.0, "target": "point", "range": 10.0, "radius": 4.0, "heal_frac": 0.3},
     "salva": {"name": "Salva", "desc": "5 šípů do kruhu o poloměru 2 m na vybrané místo, každý za 9.", "uses": 3, "cooldown": 12.0, "target": "point", "range": 12.0, "radius": 2.0, "arrows": 5, "dmg": 9},
-    "najezd": {"name": "Nájezd", "desc": "Projede k vybranému místu (nejvýš 10 m), nepřátele v cestě zasáhne za 17 a omráčí na 1,5 s.", "uses": 1, "target": "point", "range": 10.0, "land": true, "dmg": 17, "stun": 1.5, "width": 1.0, "speed_mult": 3.0},
-    "uder": {"name": "Úder ze stínu", "desc": "Skočí za vybraného nepřítele (nejvýš 8 m) a zasadí mu trojnásobný úder.", "uses": 2, "cooldown": 15.0, "target": "enemy", "range": 8.0, "mult": 3.0}
+    "najezd": {"name": "Nájezd", "desc": "Projede k vybranému místu (nejvýš 10 m), nepřátele v cestě zasáhne za 17 a omráčí na 1,5 s.", "uses": 3, "cooldown": 20.0, "target": "point", "range": 10.0, "land": true, "dmg": 17, "stun": 1.5, "width": 1.0, "speed_mult": 3.0},
+    "uder": {"name": "Úder ze stínu", "desc": "Skočí za vybraného nepřítele (nejvýš 8 m) a zasadí mu trojnásobný úder.", "uses": 3, "cooldown": 15.0, "target": "enemy", "range": 8.0, "mult": 3.0}
   },
   "passives": {
     "_info": "Pasivky a přísahy hrdinů (odměny v běhu). class = třída, která ji může dostat (any = kdokoli), kind = passive / oath (hrdina má nejvýš 1 přísahu). Efekty: stat_mult (násobky statistik), ability_mod (přepíše čísla schopnosti), a další klíče podle pasivky.",
@@ -55,7 +55,7 @@
     "probodnuti": {"name": "Probodnutí", "class": "lucistnik", "kind": "passive", "desc": "Šíp zasáhne i nepřítele do 1,5 m za cílem (polovičně).", "pierce_radius": 1.5, "pierce_frac": 0.5},
     "rozbeh": {"name": "Rozběh", "class": "jezdec", "kind": "passive", "desc": "První úder po výpadu je dvojnásobný.", "mult": 2.0},
     "drtivy_najezd": {"name": "Drtivý nájezd", "class": "jezdec", "kind": "passive", "desc": "Omráčení z Nájezdu trvá 2,5 s.", "ability_mod": {"stun": 2.5}},
-    "druhy_najezd": {"name": "Druhý nájezd", "class": "jezdec", "kind": "passive", "desc": "Nájezd má 2 použití.", "ability_mod": {"uses": 2}},
+    "druhy_najezd": {"name": "Druhý nájezd", "class": "jezdec", "kind": "passive", "desc": "Nájezd má 4 použití.", "ability_mod": {"uses": 4}},
     "ze_stinu": {"name": "Ze stínu", "class": "asasin", "kind": "passive", "desc": "První úder na nepřítele, který na něj neútočí, je dvojnásobný.", "mult": 2.0},
     "ukryt": {"name": "Úkryt", "class": "asasin", "kind": "passive", "desc": "Po Úderu ze stínu ho 2 s nikdo necílí.", "hidden_t": 2.0},
     "lovec": {"name": "Lovec", "class": "asasin", "kind": "passive", "desc": "Proti střelcům +30 % útok.", "vs_ranged": 0.3},

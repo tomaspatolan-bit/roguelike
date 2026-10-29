@@ -24,3 +24,5 @@ podporuje aspoň jeden pilíř? kolik stojí? řeší problém, který jsme vid�
 | 29.10.2026 | Typ bitvy určuje chování oddílu: útok (nepřítel drží pozici, oddíl postupuje k cíli), obrana (držet bod, nepřítel útočí ve vlnách), střet; výchozí chování tříd se řídí typem bitvy | Velíš rodu | Tom navrhl, k rozhodnutí spolu s úkoly hrdinů |
 | 29.10.2026 | Úkoly hrdinů v rozestavení (Zadržet/Prorazit, Zavraždit skupinu, Výpad, Ostřelovat, Doprovázet) a pojmenované skupiny nepřátel s viditelným rozkazem | Velíš rodu | k rozhodnutí spolu s typem bitvy |
 | 29.10.2026 | Mířené Požehnání (kruh jako Salva), větší dosah léčení kněze; přísahy a pasivky se synergií (podle třídy, mezi hrdiny, s úkolem); kněz bez „Nikdy neustoupí“ | Přísaha má cenu | Tom souhlasí, po úkolech |
+| 30.10.2026 | Mapy proti prolínání (Tom): most je úzký a jednotky se na něm tlačí; širší most, víc přechodů, nebo stráž až za mostem | Velíš rodu | k zvážení při úpravě map |
+| 30.10.2026 | Hrdinové na klávesách: F1–F5 vybere hrdinu (jako ve Shadow Tactics), případně ovládání jen z karet (Tom) | Velíš rodu | až po hraní s ovládáním podle RTS |

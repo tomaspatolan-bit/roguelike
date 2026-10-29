@@ -1,11 +1,12 @@
 # Stav projektu
 
-Aktualizováno: 29.10.2026
+Aktualizováno: 30.10.2026
 
 ## Aktuální cíl
 **Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotové všechny tři typy bitev (útok, střet, obrana s Lesní vsí) a animace boje hrdinů. Hotové rozkazy pro hrdiny (2.2c). Další: karta stage a volitelné úkoly (2.2). Otevřené: playtest s hráčem mimo nás (1.8).
 
 ## Hotovo
+- Po hraní bitvy ve fázích: každá schopnost 3× za bitvu (bylo moc těžké); ovládání podle zvyklostí RTS: klik na hrdinu vybere jen jeho, v bitvě se hrdinové netahají, Ctrl+A vybere všechny, druhý klik na kartu natočí kameru, kruh pod kurzorem ukazuje, co udělá pravé tlačítko (červený skupina, modrý spojenec, bílý místo). Balanc s automatickým velitelem: se schopnostmi 38–40/40 všude, bez schopností 0/40; běh 13/20.
 - Bitva ve fázích (po Tomově hraní: moc nepřátel, shluky): polovina nepřátel (bitva 7–8, elita a boss 9, obrana 12 ve 3 vlnách), skupinky se probouzejí postupně (přiblížení, zásah, boj kousek od nich), v každé bitvě velitel s ohlášenou schopností (Pálič Vok: hořící kruh, Ostrostřelec Jíra: mířená rána, Setník Bořivoj: povel, Hejtman Kuno: rozmach), kterou přeruší omráčení. Na hrdinu útočí nejvýš 3 pěší, ostatní čekají stranou. Schopnosti mají pevný počet a nabíjení (Výzva 3×, Salva 3×, Úder 2×, Nájezd 1×, Požehnání 1×), sláva je už jen pro kroniku a události. Kněz léčí jen v boji. Bitva začíná v pauze, rozestavení jen v obraně. Balanc: bez schopností všude 0/40, se schopnostmi 40/40 (Garda 29/40, Lesní ves 31/40); běh 6/20 vítězných.
 - Po hraní v reálném čase: hrdinové mají barvy (rámeček a jméno na kartě, rámeček zdraví nad hlavou, kroužek výběru, kruh cíle rozkazu); místo čar rozkazů kruhy tam, kam jsi ukázal; jednotky obcházejí spojence v cestě; asasín po Úderu ze stínu (a jezdec po Nájezdu) chvíli bojuje s cílem, než se vrátí k rozkazu.
 - Reálný čas s pauzou místo signálu: hrdinu vybereš klikem nebo víc hrdinů tažením obdélníku (Shift přidá další), pravým tlačítkem ho pošleš na místo, na nepřítele nebo ke spojenci, kdykoli i v bitvě. Mezerník bitvu pozastaví, v pauze jdou dávat rozkazy i schopnosti. Přetažení hrdiny v bitvě = rozkaz na místo. Rozkaz na místo stáhne hrdinu z boje (cestou nebojuje), rozkaz na skupinu bojuje jen s ní.

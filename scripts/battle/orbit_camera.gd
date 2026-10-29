@@ -63,6 +63,8 @@ func _input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	var move := Vector2.ZERO
+	if Input.is_key_pressed(KEY_CTRL):
+		return   # Ctrl+A = vybrat všechny hrdiny, ne posun kamery
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
 		move.x -= 1.0
 	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):

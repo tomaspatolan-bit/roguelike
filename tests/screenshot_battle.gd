@@ -199,6 +199,24 @@ func _test_realtime_orders() -> void:
 	var sel: Array = scene.get("selection")
 	var alive_k: int = sim.call("living", "k").size()
 	print("Výběr tažením: %s (%d z %d)" % ["OK" if sel.size() == alive_k else "CHYBA", sel.size(), alive_k])
+	# klik na hrdinu při výběru celého oddílu vybere jen jeho (jako v RTS) a v bitvě s ním nepohne
+	var tpos: Vector2 = sim.call("by_id", "tank").get("pos")
+	var torder: String = sim.call("by_id", "tank").get("order")
+	scene.call("_pointer_down", tank_screen)
+	scene.call("_pointer_up", tank_screen)
+	var one: Array = scene.get("selection")
+	var still: bool = String(sim.call("by_id", "tank").get("order")) == torder and (sim.call("by_id", "tank").get("pos") as Vector2).distance_to(tpos) < 0.01
+	print("Klik na hrdinu vybere jen jeho: %s" % ("OK" if one == ["tank"] and still else "CHYBA (%s)" % [one]))
+	# druhý klik na kartu vybraného výběr nezruší (natočí kameru)
+	scene.call("_select", "tank")
+	var cam_ok := (scene.get("selection") as Array) == ["tank"]
+	scene.call("_select_all")
+	print("Karta a Ctrl+A: %s" % ("OK" if cam_ok and (scene.get("selection") as Array).size() == alive_k else "CHYBA"))
+	# náhled pravého tlačítka nad nepřítelem (kamera se po druhém kliku na kartu natočila, pozice znovu)
+	screen = cam.unproject_position((views[String(foe.get("id"))] as Node3D).global_position + Vector3(0, 1.0, 0))
+	scene.call("_pointer_move", screen)
+	var hc: Array = scene.get("_hover_cmd")
+	print("Náhled rozkazu nad nepřítelem: %s" % ("OK" if not hc.is_empty() and hc[0] == "group" else "CHYBA (%s)" % [hc]))
 	scene.call("_toggle_pause")
 	scene.call("_clear_selection")
 
