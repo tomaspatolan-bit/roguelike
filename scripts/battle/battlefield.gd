@@ -52,6 +52,14 @@ static func cylinder(parent: Node3D, r_top: float, r_bottom: float, h: float, po
 
 
 static func build(root: Node3D, scenario: Dictionary) -> void:
+	# --- fyzikální zem (padající těla, ragdoll) ---
+	var floor_body := StaticBody3D.new()
+	floor_body.collision_layer = 1
+	floor_body.collision_mask = 0
+	var gs := CollisionShape3D.new()
+	gs.shape = WorldBoundaryShape3D.new()
+	floor_body.add_child(gs)
+	root.add_child(floor_body)
 	# --- prostředí a světlo ---
 	var env := Environment.new()
 	var sky_mat := ProceduralSkyMaterial.new()

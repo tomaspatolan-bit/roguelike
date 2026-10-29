@@ -29,6 +29,19 @@ var _oneshot_t := 0.0      # jak dlouho ještě hraje jednorázová animace (út
 var _prev_atk := 0.0
 var _prev_hit := 0.0
 var _dead_played := false
+var _ragdoll := false
+var _foe_body: RigidBody3D = null
+
+## Ragdoll: kosti, které dostanou fyzikální tělo [kost, poloměr, hmotnost, kloub].
+## Kloub: "cone" (kulový s omezením), "hinge" (loket, koleno).
+const RAGDOLL := [
+	["pelvis", 0.16, 9.0, "cone"], ["spine_02", 0.17, 7.0, "cone"], ["spine_03", 0.17, 6.0, "cone"], ["head", 0.13, 3.0, "cone"],
+	["upperarm_l", 0.08, 2.0, "cone"], ["lowerarm_l", 0.07, 1.5, "hinge"],
+	["upperarm_r", 0.08, 2.0, "cone"], ["lowerarm_r", 0.07, 1.5, "hinge"],
+	["thigh_l", 0.1, 4.0, "cone"], ["calf_l", 0.08, 3.0, "hinge"],
+	["thigh_r", 0.1, 4.0, "cone"], ["calf_r", 0.08, 3.0, "hinge"],
+]
+const RAGDOLL_LAYER := 2   # těla padlých narážejí jen do země (vrstva 1), ne do sebe
 
 
 func setup(u: Sim.Unit) -> void:
@@ -153,8 +166,8 @@ static func yaw_for(face: Vector2) -> float:
 
 func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> void:
 	visible = not u.fled
-	if u.fled:
-		return
+	if u.fled or _ragdoll:
+		return   # ragdoll už řídí fyzika
 	var lunge := 0.0
 	if u.atk > 0.0:
 		lunge = sin(u.atk / 0.25 * PI) * 0.3
@@ -163,6 +176,12 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 	rotation.y = yaw_for(u.face)
 
 	if not u.alive():
+		if not _ragdoll and not _dead_played:
+			_start_ragdoll(u)
+		if _ragdoll:
+			if palette_mat != null:
+				palette_mat.set_shader_parameter("flash", Color(0, 0, 0, 0))
+			return
 		if anim != null and anim.has_animation(ANIM_DEATH):
 			# hrdina padne animací a zůstane ležet (poslední snímek)
 			if not _dead_played:
@@ -216,6 +235,111 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 	else:
 		var sc := 1.08 if u.hit > 0.0 else 1.0
 		body.scale = Vector3.ONE * sc
+
+
+## Smrt jako ragdoll: hrdina dostane fyzikální kosti a padne podle toho, odkud dostal ránu.
+## Nepřítel (kostičkový panák) padne jako jedno tuhé tělo. Když to nejde, zůstává animace smrti.
+func _start_ragdoll(u: Sim.Unit) -> void:
+	var push := Vector3(-u.face.x, 0.0, u.face.y)   # dozadu od směru, kterým se díval (k nepříteli)
+	if is_knight:
+		_ragdoll = _knight_ragdoll(push)
+	else:
+		_ragdoll = _foe_ragdoll(push)
+
+
+func _knight_ragdoll(push: Vector3) -> bool:
+	var skels := body.find_children("*", "Skeleton3D", true, false)
+	if skels.is_empty():
+		return false
+	var skel := skels[0] as Skeleton3D
+	if anim != null:
+		anim.pause()
+		anim.active = false
+	var sim3d := PhysicalBoneSimulator3D.new()
+	skel.add_child(sim3d)
+	var made: Array[PhysicalBone3D] = []
+	for spec: Array in RAGDOLL:
+		var bname: String = spec[0]
+		var idx := skel.find_bone(bname)
+		if idx < 0:
+			continue
+		var pb := PhysicalBone3D.new()
+		pb.name = "PB_" + bname
+		pb.bone_name = bname
+		pb.mass = float(spec[2])
+		pb.linear_damp = 0.6
+		pb.angular_damp = 3.0
+		pb.friction = 0.9
+		pb.collision_layer = RAGDOLL_LAYER
+		pb.collision_mask = 1
+		# délka kosti = vzdálenost k jejímu prvnímu dítěti (v klidové póze)
+		var length := 0.2
+		var kids := skel.get_bone_children(idx)
+		if not kids.is_empty():
+			length = maxf(skel.get_bone_rest(kids[0]).origin.length(), 0.08)
+		var r: float = spec[1]
+		var cs := CollisionShape3D.new()
+		if bname == "head":
+			var sp := SphereShape3D.new()
+			sp.radius = r
+			cs.shape = sp
+		else:
+			var cap := CapsuleShape3D.new()
+			cap.radius = r
+			cap.height = maxf(length, r * 2.0 + 0.01)
+			cs.shape = cap
+		cs.position = Vector3(0, length * 0.5, 0)   # kost míří po své ose Y
+		pb.add_child(cs)
+		if spec[3] == "hinge":
+			pb.joint_type = PhysicalBone3D.JOINT_TYPE_HINGE
+			pb.set("joint_constraints/angular_limit_enabled", true)
+			pb.set("joint_constraints/angular_limit_upper", 0.0)
+			pb.set("joint_constraints/angular_limit_lower", -120.0)
+		else:
+			pb.joint_type = PhysicalBone3D.JOINT_TYPE_CONE
+			pb.set("joint_constraints/swing_span", 40.0)
+			pb.set("joint_constraints/twist_span", 25.0)
+		sim3d.add_child(pb)
+		pb.global_transform = skel.global_transform * skel.get_bone_global_pose(idx)
+		made.append(pb)
+	if made.is_empty():
+		sim3d.queue_free()
+		return false
+	sim3d.physical_bones_start_simulation()
+	for pb in made:
+		var w := 1.0 if pb.bone_name.begins_with("spine") or pb.bone_name == "head" else 0.5
+		pb.apply_central_impulse((push * 3.5 + Vector3(0, 0.8, 0)) * pb.mass * w)
+	return true
+
+
+func _foe_ragdoll(push: Vector3) -> bool:
+	if body == null:
+		return false
+	var rb := RigidBody3D.new()
+	rb.collision_layer = RAGDOLL_LAYER
+	rb.collision_mask = 1
+	rb.mass = 30.0
+	rb.angular_damp = 2.0
+	rb.linear_damp = 0.4
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	bx.size = Vector3(0.5, 1.75, 0.3)
+	cs.shape = bx
+	cs.position = Vector3(0, 0.88, 0)
+	rb.add_child(cs)
+	var gt := body.global_transform
+	remove_child(body)
+	rb.add_child(body)
+	rb.top_level = true   # pohyb uzlu jednotky nesmí tělo vracet zpátky
+	add_child(rb)
+	rb.global_transform = gt
+	body.transform = Transform3D.IDENTITY
+	_foe_body = rb
+	# náraz dozadu a nahoru u hlavy: panák se překotí
+	# rychlost místo impulzu: tělo ještě není ve fyzikálním světě, impulz by se ztratil
+	rb.linear_velocity = push * 1.2 + Vector3(0, 0.6, 0)
+	rb.angular_velocity = Vector3.UP.cross(push).normalized() * 3.5
+	return true
 
 
 func flash_heal() -> void:

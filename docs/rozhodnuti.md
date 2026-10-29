@@ -2,6 +2,10 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 29.10.2026 – Ragdoll a postoj rytíře
+- **Padlí padají jako ragdoll** (fyzika): hrdinové s fyzikálními kostmi, nepřátelé jako tuhé tělo. Těla zůstávají ležet na bojišti. Tom chtěl, aby smrt vypadala opravdově (pilíř Smrt má váhu).
+- **Rytíř drží paže u těla** ve všech animacích; stál v A-póze kostry jako „Y“.
+
 ## 29.10.2026 – Obrana a animace boje
 - **Obrana:** nepřítel přichází ve vlnách, oddíl brání společné místo (do 7 m od něj), nikdo nevybíhá sám. Morálka nepřítele se nezlomí, dokud přicházejí vlny. První obranná mapa: Obrana Lesní vsi (3 vlny).
 - **Animace boje hrdinů** podle třídy: tank a jezdec seknutí mečem, kněz palcátem, asasín bodnutí dýkou, lučištník výstřel z luku; schopnost (Výzva, Požehnání = zvednuté paže), zásah, smrt (hrdina padne a leží). Zbraně v ruce jsou zatím zástupné.

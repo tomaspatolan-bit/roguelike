@@ -14,6 +14,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 5. **Převod souřadnic** `Vector3(x, výška, -y)`, natočení `atan2(face.x, -face.y)` (model kouká po +Z).
 6. **Hrdina z GLB:** očekává `MeshInstance3D`, `Skeleton3D` (kost `hand_r`, `hand_l`) a `AnimationPlayer` s `A_Knight_Idle`, `A_Knight_Walk` (smyčka) a jednorázovými `A_Knight_Attack_Slash`/`_Stab`/`_Shoot`, `A_Knight_Cast`, `A_Knight_Hit`, `A_Knight_Death`. `unit_view` hraje útok při náběhu `u.atk`, zásah při náběhu `u.hit` (když neútočí), schopnost při události `ability` (`play_ability`), smrt jednou a hrdina zůstane ležet. Která animace a zbraň patří ke třídě, je v datech (`anim_attack`, `anim_ability`, `weapon`); zbraň je zástupná primitiva na `BoneAttachment3D`. Barva role přes `role_row` v shaderu.
 13. **Vlny:** událost `arrive` vytvoří pohled nově příchozího nepřítele.
+14. **Ragdoll padlých:** hrdina dostane při smrti fyzikální kosti (`PhysicalBoneSimulator3D`, kosti v `RAGDOLL`: kapsle, kuželové klouby, loket a koleno jako pant) a padne dozadu od směru, kam se díval; nepřítel padne jako jedno tuhé tělo (`RigidBody3D`, `top_level`). Těla jsou ve vrstvě 2 a narážejí jen do země (`StaticBody3D` ve vrstvě 1 z `battlefield.gd`). Po smrti `sync` pohled už nehýbe. Když ragdoll nejde vytvořit, zůstává animace smrti.
 7. **Ovládání:** 1–5 schopnost hrdiny podle pořadí karet · F Do boje! · mezerník signál / pokračovat · Enter pokračovat · Esc zruší cílení nebo kreslení trasy · kamera: WASD/šipky a pravé tlačítko = posun, prostřední tlačítko nebo Q/E = otáčení, kolečko = přiblížení. Změna = upravit README a popisky v UI.
 8. **Výběr a přesun hrdinů:** podle postavy na obrazovce (úsečka nohy–hlava, `PICK_PX` = 30 px). Drag & drop v rozestavení (prohození puštěním), při signálu rozkaz přesunu s kontrolou přísahy.
 9. **Cílení schopnosti:** `_aim_id` = hrdina, jehož schopnost se cílí; kruh pod kurzorem v poloměru schopnosti (červený mimo dosah), klik pošle cíl do `sim.use_ability`, neplatný cíl ukáže `flash_hint`. Nepřítel se vybírá podle postavy na obrazovce (`_pick_foe`). Událost `ability` = krátký kruh efektu.
@@ -27,6 +28,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 - Limity testů počítej v čase bitvy, ne ve snímcích (monitor může mít 144 Hz).
 
 ## Historie významných změn
+- 29.10.2026: ragdoll padlých (hrdinové fyzikální kosti, nepřátelé tuhé tělo), fyzikální zem na bojišti.
 - 29.10.2026: animace boje hrdinů (útok podle třídy, schopnost, zásah, smrt), zástupné zbraně v ruce, chalupy na bojišti, nepřátelé z dalších vln se objeví při události `arrive`.
 - 28.10.2026: režim běhu (`run` nastaví `run_main.gd`): setup z běhu, bez výběru bitvy a zkoušení pasivek, signál `battle_done(result)`. Vůdce nepřátel je větší (×1,3). Hlavní scéna hry je `scenes/run/run.tscn`; `battle.tscn` jde dál spustit samostatně (volná bitva).
 - 28.10.2026: přestavba na hrdiny: pryč aura a prapor; schopnosti klávesami 1–5 a z karet, cílení kruhem, efekty schopností.

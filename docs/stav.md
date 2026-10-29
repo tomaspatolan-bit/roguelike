@@ -6,6 +6,7 @@ Aktualizováno: 28.10.2026
 **Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotové všechny tři typy bitev (útok, střet, obrana s Lesní vsí) a animace boje hrdinů. Další: instrukce pro hrdiny (2.2c). Otevřené: playtest s hráčem mimo nás (1.8).
 
 ## Hotovo
+- Ragdoll padlých: hrdina při smrti padne s fyzikálními kostmi dozadu od nepřítele, nepřátelé se jako tuhé tělo překotí. Rytíři už nestojí jako „Y“ (paže u těla v klidu i v chůzi).
 - Obrana Lesní vsi: tři vlny lapků (0 s, 22 s, 45 s), oddíl brání ves a nevybíhá, kněz léčí mezi vlnami, chalupy na bojišti. Animace boje: každá třída má vlastní útok (meč, palcát, dýka, luk), schopnost, zásah a smrt; zástupné zbraně v ruce. Oprava zaseknutí jednotek u břehu.
 - Typ bitvy: v útoku (Brod, elity, boss) oddíl postupuje k cíli a k nepříteli místo čekání, ve střetu (Most) čeká. Typ je vidět na mapě i v bitvě. Požehnání se míří kruhem, kněz léčí do 9 m. Poplach mezi nepřáteli na pozici (`alarm_radius`). Balanc všech 7 scénářů prošel.
 - Mapa aktu 1 (2.1): generovaná mapa 7 pater po 2–3 uzlech, bitvy (4 varianty map), elity (2, odměna 2 ze 4), události (Poutník, Vypálená ves, Zajatý lapka, Lesní kaple), tábor (odpočinek), boss. Zranění se nesou (+20 % po bitvě), sláva do další bitvy nejvýš 50. Pojistka: hrdinové po 25 s od zlomení dobojují sami. Struktura hry v `docs/struktura-hry.md`.
