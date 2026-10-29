@@ -38,7 +38,8 @@ var drop_ring: MeshInstance3D
 var order_line: MeshInstance3D
 var zone: MeshInstance3D
 var field_root: Node3D
-var orders_mesh: MeshInstance3D   # čáry rozkazů
+var _order_marks: Array = []        # kruhy cílů rozkazů (barva hrdiny)
+var _order_flash: Dictionary = {}    # id hrdiny -> jak dlouho ještě ukazovat cíl právě daného rozkazu (s)
 var scenario_id: String = Sim.DEFAULT_SCENARIO
 
 # výběr cíle rozkazu (Poslat na kartě): hrdina, kterému se vybírá cíl
@@ -92,13 +93,6 @@ func _ready() -> void:
 	zone.material_override = Field.transparent_mat(Color(0.31, 0.47, 0.78, 0.28))
 	add_child(zone)
 	_build_zone()
-	orders_mesh = MeshInstance3D.new()
-	orders_mesh.mesh = ImmediateMesh.new()
-	var om := Field.transparent_mat(Color(1, 1, 1, 0.9))
-	om.vertex_color_use_as_albedo = true
-	orders_mesh.material_override = om
-	orders_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(orders_mesh)
 
 	aim_ring = Field.ring(1.0, 0.1, Color(1.0, 0.85, 0.4, 0.9))
 	aim_ring.visible = false
@@ -227,8 +221,10 @@ func _give_order(u: Sim.Unit, kind: String, target: Variant) -> void:
 		_refresh_panel()
 		return
 	var apply := func() -> void:
-		if sim.set_order(u.id, kind, target) and phase == Phase.DEPLOY:
-			setup["orders"][u.id] = [kind, target]
+		if sim.set_order(u.id, kind, target):
+			_order_flash[u.id] = 2.0
+			if phase == Phase.DEPLOY:
+				setup["orders"][u.id] = [kind, target]
 		paused = false
 		_flush_events()
 		_refresh_panel()
@@ -896,67 +892,83 @@ func _sync_markers() -> void:
 		im.surface_add_vertex(to)
 		im.surface_end()
 
-	_draw_orders()
+	_sync_order_marks()
 
-	# kroužky pod vybranými hrdiny (hlavní výběr bílý a silnější)
+	# kroužky pod vybranými hrdiny v barvě hrdiny (hlavní výběr silnější)
 	var sel_alive := _selection_alive() if phase != Phase.OVER else []
 	while _sel_rings.size() < sel_alive.size():
-		var r := Field.ring(0.65, 0.09, Color(1, 1, 1, 0.7))
+		var r := Field.ring(0.65, 0.09, Color(1, 1, 1, 0.8))
 		add_child(r)
 		_sel_rings.append(r)
 	for i in _sel_rings.size():
 		var ring: MeshInstance3D = _sel_rings[i]
 		ring.visible = i < sel_alive.size() and String(sel_alive[i]) != selected
 		if ring.visible:
-			ring.position = Field.to_world(sim.by_id(String(sel_alive[i])).pos, 0.06)
+			var us := sim.by_id(String(sel_alive[i]))
+			ring.position = Field.to_world(us.pos, 0.06)
+			(ring.material_override as StandardMaterial3D).albedo_color = hero_color(us, 0.85)
 	var su := sim.by_id(selected) if selected != "" else null
 	select_ring.visible = su != null and su.alive() and phase != Phase.OVER
 	if select_ring.visible:
 		select_ring.position = Field.to_world(su.pos, 0.06)
+		(select_ring.material_override as StandardMaterial3D).albedo_color = hero_color(su, 1.0)
 	hold_marker.visible = su != null and su.alive() and phase != Phase.DEPLOY and phase != Phase.OVER and (su.order == "" or su.order_done)
 	if hold_marker.visible:
 		hold_marker.position = Field.to_world(su.home, 0.06)
 
 
-## Čáry rozkazů: v rozestavení a v pauze všech hrdinů, v běžící bitvě jen vybraných. Na místo žlutá
-## se šipkou, na skupinu červená ke středu skupiny, ke spojenci zelená. Při výběru cíle vede čára ke kurzoru.
-func _draw_orders() -> void:
-	var im := orders_mesh.mesh as ImmediateMesh
-	im.clear_surfaces()
-	var segs: Array = []   # [od, do, barva]
+## Barva hrdiny pro kruhy na bojišti (zesvětlená barva z dat, aby byla vidět na trávě).
+static func hero_color(u: Sim.Unit, alpha: float) -> Color:
+	var c := u.color.lightened(0.3)
+	c.a = alpha
+	return c
+
+
+## Kruhy cílů rozkazů v barvě hrdiny: na místo malý kruh, na skupinu kruh kolem jejího středu, ke spojenci
+## kruh pod spojencem (víc hrdinů se stejným cílem = soustředné kruhy). V rozestavení a v pauze u všech,
+## v běžící bitvě u vybraných a chvíli po daném rozkazu. Při výběru cíle (Poslat) kruh pod kurzorem.
+func _sync_order_marks() -> void:
+	var dt := get_process_delta_time()
+	for id: String in _order_flash.keys():
+		_order_flash[id] = float(_order_flash[id]) - dt
+		if float(_order_flash[id]) <= 0.0:
+			_order_flash.erase(id)
+	var marks: Array = []   # [místo, poloměr, barva]
 	if phase != Phase.OVER:
 		var all := phase == Phase.DEPLOY or phase == Phase.PAUSE
-		for u in sim.knights():
-			if not u.alive() or u.order == "" or u.order_done or not (all or selection.has(u.id)):
+		var ks := sim.knights()
+		for i in ks.size():
+			var u: Sim.Unit = ks[i]
+			if not u.alive() or u.order == "" or u.order_done:
 				continue
+			if not (all or selection.has(u.id) or _order_flash.has(u.id)):
+				continue
+			var col := hero_color(u, 0.9)
 			match u.order:
 				"point":
-					segs.append([u.pos, u.order_pos, Color(1.0, 0.92, 0.55, 0.9)])
+					marks.append([u.order_pos, 0.45, col])
 				"group":
 					if not sim.group_members(u.order_group).is_empty():
-						segs.append([u.pos, sim.group_center(u.order_group), Color(1.0, 0.4, 0.35, 0.9)])
+						marks.append([sim.group_center(u.order_group), 1.2 + 0.15 * i, col])
 				"ally":
 					var a := sim.by_id(u.order_ally)
 					if a != null and a.alive():
-						segs.append([u.pos, a.pos, Color(0.45, 1.0, 0.55, 0.9)])
+						marks.append([a.pos, 0.9 + 0.12 * i, col])
 		if _order_id != "" and sim.by_id(_order_id) != null:
-			segs.append([sim.by_id(_order_id).pos, _pointer, Color(1, 1, 1, 0.7)])
-	if segs.is_empty():
-		return
-	im.surface_begin(Mesh.PRIMITIVE_LINES)
-	for sg: Array in segs:
-		var a: Vector2 = sg[0]
-		var b: Vector2 = sg[1]
-		var c: Color = sg[2]
-		im.surface_set_color(c)
-		im.surface_add_vertex(Field.to_world(a, 0.12))
-		im.surface_add_vertex(Field.to_world(b, 0.12))
-		var d := (b - a).normalized()
-		var n := Vector2(-d.y, d.x)
-		for side: float in [-1.0, 1.0]:
-			im.surface_add_vertex(Field.to_world(b, 0.12))
-			im.surface_add_vertex(Field.to_world(b - d * 0.45 + n * side * 0.25, 0.12))
-	im.surface_end()
+			marks.append([_pointer, 0.45, hero_color(sim.by_id(_order_id), 0.6)])
+	while _order_marks.size() < marks.size():
+		var r := Field.ring(1.0, 0.12, Color.WHITE)
+		add_child(r)
+		_order_marks.append(r)
+	for i in _order_marks.size():
+		var ring: MeshInstance3D = _order_marks[i]
+		ring.visible = i < marks.size()
+		if ring.visible:
+			var m: Array = marks[i]
+			var r: float = m[1]
+			ring.position = Field.to_world(m[0], 0.1)
+			ring.scale = Vector3(r, 0.05, r)
+			(ring.material_override as StandardMaterial3D).albedo_color = m[2]
 
 
 ## Krátký efekt schopnosti: kruh na zemi, který zmizí.

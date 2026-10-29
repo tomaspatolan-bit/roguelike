@@ -511,7 +511,8 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 		var sel := selection.has(u.id)
 		var card := PanelContainer.new()
 		card.custom_minimum_size = Vector2(CARD_W, 0)
-		card.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.94), 9, 8, STEEL if sel else LINE, 2 if sel else 1))
+		var hc := u.color.lightened(0.3) if u.alive() else LINE
+		card.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.94), 9, 8, hc if sel else Color(hc, 0.7), 3 if sel else 2))
 		var id := u.id
 		card.gui_input.connect(func(ev: InputEvent) -> void:
 			if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
@@ -528,7 +529,7 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 		var names := VBoxContainer.new()
 		names.add_theme_constant_override("separation", -2)
 		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		names.add_child(_label(u.name, 14, INK if u.alive() else MUTED))
+		names.add_child(_label(u.name, 14, u.color.lightened(0.45) if u.alive() else MUTED))
 		names.add_child(_label(u.role + ("" if u.alive() else " · padl"), 11, MUTED))
 		head.add_child(names)
 		var icons := HBoxContainer.new()
@@ -692,6 +693,11 @@ func update_hp_bars(sim: Sim, cam: Camera3D, views: Dictionary, show_full: bool)
 			bg.color = Color(0, 0, 0, 0.5)
 			bg.size = Vector2(36, 5)
 			bg.position = Vector2(-18, 0)
+			if u.side == Sim.SIDE_KNIGHT:
+				# rámeček v barvě hrdiny: hrdinové jdou rozlišit i nad hlavou
+				bg.color = u.color.lightened(0.3)
+				bg.size = Vector2(40, 9)
+				bg.position = Vector2(-20, -2)
 			bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			holder.add_child(bg)
 			var fill := ColorRect.new()

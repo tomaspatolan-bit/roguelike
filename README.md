@@ -17,6 +17,7 @@ Engine: Godot 4.7. Prototyp obsahuje jednu bitvu, **Most přes řeku**.
 | Výběr hrdiny | klik na hrdinu nebo jeho kartu, nebo **tažení obdélníku** levým tlačítkem přes víc hrdinů; **Shift** přidá k výběru; klik na zem nebo **Esc** výběr zruší |
 | Rozkaz (kdykoli, i v bitvě) | **pravé tlačítko**: na zem = jdi tam (bez boje, tak hrdinu stáhneš z boje) a drž místo, na nepřítele = na celou jeho skupinu, na hrdinu = drž se ho; nebo **Poslat** na kartě a klik |
 | Rozkaz na místo v bitvě | přetáhnout hrdinu |
+| Cíl rozkazu | kruh v barvě hrdiny (v pauze u všech, v bitvě u vybraných) |
 | Výběr bitvy | nahoře vlevo v rozestavení |
 | Schopnost hrdiny | tlačítko na kartě hrdiny nebo **1–5**; cílená schopnost pak klik na bojiště (**Esc** zruší) |
 | Do boje! (po zlomení morálky nepřítele, jednou) | tlačítko nebo **F** |

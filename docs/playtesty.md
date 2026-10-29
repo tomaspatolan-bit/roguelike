@@ -13,6 +13,11 @@ Nejnovější nahoře. Každý záznam: datum, kdo hrál, build (větev nebo com
 - Z toho plyne (úkol v plan.md / nápad v napady.md / rozhodnutí):
 ```
 
+## 29.10.2026 – Tom, build `faze2-mapa` (ffbe96c), reálný čas s výběrem tažením
+- Bavilo: funguje relativně dobře.
+- Nebavilo / nečitelné: jednotky při pohybu procházejí skrz sebe (clipping); asasín po Úderu ze stínu skočí, ale vrátí se a jde útočit odjinud; čáry rozkazů nejsou potřeba, stačí kruh, kam jsem ukázal; hrdinové nejdou rozlišit.
+- Z toho plyne: uhýbání spojencům, krátké setrvání na cíli po skoku a nájezdu, kruhy cílů a barvy hrdinů v UI.
+
 ## 29.10.2026 – Tom, build `faze2-mapa` (c87e73e), reálný čas s pauzou
 - Bavilo: „o hodně víc“ než rozkazy předem.
 - Chybí: výběr víc hrdinů tažením. Hrdina v boji neodejde, i když dostane rozkaz.

@@ -47,6 +47,8 @@ class Unit:
 	var order_ally: String = ""   # ally: s kým zůstat
 	var order_done: bool = false  # rozkaz splněn (došel, skupina padla, spojenec padl): drží místo `home`
 	var regroup: bool = false     # vrací se ke spojenci (zatoulal se), dokud k němu nedojde
+	var focus_id: String = ""     # po Úderu ze stínu a Nájezdu dobojuje s cílem, než se vrátí k rozkazu
+	var focus_t: float = 0.0      # jak dlouho ještě (s)
 	var group: int = -1           # nepřítel: skupina (pro rozkaz na skupinu)
 	var t: float = 0.0
 	var heal_t: float = 0.0
@@ -709,6 +711,8 @@ func ability_hint(id: String) -> Array:
 					continue
 				if f.hold and f.pos.distance_to(u.pos) > 6.0:
 					continue   # rada: nedráždit nepřítele, který drží pozici daleko
+				if u.ability == "najezd" and not _near_other_knight(u, f.pos):
+					continue   # rada: nájezd jen tam, kde už bojuje někdo z oddílu (ne sám do přesily)
 				var n := 0
 				for g in foes:
 					if g.pos.distance_to(f.pos) <= 2.0:
@@ -721,11 +725,19 @@ func ability_hint(id: String) -> Array:
 		"uder":
 			var pick: Unit = null
 			for f in foes:
-				if f.pos.distance_to(u.pos) <= float(a["range"]) and (f.ranged or f.hp < f.maxhp * 0.4) and not (f.hold and f.hp >= f.maxhp):
+				if f.pos.distance_to(u.pos) <= float(a["range"]) and (f.ranged or f.hp < f.maxhp * 0.4) and not (f.hold and f.hp >= f.maxhp) and _near_other_knight(u, f.pos):
 					pick = f
 					break
 			return [pick != null, pick.id if pick != null else null]
 	return [false, null]
+
+
+## Rada: stojí u místa (do `hint_support` m) jiný hrdina? Skok a nájezd nemají vést samotného hrdinu do přesily.
+func _near_other_knight(u: Unit, p: Vector2) -> bool:
+	for k in living(SIDE_KNIGHT):
+		if k != u and k.pos.distance_to(p) <= _ord("hint_support", 5.0):
+			return true
+	return false
 
 
 ## Kdy přijde další vlna (INF = žádná).
@@ -791,6 +803,8 @@ func use_ability(id: String, target: Variant = null) -> bool:
 				u.pos = behind
 			where = e.pos
 			_face_to(u, e)
+			u.focus_id = e.id
+			u.focus_t = _ord("focus_time", 3.0)
 			u.atk = 0.25
 			u.combat_t = t
 			_hurt(u, e, u.dmg * float(a["mult"]) * _dmg_mult(u, e))
@@ -873,6 +887,8 @@ func set_order(id: String, kind: String, target: Variant = null) -> bool:
 	var u := by_id(id)
 	u.order = kind
 	u.order_done = false
+	u.focus_id = ""
+	u.regroup = false
 	match kind:
 		"point":
 			u.order_pos = target
@@ -1067,11 +1083,20 @@ func _nav(u: Unit, target: Vector2) -> Vector2:
 	var us := _band(u.pos.y)
 	var ts := _band(target.y)
 	var here := _crossing_at(u.pos.x)
+	if us == 1 and ts == 1 and not here.is_empty():
+		var there := _crossing_at(target.x)
+		if there.is_empty() or float(there["x0"]) != float(here["x0"]):
+			# oba v pásu řeky, ale na různých přechodech (lávka a brod): nejdřív ven na břeh blíž cíli
+			var mid := (river_lo + river_hi) / 2.0
+			var exit_y := river_lo - 0.5 if target.y < mid else river_hi + 0.5
+			return Vector2(clampf(u.pos.x, float(here["x0"]) + 0.35, float(here["x1"]) - 0.35), exit_y)
 	if us == ts or (us == 1 and not here.is_empty()):
 		if us == 1 and ts != 1:
 			return Vector2(clampf(u.pos.x, float(here["x0"]) + 0.35, float(here["x1"]) - 0.35), river_lo - 0.5 if ts == 0 else river_hi + 0.5)
 		return target
 	var c := _best_crossing(u.pos.x, target.x)
+	if ts == 1 and not _crossing_at(target.x).is_empty():
+		c = _crossing_at(target.x)   # cíl stojí v přechodu: jde se tím přechodem
 	var x0 := float(c["x0"]) + 0.35
 	var x1 := float(c["x1"]) - 0.35
 	if u.pos.x >= x0 - 0.1 and u.pos.x <= x1 + 0.1 and u.pos.y >= river_lo - 0.7 and u.pos.y <= river_hi + 0.7:
@@ -1088,9 +1113,10 @@ func _walk(u: Unit, target: Vector2, dt: float, stop: float = 0.0) -> void:
 		return
 	var st := minf(d, _speed(u) * terrain_speed(u, u.pos) * dt)
 	var old := u.pos
-	var step_v := dv / d * st
+	var dir := _avoid(u, dv / d, target, d)
+	var step_v := dir * st
 	u.pos += step_v
-	u.face = dv / d
+	u.face = dir
 	u.moving = true
 	if _in_water(u.pos) and _in_water(old) and _not_deeper(old, u.pos):
 		return   # už stojí v pásu u břehu (odtlačení): smí se hýbat podél břehu nebo ven, ne hlouběji
@@ -1103,6 +1129,36 @@ func _walk(u: Unit, target: Vector2, dt: float, stop: float = 0.0) -> void:
 				u.pos = old + Vector2(0.0, -absf(step_v.x) if old.y < river_lo else absf(step_v.x))
 				if _in_water(u.pos):
 					u.pos = old
+
+
+## Uhnutí: když v cestě (do `avoid_look` m před jednotkou) stojí jednotka stejné strany, směr se stočí do strany,
+## aby se spojenci obcházeli, místo aby šli skrz sebe. Nepřítel se neobchází (do něj se jde bojovat).
+func _avoid(u: Unit, dir: Vector2, target: Vector2, dist: float) -> Vector2:
+	var look := _ord("avoid_look", 1.6)
+	var steer := Vector2.ZERO
+	for o in units:
+		if o == u or o.side != u.side or not o.alive() or o.fled:
+			continue
+		var rel := o.pos - u.pos
+		var d := rel.length()
+		if d > look or d < 0.001 or o.pos.distance_to(target) <= o.radius + 0.3:
+			continue
+		var ahead := rel.dot(dir)
+		if ahead <= 0.0 or ahead > dist:
+			continue
+		var lateral := rel - dir * ahead
+		var need := u.radius + o.radius + 0.1
+		var lat := lateral.length()
+		if lat >= need:
+			continue
+		var side := -lateral / lat if lat > 0.01 else Vector2(-dir.y, dir.x)
+		steer += side * (1.0 - d / look) * (1.0 - lat / need)
+	if steer == Vector2.ZERO:
+		return dir
+	var out := dir + steer * _ord("avoid_strength", 1.5)
+	if out.dot(dir) < 0.1:
+		out = dir * 0.1 + steer.normalized()   # nikdy necouvá, jen uhne
+	return out.normalized()
 
 
 func _face_to(u: Unit, tg: Unit) -> void:
@@ -1238,6 +1294,16 @@ func _knight_think(u: Unit, dt: float) -> void:
 	if (charging or decided != "") and not foes.is_empty():
 		_engage(u, _choose_target(u, foes), dt)
 		return
+	# Po Úderu ze stínu a Nájezdu dobojuje s cílem (nejvýš `focus_time` s, dokud žije a je u něj), pak se vrátí k rozkazu.
+	if u.focus_id != "":
+		var fo := by_id(u.focus_id)
+		u.focus_t -= dt
+		if fo == null or not fo.alive() or fo.fleeing or u.focus_t <= 0.0 or fo.pos.distance_to(u.pos) > u.reach + _ord("focus_leash", 4.0):
+			u.focus_id = ""
+		else:
+			u.regroup = false
+			_engage(u, fo, dt)
+			return
 	# Přísaha pomsty: dokud žije, kdo zranil spojence, jde po něm a rozkaz neplatí.
 	if bool(oath_of(u.id).get("ignores_orders", false)):
 		var gt := _grudge_target(u)
@@ -1434,6 +1500,16 @@ func _dash(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	if d < 0.2 or u.dash_t <= 0.0 or _in_water(next):
 		u.dashing = false
 		u.moving = false
+		# po Nájezdu dobojuje s nejbližším, koho srazil
+		var hit: Array[Unit] = []
+		for id: String in u.dash_hit:
+			var hf := by_id(id)
+			if hf != null and hf.alive():
+				hit.append(hf)
+		var near := _nearest(hit, u.pos)
+		if near != null:
+			u.focus_id = near.id
+			u.focus_t = _ord("focus_time", 3.0)
 		return
 	u.pos = next
 	u.face = dv / d

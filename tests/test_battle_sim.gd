@@ -168,6 +168,7 @@ func _test_abilities(data: Dictionary) -> void:
 	_check(s3.use_ability("asasin", victim.id) and asasin.pos.distance_to(victim.pos) < 1.5, "Úder ze stínu: skok k nepříteli")
 	_check(vh - victim.hp >= asasin.dmg * 3.0 - 0.1 or not victim.alive(), "Úder ze stínu: trojnásobný úder")
 	_check(not s3.use_ability("asasin", "tank"), "Úder ze stínu jen na nepřítele")
+	_check(asasin.focus_id == victim.id or not victim.alive(), "po Úderu ze stínu dobojuje s cílem (nevrací se hned k rozkazu)")
 
 
 ## Bez vlastních použití se platí slávou; bez slávy nejde.
@@ -288,9 +289,9 @@ func _test_groups(data: Dictionary) -> void:
 	for g in s.groups.size():
 		names.append(s.group_name(g))
 	print("Skupiny (Most): %s" % [names])
-	_check(names.has("Lapkové (11)") and names.has("Střelci (5)"), "Most: skupiny Lapkové (11) a Střelci (5)")
+	_check(names.has("Lapkové (12)") and names.has("Střelci (5)"), "Most: skupiny Lapkové (12) a Střelci (5)")
 	lapka.hp = 0.0
-	_check(s.group_name(s.group_of("e1")) == "Lapkové (10)", "počet ve skupině ubývá s padlými")
+	_check(s.group_name(s.group_of("e1")) == "Lapkové (11)", "počet ve skupině ubývá s padlými")
 
 
 ## Rozkazy: na místo, na skupinu, ke spojenci, bez rozkazu; přísaha pomsty neposlouchá.
@@ -367,6 +368,25 @@ func _test_orders(data: Dictionary) -> void:
 		s6.step(DT)
 		s6.events.clear()
 	_check(fighting and j6.pos.distance_to(away) < 1.5, "rozkaz na místo stáhne hrdinu z boje (%.1f m od cíle)" % j6.pos.distance_to(away))
+
+	# kdo jde, obejde hrdinu, který mu stojí v cestě (nejde skrz něj)
+	var s7 := Sim.new(data, Sim.default_setup(data), 66)
+	for u in s7.units:
+		if u.side == Sim.SIDE_FOE:
+			_park(u)
+	var a7 := s7.by_id("asasin")
+	var t7 := s7.by_id("tank")
+	a7.pos = Vector2(2.0, -12.0)
+	t7.pos = Vector2(2.0, -9.0)
+	t7.home = t7.pos
+	var goal := Vector2(2.0, -6.0)
+	s7.set_order("asasin", "point", goal)
+	var closest := INF
+	for i in 120:
+		s7.step(DT)
+		s7.events.clear()
+		closest = minf(closest, a7.pos.distance_to(t7.pos))
+	_check(a7.pos.distance_to(goal) < 1.0 and closest >= (a7.radius + t7.radius) * 0.85, "hrdina obejde spojence v cestě (nejblíž %.2f m, došel %.1f m od cíle)" % [closest, a7.pos.distance_to(goal)])
 
 	# skupina padne: rozkaz je splněn, hrdina drží místo
 	var s3 := Sim.new(data, Sim.default_setup(data), 59)
@@ -527,7 +547,7 @@ func _test_enemy_hold(data: Dictionary) -> void:
 func _test_morale(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 19)
 	for i in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12]:
-		s.by_id("e%d" % i).hp = 0.0   # 12 z 16 ztrát = 75 %
+		s.by_id("e%d" % i).hp = 0.0   # 12 z 17 ztrát = 71 %
 	s.step(DT)
 	var lapka := s.by_id("e10")
 	var strelec := s.by_id("e13")
@@ -559,8 +579,9 @@ func _test_decided(data: Dictionary) -> void:
 	var d2 := data.duplicate(true)
 	d2["scenario"]["enemy_morale"]["break_losses"] = 1.1
 	var s := Sim.new(d2, Sim.default_setup(d2), 23)
-	for i in 11:
-		s.by_id("e%d" % i).hp = 0.0
+	for f in s.living(Sim.SIDE_FOE):
+		if not f.ranged:
+			f.hp = 0.0   # zbudou jen střelci
 	s.step(DT)
 	var ev := false
 	for e in s.events:

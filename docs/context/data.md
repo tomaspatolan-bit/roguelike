@@ -33,6 +33,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 - Při exportu hry musí být `*.json` ve filtru exportovaných souborů (`include_filter` v `export_presets.cfg`, viz `testy.md`, Export).
 
 ## Historie významných změn
+- 29.10.2026: `orders.focus_leash`, `focus_time`, `avoid_look`, `avoid_strength`, `hint_support`; Most +1 lapka, Lapkovská garda +1 lapka a +1 střelec, Brod a les +1 lapka u levého brodu (bez schopností vyhrával 40/40).
 - 29.10.2026: rozkazy: `orders` místo `behaviors`, `behavior` u hrdinů pryč, `battle_modes` jen texty, `decided_ratio` do `morale`, `plural` u nepřátel, `objective` ze scénářů pryč, `auto_plan`. Balanc: Most +2 střelci (`auto_plan: hold`), Most pod palbou +3 lapkové, Tábor na Vraní skále +3 lapkové, Lesní ves −1 lapka ve 3. vlně, Brod a les `auto_plan: hold`.
 - 29.10.2026: scénář Lesní ves (obrana, 3 vlny, chalupy), `battle_modes.obrana.leash` 7, `arrive`, `houses`; animace a zbraně hrdinů (`anim_attack`, `anim_ability`, `weapon`); akt 1: Lesní ves mezi bitvami, `regen` 0,3, tábor váha 2.
 - 29.10.2026: `battle_modes`, `mode` u scénářů (Most a Most pod palbou střet, ostatní útok), `objective` (Brod: levý brod), `alarm_radius`; Požehnání mířené (`target: point`, `range` 10, `radius` 4), `heal_range` kněze 9; Brod +1 střelec, Brod elita bez kopiníků na lávce, Garda −1 kopiník, boss +2 lapkové a Hejtman 480 zdraví.

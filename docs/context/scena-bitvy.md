@@ -20,7 +20,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 9. **Cílení schopnosti:** `_aim_id` = hrdina, jehož schopnost se cílí; kruh pod kurzorem v poloměru schopnosti (červený mimo dosah), klik pošle cíl do `sim.use_ability`, neplatný cíl ukáže `flash_hint`. Nepřítel se vybírá podle postavy na obrazovce (`_pick_foe`). Událost `ability` = krátký kruh efektu.
 10. **Přísahy se ve scéně ověřují přes simulaci** (`has_oath`, `is_retreat`), nikdy podle klíče hrdiny.
 11. **Rozhodnutá bitva** (událost `decided`) přepne rychlost aspoň na 2×. Uprchlá jednotka (`fled`) je skrytá.
-12. **Výběr bitvy** jen v rozestavení (`_load_scenario`, bojiště v `field_root`). **Rozkazy:** Poslat na kartě (`_order_id`) → klik: na nepřítele = jeho skupina, na hrdinu = spojenec, jinak místo na zemi (`_order_click` → `_give_order`); v rozestavení se rozkaz uloží do `setup.orders` (simulace se při startu staví znovu). Rozkaz k ústupu u přísahy Nikdy neustoupí: v rozestavení odmítnut s nápovědou, v bitvě dialog přísahy. Čáry rozkazů (`_draw_orders`) v rozestavení a v pauze u všech, v běžící bitvě u vybraných: na místo žlutě, na skupinu červeně ke středu skupiny, ke spojenci zeleně; při výběru cíle bílá ke kurzoru.
+12. **Výběr bitvy** jen v rozestavení (`_load_scenario`, bojiště v `field_root`). **Rozkazy:** Poslat na kartě (`_order_id`) → klik: na nepřítele = jeho skupina, na hrdinu = spojenec, jinak místo na zemi (`_order_click` → `_give_order`); v rozestavení se rozkaz uloží do `setup.orders` (simulace se při startu staví znovu). Rozkaz k ústupu u přísahy Nikdy neustoupí: v rozestavení odmítnut s nápovědou, v bitvě dialog přísahy. Kruhy cílů rozkazů v barvě hrdiny (`_sync_order_marks`, `hero_color`): na místo malý kruh, na skupinu kruh kolem jejího středu, ke spojenci kruh pod ním (víc hrdinů = soustředné kruhy); v rozestavení a v pauze u všech, v běžící bitvě u vybraných a 2 s po rozkazu (`_order_flash`); při výběru cíle kruh pod kurzorem. Kroužky výběru pod hrdiny v jeho barvě.
 
 ## Úskalí
 - Proměnná s typem `Node3D` nezná metody skriptu: použij typ skriptu (`var v := UnitView.new()`).
@@ -28,6 +28,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 - Limity testů počítej v čase bitvy, ne ve snímcích (monitor může mít 144 Hz).
 
 ## Historie významných změn
+- 29.10.2026: kruhy cílů v barvě hrdiny místo čar (Tom), kroužky výběru v barvě hrdiny.
 - 29.10.2026: výběr víc hrdinů tažením obdélníku.
 - 29.10.2026: **reálný čas s pauzou** místo signálu: výběr hrdinů (Shift), rozkaz pravým tlačítkem kdykoli, pauza na mezerníku, kroužky pod vybranými.
 - 29.10.2026: rozkazy místo tras: Poslat na kartě, klik na místo/nepřítele/spojence, čáry rozkazů, varování před bitvou bez rozkazů, přetažení při signálu = rozkaz na místo.

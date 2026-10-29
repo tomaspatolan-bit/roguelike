@@ -13,7 +13,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 4. **Hráč se soustředí na hrdiny:** žádné bonusy pro celý oddíl v UI. Musí vždy vidět: slávu, použití schopností na kartách, stav úkolu, zda čas stojí (pauza).
 5. **Texty česky,** krátce. Zkratky kláves na tlačítkách odpovídají `battle.gd`.
 6. **Font:** systémový (Segoe UI na Windows), musí umět českou diakritiku.
-7. **Karta hrdiny:** ikona třídy, jméno, zdraví, ikonky stavu, text rozkazu (`order_text`; v rozestavení bez rozkazu červeně), tlačítko schopnosti s klávesou 1–5 a použitími (●) nebo cenou ve slávě; při cílení je tlačítko zvýrazněné. Vždy tlačítko Poslat (při výběru cíle zvýrazněné „Vyber cíl…“) a ✕ (zrušit rozkaz); v rozestavení menu Pasivky (na zkoušku, zaškrtávací). Ikonky pasivek a přísahy s popisem. Klik na kartu = výběr hrdiny (Shift přidá); vybraní mají zvýrazněný rámeček (`selection`).
+7. **Karta hrdiny:** rámeček a jméno v barvě hrdiny (`color` z dat; vybraný silnější rámeček), ikona třídy, zdraví, ikonky stavu, text rozkazu (`order_text`; v rozestavení bez rozkazu červeně), tlačítko schopnosti s klávesou 1–5 a použitími (●) nebo cenou ve slávě; při cílení je tlačítko zvýrazněné. Vždy tlačítko Poslat (při výběru cíle zvýrazněné „Vyber cíl…“) a ✕ (zrušit rozkaz); v rozestavení menu Pasivky (na zkoušku, zaškrtávací). Ikonky pasivek a přísahy s popisem. Klik na kartu = výběr hrdiny (Shift přidá); vybraní mají zvýrazněný rámeček (`selection`).
 8. **Žádné tlačítko nesmí brát fokus klávesnice** (`_no_focus` po každé přestavbě panelu).
 9. **Povel Do boje!** se ukáže až po zlomení morálky nepřítele (klávesa F).
 10. **Rozestavení:** vlevo nahoře výběr bitvy (`scenario_choices` nastavuje `battle.gd`). Výsledek bitvy bere nadpis ze scénáře (`win_title`) a ukáže, kdo přinesl nejvíc slávy.
@@ -29,6 +29,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 - Místní proměnná se nesmí jmenovat jako metoda `CanvasLayer` (`hide`, `show`).
 
 ## Historie významných změn
+- 29.10.2026: barvy hrdinů: rámeček karty a jméno, rámeček ukazatele zdraví nad hlavou.
 - 29.10.2026: obdélník výběru tažením.
 - 29.10.2026: reálný čas: tlačítko Pauza místo signálu (ikona pauzy), bez volby počtu signálů a řádku Signály ve výsledku, karty zvýrazní všechny vybrané, Poslat i v bitvě.
 - 29.10.2026: rozkazy: karta ukazuje rozkaz místo výchozího chování, Poslat a ✕ místo Trasy, dialog před bitvou bez rozkazů, popis rozkazů v kartě bitvy.
