@@ -55,6 +55,7 @@ var toast_label: Label
 var result_box: PanelContainer
 var oath_dialog: ConfirmationDialog
 var start_dialog: ConfirmationDialog
+var select_box: Panel              # obdélník výběru tažením
 var scenario_choices: Array = []   # [[klíč, název], ...] pro výběr bitvy
 var run_mode := false              # bitva je součástí běhu: bez výběru bitvy, pasivky jen ke čtení
 var run_label := ""                # např. "Bitva 2 ze 3"
@@ -186,6 +187,16 @@ func _ready() -> void:
 	_hint.add_theme_constant_override("outline_size", 5)
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_hint)
+
+	select_box = Panel.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(1.0, 0.92, 0.55, 0.12)
+	sb.border_color = Color(1.0, 0.92, 0.55, 0.9)
+	sb.set_border_width_all(1)
+	select_box.add_theme_stylebox_override("panel", sb)
+	select_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	select_box.visible = false
+	root.add_child(select_box)
 
 	result_box = PanelContainer.new()
 	result_box.set_anchors_preset(Control.PRESET_CENTER)
@@ -819,6 +830,17 @@ func _no_focus(node: Node) -> void:
 
 
 ## Krátká nápověda uprostřed nahoře (třeba proč cíl nejde), sama zmizí.
+## Obdélník výběru tažením (v pixelech obrazovky).
+func show_box(rect: Rect2) -> void:
+	select_box.position = rect.position
+	select_box.size = rect.size
+	select_box.visible = true
+
+
+func hide_box() -> void:
+	select_box.visible = false
+
+
 func flash_hint(text: String) -> void:
 	_hint.text = text
 	_hint_t = 2.0

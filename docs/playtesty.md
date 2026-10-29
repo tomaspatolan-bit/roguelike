@@ -13,6 +13,11 @@ Nejnovější nahoře. Každý záznam: datum, kdo hrál, build (větev nebo com
 - Z toho plyne (úkol v plan.md / nápad v napady.md / rozhodnutí):
 ```
 
+## 29.10.2026 – Tom, build `faze2-mapa` (c87e73e), reálný čas s pauzou
+- Bavilo: „o hodně víc“ než rozkazy předem.
+- Chybí: výběr víc hrdinů tažením. Hrdina v boji neodejde, i když dostane rozkaz.
+- Z toho plyne: obdélník výběru; rozkaz na místo jde bez boje, na skupinu bojuje jen s ní.
+
 ## 29.10.2026 – Tom, rozhovor o rozkazech (build `faze2-mapa` 9b4b921)
 - Nebavilo: rozkazy předem a změna jen při signálu působí divně; hráč musí reagovat na nepřítele, jinak prohraje kvůli tomu, co nemohl předvídat.
 - Z toho plyne: rozhodnutí „Bitva v reálném čase s pauzou“.

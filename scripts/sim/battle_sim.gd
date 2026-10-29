@@ -1270,7 +1270,7 @@ func _done(u: Unit) -> void:
 	u.home = u.pos
 
 
-## Cestou bojuje jen s tím, kdo je u něj (pěší do reach + `on_way`, střelec do `on_way_ranged`).
+## Bojuje s tím z `foes`, kdo je u něj (pěší do reach + `on_way`, střelec do `on_way_ranged`).
 ## Vrací true, když bojuje.
 func _fight_close(u: Unit, dt: float, foes: Array[Unit]) -> bool:
 	var close: Array[Unit] = []
@@ -1289,12 +1289,10 @@ func _fight_close(u: Unit, dt: float, foes: Array[Unit]) -> bool:
 	return true
 
 
-## Na místo: dojde (cestou bojuje jen s tím, kdo je u něj), pak místo drží.
+## Na místo: dojde bez boje (tak hráč hrdinu stáhne z boje), pak místo drží.
 func _order_point(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	if u.order_done:
 		_hold_place(u, dt, foes)
-		return
-	if _fight_close(u, dt, foes):
 		return
 	var d := u.pos.distance_to(u.order_pos)
 	var taken := false   # na místě už stojí jiný hrdina: stačí dojít k němu
@@ -1310,7 +1308,7 @@ func _order_point(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		_done(u)   # došel, nebo dál nesmí (přísaha Nikdy neustoupí): drží, kde stojí
 
 
-## Na skupinu: jde po skupině (i když se hýbe) a bojuje s jejími členy; když skupina padne, drží místo.
+## Na skupinu: jde po skupině (i když se hýbe) a bojuje jen s jejími členy; když skupina padne, drží místo.
 func _order_group(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	if u.order_done:
 		_hold_place(u, dt, foes)
@@ -1320,7 +1318,7 @@ func _order_group(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		_done(u)
 		_hold_place(u, dt, foes)
 		return
-	if _fight_close(u, dt, foes):
+	if _fight_close(u, dt, mem):
 		return
 	var tg := _choose_target(u, mem)
 	if u.ranged:

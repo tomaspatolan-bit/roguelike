@@ -345,6 +345,29 @@ func _test_orders(data: Dictionary) -> void:
 		s2.events.clear()
 	_check(near.hp < near.maxhp and far.pos.distance_to(t2.pos) > 5.0, "bez rozkazu: bojuje s tím, kdo přijde blízko, a za vzdáleným nejde (blízký %.0f/%.0f, vzdálený %.1f m, tank %s, rozhodnuto %s)" % [near.hp, near.maxhp, far.pos.distance_to(t2.pos), t2.pos, s2.decided])
 
+	# rozkaz na místo stáhne hrdinu z boje (cestou nebojuje)
+	var s6 := Sim.new(data, Sim.default_setup(data), 65)
+	for u in s6.units:
+		if u.side == Sim.SIDE_FOE and u.id != "e0":
+			_park(u)
+	var j6 := s6.by_id("jezdec")
+	var e6 := s6.by_id("e0")
+	e6.pos = j6.pos + Vector2(0.0, 1.2)
+	e6.home = e6.pos
+	e6.hold = false
+	e6.hp = 9999.0
+	e6.maxhp = 9999.0
+	for i in 30:
+		s6.step(DT)
+		s6.events.clear()
+	var fighting := s6.t - j6.combat_t < 0.5
+	var away := j6.pos + Vector2(6.0, -4.0)
+	s6.set_order("jezdec", "point", away)
+	for i in 90:
+		s6.step(DT)
+		s6.events.clear()
+	_check(fighting and j6.pos.distance_to(away) < 1.5, "rozkaz na místo stáhne hrdinu z boje (%.1f m od cíle)" % j6.pos.distance_to(away))
+
 	# skupina padne: rozkaz je splněn, hrdina drží místo
 	var s3 := Sim.new(data, Sim.default_setup(data), 59)
 	s3.set_order("jezdec", "group", "e11")

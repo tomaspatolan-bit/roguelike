@@ -22,12 +22,14 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 
 13. **Režim běhu** (`run_mode`): bez výběru bitvy, menu Pasivky jen ukazuje, co hrdina má, nad názvem bitvy `run_label` („Zkušební běh · bitva 2 ze 3“), výsledek má jediné tlačítko „Pokračovat v běhu“ / „Kronika rodu“.
 14. **Dialog Hrdinové bez rozkazu** (`ask_start`): před bitvou vyjmenuje, kdo nemá rozkaz; Začít i tak / Zpět k rozkazům.
+15. **Obdélník výběru** (`select_box`, `show_box`, `hide_box`): při tažení levým tlačítkem na zemi.
 
 ## Úskalí
 - Kořenový `Control` má `mouse_filter = IGNORE`, jinak spolkne kliky do scény.
 - Místní proměnná se nesmí jmenovat jako metoda `CanvasLayer` (`hide`, `show`).
 
 ## Historie významných změn
+- 29.10.2026: obdélník výběru tažením.
 - 29.10.2026: reálný čas: tlačítko Pauza místo signálu (ikona pauzy), bez volby počtu signálů a řádku Signály ve výsledku, karty zvýrazní všechny vybrané, Poslat i v bitvě.
 - 29.10.2026: rozkazy: karta ukazuje rozkaz místo výchozího chování, Poslat a ✕ místo Trasy, dialog před bitvou bez rozkazů, popis rozkazů v kartě bitvy.
 - 29.10.2026: v obraně ukazuje lišta odpočet další vlny („vlna za 12 s“).

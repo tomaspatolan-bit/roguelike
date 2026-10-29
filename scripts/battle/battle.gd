@@ -67,6 +67,9 @@ var _rpress := Vector2.ZERO          # kde se stisklo pravé tlačítko (klik = 
 var _rdown := false
 const CLICK_PX := 6.0
 var _sel_rings: Array = []           # kroužky pod vybranými hrdiny
+var _box_pending := false            # levé tlačítko stisknuté na zemi: klik, nebo tažení obdélníku výběru
+var _box_active := false
+var _box_start := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -342,6 +345,26 @@ func _clear_selection() -> void:
 	selected = ""
 
 
+## Výběr tažením: hrdinové, jejichž postava (střed těla) je v obdélníku; Shift přidá k výběru.
+func _box_select(rect: Rect2) -> void:
+	var picked: Array = []
+	for u in sim.knights():
+		if not u.alive():
+			continue
+		var base: Vector3 = (views[u.id] as Node3D).global_position
+		if cam.is_position_behind(base):
+			continue
+		if rect.grow(PICK_PX * 0.3).has_point(cam.unproject_position(base + Vector3(0, 1.0, 0))):
+			picked.append(u.id)
+	if not Input.is_key_pressed(KEY_SHIFT):
+		selection = []
+	for id: String in picked:
+		if not selection.has(id):
+			selection.append(id)
+	selected = String(selection[-1]) if not selection.is_empty() else ""
+	_refresh_panel()
+
+
 ## Vybraní hrdinové, kteří žijí.
 func _selection_alive() -> Array:
 	var out: Array = []
@@ -519,7 +542,7 @@ func _input(event: InputEvent) -> void:
 		_pointer_move((event as InputEventMouseMotion).position)
 	elif event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and _drag_id != "":
+		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and (_drag_id != "" or _box_pending):
 			_pointer_up(mb.position)
 			get_viewport().set_input_as_handled()
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and not mb.pressed and _rdown:
@@ -631,7 +654,14 @@ func _pointer_down(screen_pos: Vector2) -> void:
 		_drag_origin = sim.by_id(id).pos
 		_set_selected(id)
 		return
-	# klik na zem: v rozestavení přesune vybraného hrdinu, v bitvě zruší výběr
+	# na zemi: tažení = obdélník výběru, klik = viz _ground_click (rozhodne se při puštění)
+	_box_pending = true
+	_box_active = false
+	_box_start = screen_pos
+
+
+## Klik na zem: v rozestavení přesune vybraného hrdinu, v bitvě zruší výběr.
+func _ground_click(screen_pos: Vector2) -> void:
 	if selected == "":
 		return
 	if phase != Phase.DEPLOY:
@@ -660,6 +690,12 @@ func _pointer_move(screen_pos: Vector2) -> void:
 		hover_id = ""
 		return
 	hover_id = _pick_knight(screen_pos, _drag_id if _drag_active else "")
+	if _box_pending:
+		if not _box_active and screen_pos.distance_to(_box_start) > DRAG_START_PX:
+			_box_active = true
+		if _box_active:
+			ui.show_box(Rect2(_box_start, Vector2.ZERO).expand(screen_pos))
+		return
 	if _drag_id == "":
 		return
 	if not _drag_active and screen_pos.distance_to(_drag_press) > DRAG_START_PX:
@@ -680,6 +716,18 @@ func _pointer_move(screen_pos: Vector2) -> void:
 
 
 func _pointer_up(screen_pos: Vector2) -> void:
+	if _box_pending:
+		_box_pending = false
+		ui.hide_box()
+		if not _can_command():
+			_box_active = false
+			return
+		if _box_active:
+			_box_active = false
+			_box_select(Rect2(_box_start, Vector2.ZERO).expand(screen_pos))
+		else:
+			_ground_click(screen_pos)
+		return
 	var id := _drag_id
 	var was_drag := _drag_active
 	_drag_id = ""

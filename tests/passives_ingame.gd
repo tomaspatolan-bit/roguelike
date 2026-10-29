@@ -5,7 +5,7 @@ const Sim := preload("res://scripts/sim/battle_sim.gd")
 ## Pasivky zapíná stejnou cestou jako menu na kartě hrdiny (battle.gd _on_passive), bitvu hraje
 ## přes tlačítka a cílení jako hráč a sleduje, co je vidět a co se v bitvě stane.
 ## Spuštění: godot --path . --script res://tests/passives_ingame.gd -- <složka pro snímky> <sada A|B>
-## Sada A: Most přes řeku, sada B: Brod a les. Konec s kódem 0 = vše prošlo.
+## Sada A: Most přes řeku, sada B: Brod a les (jezdec s Rozběhem vyrazí, až je tank v boji). Konec s kódem 0 = vše prošlo.
 
 const SETS := {
 	"A": {"scenario": "most_pres_reku", "passives": {
@@ -27,6 +27,7 @@ var set_key := "A"
 var scene: Node
 var frame := 0
 var started_at := -1
+var rider_sent := false
 var results: Array = []          # [pasivka, výsledek, poznámka]
 var seen := {}                   # co už bylo v bitvě pozorováno
 var forced_done := false
@@ -72,8 +73,6 @@ func _process(_delta: float) -> bool:
 	if frame == 36:
 		_shot("rozestaveni")
 		var plan: Dictionary = (scene.get("sim") as Object).call("suggest_orders")
-		if (SETS[set_key]["passives"]["jezdec"] as Array).has("rozbeh"):
-			plan["jezdec"] = ["group", (scene.get("sim") as Object).call("group_of", "e0")]   # Rozběh: jezdec vyráží na skupinu
 		(scene.get("setup") as Dictionary)["orders"] = plan
 		scene.call("_start_battle")
 		scene.set("speed", 1.0)
@@ -83,6 +82,7 @@ func _process(_delta: float) -> bool:
 		if bool(scene.get("paused")):
 			scene.call("_resume_pause")
 		_auto_abilities(sim)
+		_send_rider(sim)
 		_observe(sim)
 		if not forced_done and float(sim.get("t")) > 6.0:
 			forced_done = true
@@ -278,3 +278,20 @@ func _finish(sim: Variant) -> void:
 		if r[1] != "OK":
 			bad += 1
 	print("VÝSLEDEK: %s" % ("OK" if bad == 0 else "%d CHYB" % bad))
+
+
+## Rozběh jako hráč: až je tank v boji, pošle jezdce (pravé tlačítko) na skupinu nepřítele, se kterým tank bojuje.
+func _send_rider(sim: Variant) -> void:
+	if rider_sent or not (SETS[set_key]["passives"]["jezdec"] as Array).has("rozbeh"):
+		return
+	var tank: Variant = sim.call("by_id", "tank")
+	if float(sim.get("t")) - float(tank.get("combat_t")) > 0.2:
+		return
+	var best: Variant = null
+	for f: Variant in sim.call("living", "e"):
+		if best == null or (f.get("pos") as Vector2).distance_to(tank.get("pos")) < (best.get("pos") as Vector2).distance_to(tank.get("pos")):
+			best = f
+	if best == null:
+		return
+	rider_sent = true
+	sim.call("set_order", "jezdec", "group", String(best.get("id")))

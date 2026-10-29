@@ -183,6 +183,15 @@ func _test_realtime_orders() -> void:
 	var tank_screen := cam.unproject_position((views["tank"] as Node3D).global_position + Vector3(0, 1.0, 0))
 	scene.call("_command_click", tank_screen)
 	print("Rozkaz pravým tlačítkem na spojence: %s" % ("OK" if String(j.get("order")) == "ally" and String(j.get("order_ally")) == "tank" else "CHYBA (%s)" % j.get("order")))
+	# výběr tažením přes celou obrazovku vybere všechny živé hrdiny
+	var vs := root.get_visible_rect().size
+	scene.call("_pointer_down", Vector2(3, 3))
+	scene.call("_pointer_move", Vector2(40, 40))
+	scene.call("_pointer_move", vs - Vector2(3, 3))
+	scene.call("_pointer_up", vs - Vector2(3, 3))
+	var sel: Array = scene.get("selection")
+	var alive_k: int = sim.call("living", "k").size()
+	print("Výběr tažením: %s (%d z %d)" % ["OK" if sel.size() == alive_k else "CHYBA", sel.size(), alive_k])
 	scene.call("_toggle_pause")
 	scene.call("_clear_selection")
 
