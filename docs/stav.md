@@ -3,7 +3,7 @@
 Aktualizováno: 28.10.2026
 
 ## Aktuální cíl
-**Zkušební běh (1.7) je hratelný.** Hra se spouští do menu: Zkušební běh (3 bitvy, tábor s odměnou 1 ze 3, dědictví přísah, kronika) nebo Volná bitva (jako dřív). Další: playtest běhu (1.8) a Brána 1.
+**Brána 1 prošla (29.10.2026), začíná fáze 2: jeden celý run.** První krok 2.1 mapa aktu. Zkušební běh je hratelný (menu: Zkušební běh / Volná bitva). Otevřené: playtest s hráčem mimo nás (1.8).
 
 ## Hotovo
 - Po playtestu běhu: hrdinové bez trasy nekmitají (klidová místa s tolerancí, lučištník couvá s odstupem), kněz nestojí (jde k bojujícímu i přes přechod, když nikdo nepotřebuje léčit, pomáhá v boji), oddíl nechodí za asasínem přes řeku. Schopnost navíc za slávu jen 1× za bitvu, Požehnání se nabíjí 20 s, do další bitvy nejvýš 50 slávy.

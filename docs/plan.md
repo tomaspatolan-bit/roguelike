@@ -58,6 +58,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
 - [ ] 1.8 Playtest běhu: Tom + aspoň jeden hráč mimo nás
 - [ ] (podle 1.8) Podmíněné instrukce a úmysly nepřátel, jen když postoje na míru nestačí
 **Hotovo, když:** Tom řekne, že bitvy baví hrát opakovaně, a aspoň jeden člověk mimo nás to potvrdí.
+**Brána 1: prošla 29.10.2026** (Tom, odměny vážně zvažoval; hráč mimo nás zatím chybí, doplní se).
 **Brána 1 (Tom), podle zkušebního běhu:** chceš hned další běh? pamatuješ si z běhu příběh? rozhodoval ses mezi odměnami? potvrdí to hráč mimo nás? → pokračujeme, nebo měníme model hry?
 
 ## Fáze 2 – Jeden run

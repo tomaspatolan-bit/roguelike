@@ -2,6 +2,11 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 29.10.2026 – Brána 1: pokračujeme
+- **Model hry potvrzen, stavíme fázi 2.** Tom: o každé odměně vážně uvažoval, běh působí skvěle.
+- Playtest s hráčem mimo nás (krok 1.8) zůstává otevřený a doplní se během fáze 2; jeho výsledek může model ještě korigovat.
+- Větev `prapor-asasin` (bitva na hrdiny + zkušební běh) sloučena do `main`.
+
 ## 29.10.2026 – Po playtestu zkušebního běhu
 - **Schopnost navíc za slávu jen jednou za bitvu na hrdinu** (`glory.extra_uses_max`). Důvod: neomezená použití za slávu dělala z Požehnání nekonečné léčení.
 - **Nabíjení schopnosti** (`cooldown` v datech schopnosti): Požehnání 20 s, ostatní zatím bez nabíjení.
