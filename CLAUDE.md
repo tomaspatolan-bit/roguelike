@@ -33,6 +33,7 @@ Přečti `docs/stav.md` (co se teď dělá), `docs/plan.md` (kde jsme ve stepper
 - `docs/plan.md` – stepper fází a kroků s kritérii „hotovo, když“.
 - `docs/playtesty.md` – Tomova zpětná vazba z hraní. Po každém playtestu z ní vyvoď úkoly.
 - `docs/napady.md` – parkoviště nápadů.
+- `docs/struktura-hry.md` – jak hráč postupuje hrou (běh, akty, patra, uzly), diagram.
 
 ## Pilíře (každá nová funkce musí aspoň jeden podporovat)
 

@@ -2,6 +2,11 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 29.10.2026 – Struktura hry
+- **Běh → 3 akty → 7 pater → uzly.** Akt = jedna mapa s bossem nahoře; na každém patře hráč navštíví jeden uzel (bitva, elita, událost, tábor, boss). Po bossovi následuje další akt, po bossovi 3. aktu je běh vyhraný.
+- **Zánik oddílu ukončí celý běh**, další začíná od aktu 1 (žádné opakování aktu). Padlý hrdina běh neukončí (nástupce). Mezi běhy jen meta progrese do šířky (síň předků, odemčené rody), ne do síly.
+- Lore je kulisa, ne jednotka postupu. Diagram: `docs/struktura-hry.md`.
+
 ## 29.10.2026 – Brána 1: pokračujeme
 - **Model hry potvrzen, stavíme fázi 2.** Tom: o každé odměně vážně uvažoval, běh působí skvěle.
 - Playtest s hráčem mimo nás (krok 1.8) zůstává otevřený a doplní se během fáze 2; jeho výsledek může model ještě korigovat.
