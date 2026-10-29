@@ -30,7 +30,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 
 ## Úskalí
 - JSON nemá komentáře: popis patří do klíče `_info`.
-- Při exportu hry je potřeba přidat `*.json` do filtru exportovaných souborů (zatím neřešeno).
+- Při exportu hry musí být `*.json` ve filtru exportovaných souborů (`include_filter` v `export_presets.cfg`, viz `testy.md`, Export).
 
 ## Historie významných změn
 - 29.10.2026: rozkazy: `orders` místo `behaviors`, `behavior` u hrdinů pryč, `battle_modes` jen texty, `decided_ratio` do `morale`, `plural` u nepřátel, `objective` ze scénářů pryč, `auto_plan`. Balanc: Most +2 střelci (`auto_plan: hold`), Most pod palbou +3 lapkové, Tábor na Vraní skále +3 lapkové, Lesní ves −1 lapka ve 3. vlně, Brod a les `auto_plan: hold`.

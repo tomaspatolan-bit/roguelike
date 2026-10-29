@@ -31,7 +31,14 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 3. **Změna scény, UI nebo grafiky** = projde `screenshot_battle.gd` a snímky si prohlédnu.
 4. **Nový invariant v kontextovém souboru** = ideálně i nový test, který ho hlídá.
 
+## Export pro testery (Windows)
+- Šablony exportu Godot 4.7.2 jsou na Tomově PC v `%APPDATA%\Godot\export_templates\4.7.2.stable` (stačí `windows_*_x86_64*.exe` a `version.txt` z oficiálního `.tpz`).
+- `export_presets.cfg` (v `.gitignore`, leží jen na Tomově PC): preset „Windows Desktop“, `include_filter="*.json"`, `exclude_filter="tests/*, docs/*"`, `binary_format/embed_pck=true` (jeden soubor), `application/modify_resources=false`.
+- Příkaz: `Godot_v4.7.2-stable_win64_console.exe --headless --path <repo> --export-release "Windows Desktop" <repo>\builds\Rytiri.exe` (`builds/` je v `.gitignore`).
+- Kontrola: exe se spustí (`--quit-after 600 --log-file …`) bez chyb, v souboru jsou JSONy. Pro testera ZIP s exe a návodem „Jak hrát.txt“ (ovládání, SmartScreen: Další informace → Přesto spustit).
+
 ## Historie významných změn
+- 29.10.2026: první export pro testera (`Rytiri_test_2026-10-29.zip`).
 - 29.10.2026: reálný čas: `screenshot_battle.gd` testuje pauzu a rozkaz pravým tlačítkem v pauze; test signálu v simulaci zrušen.
 - 29.10.2026: rozkazy místo tras a chování: testy chování a tras nahrazené testy skupin a rozkazů, auto-hraní ve všech testech dává rozkazy z `suggest_orders` (v `passives_ingame` jde jezdec na skupinu kvůli Rozběhu), scéna testuje rozkazy klikem a varování před bitvou.
 - 29.10.2026: `ragdoll_sheet.gd`.

@@ -35,6 +35,7 @@ Aktualizováno: 29.10.2026
 - Žádný zvuk.
 
 ## Čeká na Toma
+- **Poslat testerovi** `Rytiri_test_2026-10-29.zip` (ve složce Blender\Roguelike) a jeho dojmy zapsat do `playtesty.md` (krok 1.8).
 - **Vyzkoušet bitvu v reálném čase** (nejlíp jednu od každého typu: Most = střet, Brod = útok, Lesní ves = obrana): sedí výběr hrdinů a pravé tlačítko? Používáš pauzu? Stíháš reagovat? Nejsou teď bitvy moc lehké (hráč má víc kontroly než automatický velitel v testech)?
 - **Zahrát běh na mapě** (Nový běh): dávají volby cesty smysl? Je vidět, co tě v uzlu čeká? Jsou události zajímavé? Mapa a obrazovky jsou zástupné, UI převezmeš.
 - Podívat se na animace (snímky `sheet_*.png`, nebo rovnou ve hře) a na obranu vsi: čtou se? Jsou zbraně v ruce v pořádku jako zástupné?
