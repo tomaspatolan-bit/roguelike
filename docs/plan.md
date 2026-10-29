@@ -17,7 +17,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
 - [ ] 1.2 Playtest (Tom): 3–5 bitev, zápis do `playtesty.md`
   - [x] První dojmy (2026-10-28): přísaha vs. postoje, kamera, přesouvání rytířů
   - [ ] Baví to? Co je nečitelné? Kdy se nudím?
-  - [ ] Signály: 0, 1, nebo 2?
+  - [x] Signály: nahrazeny pauzou kdykoli (29.10.2026)
   - [ ] Je jasné, proč jsem prohrál?
 - [ ] 1.3 Úpravy podle playtestu
   - [x] Přísaha určuje povolené postoje („Stát pevně“, Chránit prapor zakázán)
@@ -56,7 +56,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [x] Kronika rodu na konci běhu (kdo padl, kdo co přísahal, kdo utekl a vrátil se)
   - [x] Bez výběru rodu, meta progrese, ukládání a finální grafiky
 - [ ] 1.8 Playtest běhu: Tom + aspoň jeden hráč mimo nás
-  - Otázka k testu: **používá hráč signál (zastavení času)?** Od 29.10.2026 je signál jediná cesta, jak v bitvě změnit rozkazy; sledovat, jestli to hráč pochopí bez tutoriálu.
+  - Otázka k testu: **zvládá hráč bitvu v reálném čase s pauzou?** Používá pauzu, nebo kliká v běhu? Stíhá reagovat na nepřítele?
 - [ ] (podle 1.8) Podmíněné instrukce a úmysly nepřátel, jen když postoje na míru nestačí
 **Hotovo, když:** Tom řekne, že bitvy baví hrát opakovaně, a aspoň jeden člověk mimo nás to potvrdí.
 **Brána 1: prošla 29.10.2026** (Tom, odměny vážně zvažoval; hráč mimo nás zatím chybí, doplní se).
@@ -67,7 +67,7 @@ Cíl: celý krátký run od výběru rodu po bosse.
 - [x] 2.1 Mapa aktu: uzly bitva, elita, událost, tábor, boss (kovář odložen, až bude výbava); zranění se nesou
 - [x] 2.2a Typ bitvy (útok, střet, obrana) řídí výchozí chování oddílu; mířené Požehnání
 - [x] 2.2b První obranná mapa (vlny): Obrana Lesní vsi
-- [x] 2.2c Rozkazy pro hrdiny (29.10.2026): na místo, na skupinu nepřátel, ke spojenci, bez rozkazu drží místo; rozkazy v rozestavení a při signálu; pojmenované skupiny nepřátel; trasy a výchozí chování zrušeny. Hotovo, když: Tom odehraje bitvu každého typu jen s rozkazy a nikdo nestojí bez práce.
+- [x] 2.2c Rozkazy pro hrdiny (29.10.2026): na místo, na skupinu nepřátel, ke spojenci, bez rozkazu drží místo; rozkazy kdykoli (od 29.10.2026 reálný čas s pauzou, výběr hrdinů a pravé tlačítko); pojmenované skupiny nepřátel; trasy a výchozí chování zrušeny. Hotovo, když: Tom odehraje bitvu každého typu jen s rozkazy a nikdo nestojí bez práce.
 - [ ] 2.2 Karta stage a volitelné úkoly z dat
 - [ ] 2.3 Odměny po stagi: pasivky, přísahy, nové schopnosti (2. a 3. slot u hrdiny)
 - [ ] 2.4 Více pasivek, přísah a schopností (obsah)

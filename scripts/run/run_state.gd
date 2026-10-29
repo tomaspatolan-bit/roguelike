@@ -186,7 +186,7 @@ func load_stage_data() -> Dictionary:
 
 ## Setup bitvy pro simulaci: pasivky, jména, zdraví, sláva a vrácení uprchlíci.
 func battle_setup(data: Dictionary) -> Dictionary:
-	var setup := Sim.default_setup(data, 1)
+	var setup := Sim.default_setup(data)
 	var pas := {}
 	var names := {}
 	var hp := {}

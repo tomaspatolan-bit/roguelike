@@ -33,7 +33,7 @@ func _init() -> void:
 	world.add_child(sun)
 	Field.box(world, Vector3(20, 0.1, 8), Vector3(0, -0.05, 0), Field.mat(Color("#7fa65a")))
 	var data := Sim.load_data("most_pres_reku")
-	var s := Sim.new(data, Sim.default_setup(data, 0), 1)
+	var s := Sim.new(data, Sim.default_setup(data), 1)
 	var i := 0
 	for u in s.knights():
 		var v := UnitView.new()

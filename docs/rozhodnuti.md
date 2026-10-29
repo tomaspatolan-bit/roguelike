@@ -2,6 +2,12 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 29.10.2026 – Bitva v reálném čase s pauzou
+- **Rozkazy jdou dávat kdykoli**, i během bitvy: výběr hrdinů (klik, Shift) a pravé tlačítko na místo, nepřítele nebo spojence. Tom: hráč musí reagovat na to, co dělá nepřítel; má jen jeden pokus a prohra kvůli tomu, že nepřítel udělal něco jiného, než čekal, by ho naštvala.
+- **Pauza na mezerníku** kdykoli (čas stojí, rozkazy a schopnosti jdou dál). Bez pauzy by rozhodovala rychlost klikání, ne úsudek. Zpomalení času nezavádíme.
+- **Signál jako omezený zdroj zrušen** (nahrazuje rozhodnutí o signálu z dnešního dne níž).
+- Další krok: nepřítel musí být čitelný a zajímavý (viditelné úmysly, vůdce, který mění plán), aby reagování mělo smysl; balanc pro hráče s plnou kontrolou podle playtestu.
+
 ## 29.10.2026 – Rozkazy místo tras a výchozího chování
 - **Hrdina jedná podle rozkazu hráče:** na místo (dojde a drží ho), na skupinu nepřátel (jde po celé skupině, i když se hýbe) nebo ke spojenci (zůstane s ním). Bez rozkazu a po splnění rozkazu drží místo a brání se tomu, kdo přijde. Před bitvou hra varuje, kdo rozkaz nemá. Tom: „řídil bych se hlavně tím, kam uživatel vyšle svoje hrdiny; předejdeme tím bugům, kdy jednotky nebudou nic dělat“.
 - **Zrušeno:** trasy, výchozí chování tříd (Drží frontu, Léčí frontu…), postup oddílu v útoku a obranný obvod. Typ bitvy mění jen nepřítele (útok: drží pozice, střet: jde proti vám, obrana: vlny).

@@ -50,6 +50,10 @@ func _process(_delta: float) -> bool:
 			_auto_abilities(sim)
 			if bool(scene.get("paused")):
 				scene.call("_resume_pause")
+		if frame == started_at + 60:
+			_test_realtime_pause()
+		if frame == started_at + 70:
+			_test_realtime_orders()
 		if frame == started_at + 300:
 			_shot("03_bitva.png")
 		if frame == started_at + 900:
@@ -148,6 +152,39 @@ func _test_orders_by_click() -> void:
 			scene.call("_pointer_down", cam.unproject_position(Vector3(p.x + 0.3, 0.0, -p.y)))
 			ok = ok and String(sim.call("by_id", id).get("order")) == "point"
 	print("Rozkazy klikem: %s (%s)" % ["OK" if ok else "CHYBA", sim.call("unordered")])
+
+
+var _paused_t := -1.0
+
+
+## Mezerník pozastaví bitvu (čas stojí), znovu ji pustí.
+func _test_realtime_pause() -> void:
+	var sim: Variant = scene.get("sim")
+	scene.call("_toggle_pause")
+	_paused_t = float(sim.get("t"))
+	print("Pauza: %s" % ("OK" if int(scene.get("phase")) == 2 else "CHYBA"))
+
+
+## V pauze: výběr hrdiny a pravé tlačítko na nepřítele = rozkaz na jeho skupinu; pak bitva běží dál.
+func _test_realtime_orders() -> void:
+	var sim: Variant = scene.get("sim")
+	var cam: Camera3D = scene.get("cam")
+	var views: Dictionary = scene.get("views")
+	var stood := is_equal_approx(float(sim.get("t")), _paused_t)
+	scene.call("_set_selected", "jezdec")
+	var foes: Array = sim.call("living", "e")
+	var foe: Variant = foes[0]
+	var screen := cam.unproject_position((views[String(foe.get("id"))] as Node3D).global_position + Vector3(0, 1.0, 0))
+	scene.call("_command_click", screen)
+	var j: Variant = sim.call("by_id", "jezdec")
+	var ok := String(j.get("order")) == "group" and int(j.get("order_group")) == int(sim.call("group_of", foe.get("id")))
+	print("Rozkaz pravým tlačítkem v pauze: %s (čas stál: %s)" % ["OK" if ok else "CHYBA (%s)" % j.get("order"), "OK" if stood else "CHYBA"])
+	# zpátky k tankovi (pravé tlačítko na spojence), ať bitva běží podle plánu
+	var tank_screen := cam.unproject_position((views["tank"] as Node3D).global_position + Vector3(0, 1.0, 0))
+	scene.call("_command_click", tank_screen)
+	print("Rozkaz pravým tlačítkem na spojence: %s" % ("OK" if String(j.get("order")) == "ally" and String(j.get("order_ally")) == "tank" else "CHYBA (%s)" % j.get("order")))
+	scene.call("_toggle_pause")
+	scene.call("_clear_selection")
 
 
 func _prefix() -> String:

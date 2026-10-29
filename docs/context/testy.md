@@ -23,7 +23,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 | `screenshot_run.gd` | běh přes obrazovky: start → mapa → bitvy (auto), elita, událost, tábor, dědictví, odměna → boss → kronika; s oknem: `--script res://tests/screenshot_run.gd -- <složka>` | „VÝSLEDEK: OK“, snímky `beh_*.png` |
 | `anim_sheet.gd` | řada pěti hrdinů se zbraněmi, jejich útok v několika okamžicích, schopnost, zásah a smrt (kontrola vzhledu animací bez bitvy); s oknem: `--script res://tests/anim_sheet.gd -- <složka>` | „VÝSLEDEK: OK“, žádné „CHYBÍ animace“, snímky `sheet_*.png` |
 | `ragdoll_sheet.gd` | pět hrdinů a dva nepřátelé padnou: vznikne ragdoll, těla nepropadnou zemí a po 3 s leží (nikdo nestojí, neletí); s oknem: `--script res://tests/ragdoll_sheet.gd -- <složka>` | „VÝSLEDEK: OK“, snímky `ragdoll_*.png` |
-| `screenshot_battle.gd` | scéna se načte, drag & drop prohodí rytíře tam i zpět, po zlomení morálky jde dát povel Do boje!, bitva doběhne bez chyb | „Drag & drop … OK“, „povel Do boje!: OK“, „Varování před bitvou bez rozkazů: OK“, „Rozkazy klikem: OK“, „Start se všemi rozkazy: OK“, schopnosti jako v testu simulace, cílené přes klik („Cílená schopnost přes klik: OK“), u mostu „Bitva skončila: win“ (u jiných scénářů jen doběhne), žádné ERROR v logu |
+| `screenshot_battle.gd` | scéna se načte, drag & drop prohodí rytíře tam i zpět, po zlomení morálky jde dát povel Do boje!, bitva doběhne bez chyb | „Drag & drop … OK“, „povel Do boje!: OK“, „Varování před bitvou bez rozkazů: OK“, „Rozkazy klikem: OK“, „Start se všemi rozkazy: OK“, „Pauza: OK“, „Rozkaz pravým tlačítkem v pauze: OK (čas stál: OK)“, schopnosti jako v testu simulace, cílené přes klik („Cílená schopnost přes klik: OK“), u mostu „Bitva skončila: win“ (u jiných scénářů jen doběhne), žádné ERROR v logu |
 
 ## Invarianty
 1. **Před každým pushem** projde `gdparse` na změněných `.gd` souborech.
@@ -32,6 +32,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 4. **Nový invariant v kontextovém souboru** = ideálně i nový test, který ho hlídá.
 
 ## Historie významných změn
+- 29.10.2026: reálný čas: `screenshot_battle.gd` testuje pauzu a rozkaz pravým tlačítkem v pauze; test signálu v simulaci zrušen.
 - 29.10.2026: rozkazy místo tras a chování: testy chování a tras nahrazené testy skupin a rozkazů, auto-hraní ve všech testech dává rozkazy z `suggest_orders` (v `passives_ingame` jde jezdec na skupinu kvůli Rozběhu), scéna testuje rozkazy klikem a varování před bitvou.
 - 29.10.2026: `ragdoll_sheet.gd`.
 - 29.10.2026: `anim_sheet.gd` (animace hrdinů), test vln a obrany (`_test_waves`). Po změně GLB nejdřív `--headless --import`.

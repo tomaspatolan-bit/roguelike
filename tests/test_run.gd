@@ -276,7 +276,7 @@ func _test_events_and_camp() -> void:
 func _test_leader() -> void:
 	print("Vůdce nepřátel")
 	var data := Sim.load_data("zaverecna_bitva")
-	var s := Sim.new(data, Sim.default_setup(data, 0), 5)
+	var s := Sim.new(data, Sim.default_setup(data), 5)
 	_check(not s.task_ok, "úkol Hejtman padne není splněný na začátku")
 	var leader: Sim.Unit = null
 	for u in s.living(Sim.SIDE_FOE):

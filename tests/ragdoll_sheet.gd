@@ -36,7 +36,7 @@ func _init() -> void:
 	world.add_child(sun)
 	Field.build(world, {"river": {"y0": -40.0, "y1": -38.0, "crossings": []}, "trees": [], "rocks": []})
 	var data := Sim.load_data("most_pres_reku")
-	var s := Sim.new(data, Sim.default_setup(data, 0), 1)
+	var s := Sim.new(data, Sim.default_setup(data), 1)
 	var picks: Array = s.knights()
 	picks.append(s.by_id("e0"))
 	picks.append(s.by_id("e11"))

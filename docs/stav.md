@@ -6,7 +6,8 @@ Aktualizováno: 29.10.2026
 **Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotové všechny tři typy bitev (útok, střet, obrana s Lesní vsí) a animace boje hrdinů. Hotové rozkazy pro hrdiny (2.2c). Další: karta stage a volitelné úkoly (2.2). Otevřené: playtest s hráčem mimo nás (1.8).
 
 ## Hotovo
-- Rozkazy místo tras a výchozího chování (2.2c): v rozestavení každého hrdinu pošleš tlačítkem Poslat na kartě a klikem na místo, na nepřítele (jde po celé jeho skupině) nebo na spojence (zůstane s ním). Bez rozkazu a po splnění drží místo a brání se. Před bitvou hra varuje, kdo rozkaz nemá. V bitvě jdou rozkazy měnit jen při signálu (i přetažením). Čáry rozkazů v rozestavení a při signálu. Opraven Nájezd, který uvízl, když cíl zabíral nepřítel. Balanc všech 8 scénářů prošel s automatickým velitelem (Most +2 střelci, Most pod palbou a boss +3 lapkové, Lesní ves −1 lapka).
+- Reálný čas s pauzou místo signálu: hrdinu vybereš klikem (Shift přidá další), pravým tlačítkem ho pošleš na místo, na nepřítele nebo ke spojenci, kdykoli i v bitvě. Mezerník bitvu pozastaví, v pauze jdou dávat rozkazy i schopnosti. Přetažení hrdiny v bitvě = rozkaz na místo.
+- Rozkazy místo tras a výchozího chování (2.2c): v rozestavení každého hrdinu pošleš tlačítkem Poslat na kartě a klikem na místo, na nepřítele (jde po celé jeho skupině) nebo na spojence (zůstane s ním). Bez rozkazu a po splnění drží místo a brání se. Před bitvou hra varuje, kdo rozkaz nemá. Čáry rozkazů k cíli. Opraven Nájezd, který uvízl, když cíl zabíral nepřítel. Balanc všech 8 scénářů prošel s automatickým velitelem (Most +2 střelci, Most pod palbou a boss +3 lapkové, Lesní ves −1 lapka).
 - Ragdoll padlých: hrdina při smrti padne s fyzikálními kostmi dozadu od nepřítele, nepřátelé se jako tuhé tělo překotí. Rytíři už nestojí jako „Y“ (paže u těla v klidu i v chůzi).
 - Obrana Lesní vsi: tři vlny lapků (0 s, 22 s, 45 s), oddíl brání ves a nevybíhá, kněz léčí mezi vlnami, chalupy na bojišti. Animace boje: každá třída má vlastní útok (meč, palcát, dýka, luk), schopnost, zásah a smrt; zástupné zbraně v ruce. Oprava zaseknutí jednotek u břehu.
 - Typ bitvy: v útoku (Brod, elity, boss) oddíl postupuje k cíli a k nepříteli místo čekání, ve střetu (Most) čeká. Typ je vidět na mapě i v bitvě. Požehnání se míří kruhem, kněz léčí do 9 m. Poplach mezi nepřáteli na pozici (`alarm_radius`). Balanc všech 7 scénářů prošel.
@@ -34,12 +35,11 @@ Aktualizováno: 29.10.2026
 - Žádný zvuk.
 
 ## Čeká na Toma
-- **Vyzkoušet rozkazy** (nejlíp jednu bitvu od každého typu: Most = střet, Brod = útok, Lesní ves = obrana): je jasné, co Poslat dělá? Čtou se čáry rozkazů? Stačí měnit rozkazy jen při signálu?
+- **Vyzkoušet bitvu v reálném čase** (nejlíp jednu od každého typu: Most = střet, Brod = útok, Lesní ves = obrana): sedí výběr hrdinů a pravé tlačítko? Používáš pauzu? Stíháš reagovat? Nejsou teď bitvy moc lehké (hráč má víc kontroly než automatický velitel v testech)?
 - **Zahrát běh na mapě** (Nový běh): dávají volby cesty smysl? Je vidět, co tě v uzlu čeká? Jsou události zajímavé? Mapa a obrazovky jsou zástupné, UI převezmeš.
 - Podívat se na animace (snímky `sheet_*.png`, nebo rovnou ve hře) a na obranu vsi: čtou se? Jsou zbraně v ruce v pořádku jako zástupné?
 - Smazat na GitHubu větev `hrdinove-wip`.
 - Projít nové UI a navrhnout vlastní podobu (rozvržení, ikonky). Kód UI je v `scripts/battle/battle_ui.gd` a `ui_icon.gd`.
-- Zahrát si bitvu a říct: baví to? co je nečitelné? 0, 1, nebo 2 signály?
 
 ## Další kroky
 - 1.5: druhá mapa s více průchody, trasy rytířů, vlastnosti nepřátel.

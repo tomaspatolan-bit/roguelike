@@ -14,13 +14,14 @@ Engine: Godot 4.7. Prototyp obsahuje jednu bitvu, **Most přes řeku**.
 | Akce | Ovládání |
 | --- | --- |
 | Rozestavit rytíře | přetáhnout myší v modré zóně; puštění na jiného rytíře je prohodí |
-| Trasa | tlačítko Trasa na kartě hrdiny, pak táhnout myší po zemi (Esc zruší) |
+| Výběr hrdiny | klik na hrdinu nebo jeho kartu; **Shift** přidá dalšího; klik na zem nebo **Esc** výběr zruší |
+| Rozkaz (kdykoli, i v bitvě) | **pravé tlačítko**: na zem = jdi tam a drž místo, na nepřítele = na celou jeho skupinu, na hrdinu = drž se ho; nebo **Poslat** na kartě a klik |
+| Rozkaz na místo v bitvě | přetáhnout hrdinu |
 | Výběr bitvy | nahoře vlevo v rozestavení |
-| Rozkaz přesunu (při signálu) | přetáhnout rytíře na místo, které má držet |
 | Schopnost hrdiny | tlačítko na kartě hrdiny nebo **1–5**; cílená schopnost pak klik na bojiště (**Esc** zruší) |
 | Do boje! (po zlomení morálky nepřítele, jednou) | tlačítko nebo **F** |
-| Signál (zastaví čas) | tlačítko nebo **mezerník**, pokračovat **mezerník** nebo **Enter** |
-| Posun kamery | **WASD**, šipky, nebo tažení **pravým tlačítkem** |
+| Pauza (čas stojí, rozkazy a schopnosti jdou dál) | tlačítko nebo **mezerník**, pokračovat **mezerník** nebo **Enter** |
+| Posun kamery | **WASD**, šipky, nebo tažení **pravým tlačítkem** (klik pravým = rozkaz) |
 | Otáčení kamery | tažení **prostředním tlačítkem**, nebo **Q/E** |
 | Přiblížení | kolečko myši |
 

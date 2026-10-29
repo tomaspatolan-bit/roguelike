@@ -1,5 +1,5 @@
 extends Node3D
-## Řídí bitvu: fáze (rozestavení → bitva ↔ signál → konec), vstup hráče,
+## Řídí bitvu: fáze (rozestavení → bitva ↔ pauza → konec), vstup hráče,
 ## krokování simulace a propojení simulace s 3D scénou a rozhraním.
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
@@ -10,13 +10,14 @@ const OrbitCamera := preload("res://scripts/battle/orbit_camera.gd")
 
 const STEP := 1.0 / 60.0
 
-enum Phase { DEPLOY, BATTLE, SIGNAL, OVER }
+enum Phase { DEPLOY, BATTLE, PAUSE, OVER }
 
 var data: Dictionary
 var setup: Dictionary
 var sim: Sim
 var phase := Phase.DEPLOY
-var selected := ""
+var selected := ""                 # hlavní vybraný hrdina (karta, přetažení)
+var selection: Array = []          # všichni vybraní hrdinové (pravé tlačítko jim dá rozkaz)
 var speed := 1.0
 var paused := false        # automatická pauza nebo otevřený dialog
 var log_lines: Array = []
@@ -37,7 +38,7 @@ var drop_ring: MeshInstance3D
 var order_line: MeshInstance3D
 var zone: MeshInstance3D
 var field_root: Node3D
-var orders_mesh: MeshInstance3D   # čáry rozkazů (rozestavení a signál)
+var orders_mesh: MeshInstance3D   # čáry rozkazů
 var scenario_id: String = Sim.DEFAULT_SCENARIO
 
 # výběr cíle rozkazu (Poslat na kartě): hrdina, kterému se vybírá cíl
@@ -52,7 +53,7 @@ var run: RefCounted = null
 signal battle_done(result: Dictionary)
 var _ui_t := 0.0
 
-# drag & drop rytířů (rozestavení a rozkazy při signálu)
+# drag & drop rytířů (rozestavení; v bitvě přetažení = rozkaz na místo)
 const PICK_PX := 30.0          # tolerance výběru rytíře na obrazovce (px)
 const DRAG_START_PX := 6.0     # o kolik se musí myš pohnout, aby začalo táhnutí
 var hover_id := ""
@@ -62,6 +63,10 @@ var _drag_press := Vector2.ZERO
 var _drag_origin := Vector2.ZERO
 var _drag_target := Vector2.ZERO
 var _drag_target_raw := Vector2.ZERO
+var _rpress := Vector2.ZERO          # kde se stisklo pravé tlačítko (klik = rozkaz, táhnutí = kamera)
+var _rdown := false
+const CLICK_PX := 6.0
+var _sel_rings: Array = []           # kroužky pod vybranými hrdiny
 
 
 func _ready() -> void:
@@ -71,7 +76,7 @@ func _ready() -> void:
 		setup = run.battle_setup(data)
 	else:
 		data = Sim.load_data(scenario_id)
-		setup = Sim.default_setup(data, 1)
+		setup = Sim.default_setup(data)
 	field_root = Node3D.new()
 	add_child(field_root)
 	Field.build(field_root, data["scenario"])
@@ -130,13 +135,10 @@ func _ready() -> void:
 	for sid: String in ([] if run != null else Sim.scenario_list()):
 		choices.append([sid, String(Sim._read_json("res://data/scenarios/%s.json" % sid).get("name", sid))])
 	ui.scenario_choices = choices
-	ui.signals_count_changed.connect(func(n: int) -> void:
-		setup["signals"] = n
-		_fresh_deploy())
 	ui.start_pressed.connect(_try_start)
-	ui.signal_pressed.connect(_use_signal)
+	ui.pause_pressed.connect(_toggle_pause)
 	ui.charge_pressed.connect(_charge)
-	ui.resume_pressed.connect(_resume_signal)
+	ui.resume_pressed.connect(_toggle_pause)
 	ui.speed_changed.connect(func(v: float) -> void:
 		speed = v
 		_refresh_panel())
@@ -167,9 +169,8 @@ func _load_scenario(id: String) -> void:
 	if phase != Phase.DEPLOY or id == scenario_id:
 		return
 	scenario_id = id
-	var signal_count: int = setup["signals"]
 	data = Sim.load_data(id)
-	setup = Sim.default_setup(data, signal_count)
+	setup = Sim.default_setup(data)
 	field_root.queue_free()
 	field_root = Node3D.new()
 	add_child(field_root)
@@ -215,7 +216,7 @@ func _order_click(screen_pos: Vector2) -> void:
 	_give_order(sim.by_id(id), kind, target)
 
 
-## Dá rozkaz (při signálu se u přísahy Nikdy neustoupí zeptá, jestli ji porušit).
+## Dá rozkaz (v bitvě se u přísahy Nikdy neustoupí zeptá, jestli ji porušit).
 func _give_order(u: Sim.Unit, kind: String, target: Variant) -> void:
 	var problem := sim.order_problem(u.id, kind, target)
 	if problem != "":
@@ -266,7 +267,7 @@ func _new_sim() -> void:
 
 func _fresh_deploy() -> void:
 	_new_sim()
-	selected = ""
+	_clear_selection()
 	_refresh_panel()
 
 
@@ -287,35 +288,68 @@ func _start_battle() -> void:
 		setup["pos"][u.id] = u.pos
 	_new_sim()
 	phase = Phase.BATTLE
-	selected = ""
+	_clear_selection()
 	_refresh_panel()
 
 
 func _refresh_panel() -> void:
 	if phase == Phase.DEPLOY:
-		ui.show_deploy(sim, setup, selected, scenario_id, _order_id)
+		ui.show_deploy(sim, setup, selection, scenario_id, _order_id)
 	else:
-		ui.show_battle(sim, phase == Phase.SIGNAL, selected, speed, log_lines, _aim_id, _order_id)
-	ui.update_dynamic(sim, phase == Phase.SIGNAL, paused)
+		ui.show_battle(sim, phase == Phase.PAUSE, selection, speed, log_lines, _aim_id, _order_id)
+	ui.update_dynamic(sim, phase == Phase.PAUSE, paused)
 
 
 # ================================================================ příkazy
 
-## Klik na jméno v panelu: přepne výběr.
+## Klik na kartu: vybere hrdinu (Shift přidá nebo ubere), znovu klik výběr zruší.
 func _select(id: String) -> void:
 	var u := sim.by_id(id)
-	if u == null or not u.alive():
+	if u == null or not u.alive() or phase == Phase.OVER:
 		return
-	if phase != Phase.DEPLOY and phase != Phase.SIGNAL:
-		return
-	selected = "" if selected == id else id
+	if Input.is_key_pressed(KEY_SHIFT):
+		_toggle_in_selection(id)
+	elif selection == [id]:
+		_clear_selection()
+	else:
+		selection = [id]
+		selected = id
 	_refresh_panel()
 
 
+## Klik na hrdinu na bojišti: vybere ho (Shift přidá); už vybraného nechá ve výběru (kvůli táhnutí).
 func _set_selected(id: String) -> void:
-	if selected != id:
+	if Input.is_key_pressed(KEY_SHIFT):
+		if not selection.has(id):
+			selection.append(id)
+	elif not selection.has(id):
+		selection = [id]
+	selected = id
+	_refresh_panel()
+
+
+func _toggle_in_selection(id: String) -> void:
+	if selection.has(id):
+		selection.erase(id)
+		selected = String(selection[-1]) if not selection.is_empty() else ""
+	else:
+		selection.append(id)
 		selected = id
-		_refresh_panel()
+
+
+func _clear_selection() -> void:
+	selection = []
+	selected = ""
+
+
+## Vybraní hrdinové, kteří žijí.
+func _selection_alive() -> Array:
+	var out: Array = []
+	for id: String in selection:
+		var u := sim.by_id(id)
+		if u != null and u.alive():
+			out.append(id)
+	return out
 
 
 ## Pasivka zapnutá nebo vypnutá v rozestavení (na zkoušku; ve hře budou odměnou v běhu).
@@ -335,7 +369,7 @@ func _on_passive(id: String, key: String, on: bool) -> void:
 
 ## Schopnost hrdiny (karta nebo klávesa 1–5). Bez cíle se použije hned, jinak začne cílení.
 func _ability(id: String) -> void:
-	if (phase != Phase.BATTLE and phase != Phase.SIGNAL) or paused:
+	if (phase != Phase.BATTLE and phase != Phase.PAUSE) or paused:
 		return
 	if not sim.can_use_ability(id):
 		ui.flash_hint(sim.ability_problem(id))
@@ -404,22 +438,16 @@ func _charge() -> void:
 		_refresh_panel()
 
 
-func _use_signal() -> void:
-	if phase != Phase.BATTLE or paused:
+## Pauza (mezerník): čas stojí, rozkazy a schopnosti jdou dávat dál.
+func _toggle_pause() -> void:
+	if paused:
 		return
-	if sim.use_signal():
-		phase = Phase.SIGNAL
-		selected = ""
-		_flush_events()
-		_refresh_panel()
-
-
-func _resume_signal() -> void:
-	if phase != Phase.SIGNAL or paused:
+	if phase == Phase.BATTLE:
+		phase = Phase.PAUSE
+	elif phase == Phase.PAUSE:
+		phase = Phase.BATTLE
+	else:
 		return
-	phase = Phase.BATTLE
-	selected = ""
-	_order_id = ""
 	_refresh_panel()
 
 
@@ -431,7 +459,7 @@ func _resume_pause() -> void:
 	_refresh_panel()
 
 
-## Přetažení hrdiny při signálu = rozkaz na místo.
+## Přetažení hrdiny v bitvě = rozkaz na místo.
 func _order_move(u: Sim.Unit, target: Vector2) -> void:
 	if sim._in_water(target):
 		return
@@ -458,10 +486,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_SPACE:
 				if ui.toast.visible:
 					_resume_pause()
-				elif phase == Phase.SIGNAL:
-					_resume_signal()
 				else:
-					_use_signal()
+					_toggle_pause()
 			KEY_ESCAPE:
 				if _aim_id != "":
 					_aim_id = ""
@@ -469,16 +495,22 @@ func _unhandled_input(event: InputEvent) -> void:
 				elif _order_id != "":
 					_order_id = ""
 					_refresh_panel()
+				elif not selection.is_empty():
+					_clear_selection()
+					_refresh_panel()
 			KEY_ENTER, KEY_KP_ENTER:
 				if ui.toast.visible:
 					_resume_pause()
-				elif phase == Phase.SIGNAL:
-					_resume_signal()
+				elif phase == Phase.PAUSE:
+					_toggle_pause()
 		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			_pointer_down(mb.position)
+		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
+			_rpress = mb.position
+			_rdown = true
 
 
 func _input(event: InputEvent) -> void:
@@ -490,10 +522,54 @@ func _input(event: InputEvent) -> void:
 		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and _drag_id != "":
 			_pointer_up(mb.position)
 			get_viewport().set_input_as_handled()
+		elif mb.button_index == MOUSE_BUTTON_RIGHT and not mb.pressed and _rdown:
+			_rdown = false
+			if mb.position.distance_to(_rpress) <= CLICK_PX:
+				_command_click(mb.position)   # klik pravým = rozkaz; táhnutí pravým posouvá kameru
 
 
 func _can_command() -> bool:
-	return (phase == Phase.DEPLOY or phase == Phase.SIGNAL) and not paused
+	return phase != Phase.OVER and not paused
+
+
+## Pravé tlačítko s vybranými hrdiny: na nepřítele = jeho skupina, na hrdinu = ke spojenci,
+## na zem = na místo (víc hrdinů se rozestaví do řady napříč směrem pohybu).
+func _command_click(screen_pos: Vector2) -> void:
+	if not _can_command() or _aim_id != "":
+		return
+	var ids := _selection_alive()
+	if ids.is_empty():
+		return
+	_order_id = ""
+	var foe := _pick_foe(screen_pos)
+	var mate := _pick_knight(screen_pos)
+	if foe != "":
+		for id: String in ids:
+			_give_order(sim.by_id(id), "group", sim.group_of(foe))
+		return
+	if mate != "":
+		for id: String in ids:
+			if id != mate:
+				_give_order(sim.by_id(id), "ally", mate)
+		return
+	var gp: Variant = _ground(screen_pos)
+	if gp == null:
+		return
+	var p: Vector2 = gp
+	if sim._in_water(p):
+		ui.flash_hint("Do vody to nejde.")
+		return
+	var c := Vector2.ZERO
+	for id: String in ids:
+		c += sim.by_id(id).pos
+	c /= ids.size()
+	var dir := (p - c).normalized() if p.distance_to(c) > 0.1 else Vector2(0, 1)
+	var side := Vector2(-dir.y, dir.x)
+	for i in ids.size():
+		var q := p + side * (float(i) - (ids.size() - 1) / 2.0) * 1.4
+		if sim._in_water(q):
+			q = p
+		_give_order(sim.by_id(String(ids[i])), "point", q)
 
 
 static func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
@@ -555,20 +631,21 @@ func _pointer_down(screen_pos: Vector2) -> void:
 		_drag_origin = sim.by_id(id).pos
 		_set_selected(id)
 		return
-	# klik na zem s vybraným rytířem = přesun (alternativa k táhnutí)
+	# klik na zem: v rozestavení přesune vybraného hrdinu, v bitvě zruší výběr
 	if selected == "":
+		return
+	if phase != Phase.DEPLOY:
+		_clear_selection()
+		_refresh_panel()
 		return
 	var gp: Variant = _ground(screen_pos)
 	if gp == null:
 		return
 	var p: Vector2 = gp
 	var u := sim.by_id(selected)
-	if phase == Phase.DEPLOY:
-		u.pos = _clamp_zone(p)
-		u.home = u.pos
-		setup["pos"][u.id] = u.pos
-	else:
-		_order_move(u, p)
+	u.pos = _clamp_zone(p)
+	u.home = u.pos
+	setup["pos"][u.id] = u.pos
 
 
 func _pointer_move(screen_pos: Vector2) -> void:
@@ -646,7 +723,7 @@ func _process(delta: float) -> void:
 	_ui_t += delta
 	if _ui_t > 0.1:
 		_ui_t = 0.0
-		ui.update_dynamic(sim, phase == Phase.SIGNAL, paused)
+		ui.update_dynamic(sim, phase == Phase.PAUSE, paused)
 	ui.update_hp_bars(sim, cam, views, phase != Phase.DEPLOY)
 
 
@@ -757,13 +834,13 @@ func _sync_markers() -> void:
 		invalid = _drag_target_raw.distance_to(_drag_target) > 0.05
 	elif dragging:
 		invalid = sim._in_water(_drag_target)
-	drop_ring.visible = dragging and (phase == Phase.SIGNAL or invalid)
+	drop_ring.visible = dragging and (phase != Phase.DEPLOY or invalid)
 	if drop_ring.visible:
 		drop_ring.position = Field.to_world(_drag_target_raw if invalid else _drag_target, 0.08)
 		(drop_ring.material_override as StandardMaterial3D).albedo_color = Color(1.0, 0.35, 0.3, 0.9) if invalid else Color(0.4, 1.0, 0.5, 0.9)
 	var im := order_line.mesh as ImmediateMesh
 	im.clear_surfaces()
-	if dragging and phase == Phase.SIGNAL:
+	if dragging and phase != Phase.DEPLOY:
 		var from := Field.to_world(sim.by_id(_drag_id).pos, 0.1)
 		var to := Field.to_world(_drag_target, 0.1)
 		im.surface_begin(Mesh.PRIMITIVE_LINES)
@@ -773,24 +850,36 @@ func _sync_markers() -> void:
 
 	_draw_orders()
 
+	# kroužky pod vybranými hrdiny (hlavní výběr bílý a silnější)
+	var sel_alive := _selection_alive() if phase != Phase.OVER else []
+	while _sel_rings.size() < sel_alive.size():
+		var r := Field.ring(0.65, 0.09, Color(1, 1, 1, 0.7))
+		add_child(r)
+		_sel_rings.append(r)
+	for i in _sel_rings.size():
+		var ring: MeshInstance3D = _sel_rings[i]
+		ring.visible = i < sel_alive.size() and String(sel_alive[i]) != selected
+		if ring.visible:
+			ring.position = Field.to_world(sim.by_id(String(sel_alive[i])).pos, 0.06)
 	var su := sim.by_id(selected) if selected != "" else null
-	select_ring.visible = su != null and su.alive() and (phase == Phase.DEPLOY or phase == Phase.SIGNAL)
+	select_ring.visible = su != null and su.alive() and phase != Phase.OVER
 	if select_ring.visible:
 		select_ring.position = Field.to_world(su.pos, 0.06)
-	hold_marker.visible = su != null and su.alive() and phase == Phase.SIGNAL and (su.order == "" or su.order_done)
+	hold_marker.visible = su != null and su.alive() and phase != Phase.DEPLOY and phase != Phase.OVER and (su.order == "" or su.order_done)
 	if hold_marker.visible:
 		hold_marker.position = Field.to_world(su.home, 0.06)
 
 
-## Čáry rozkazů v rozestavení a při signálu: na místo (žlutá se šipkou), na skupinu (červená ke středu
-## skupiny), ke spojenci (zelená). Při výběru cíle vede čára od hrdiny ke kurzoru.
+## Čáry rozkazů: v rozestavení a v pauze všech hrdinů, v běžící bitvě jen vybraných. Na místo žlutá
+## se šipkou, na skupinu červená ke středu skupiny, ke spojenci zelená. Při výběru cíle vede čára ke kurzoru.
 func _draw_orders() -> void:
 	var im := orders_mesh.mesh as ImmediateMesh
 	im.clear_surfaces()
 	var segs: Array = []   # [od, do, barva]
-	if phase == Phase.DEPLOY or phase == Phase.SIGNAL:
+	if phase != Phase.OVER:
+		var all := phase == Phase.DEPLOY or phase == Phase.PAUSE
 		for u in sim.knights():
-			if not u.alive() or u.order == "" or u.order_done:
+			if not u.alive() or u.order == "" or u.order_done or not (all or selection.has(u.id)):
 				continue
 			match u.order:
 				"point":

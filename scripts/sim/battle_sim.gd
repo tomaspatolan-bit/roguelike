@@ -7,7 +7,7 @@ extends RefCounted
 ## Data (statistiky, schopnosti, rod, scénář) přicházejí z JSON souborů ve složce data/.
 ##
 ## Hráč velí hrdinům rozkazy: na místo, na skupinu nepřátel, ke spojenci; bez rozkazu hrdina drží místo.
-## Rozkazy se dávají v rozestavení a během bitvy jen při signálu (čas stojí). Každý hrdina má
+## Rozkazy se dávají kdykoli (bitva běží v reálném čase, hráč ji může pozastavit). Každý hrdina má
 ## jednu schopnost s počtem použití za bitvu. Sláva je společná rezerva rodu, platí se z ní použití navíc.
 
 const SIDE_KNIGHT := "k"
@@ -119,8 +119,6 @@ var units: Array[Unit] = []
 var projectiles: Array[Projectile] = []
 var events: Array[Dictionary] = []
 var glory: float = 0.0
-var signals: int = 0
-var signals_used: int = 0
 var abilities_used: int = 0
 var zones: Array = []          # hořící zem: [{pos, r, t, dps, from}]
 var grudges: Dictionary = {}    # nepřátelé, kteří zranili hrdinu (Přísaha pomsty)
@@ -138,7 +136,7 @@ var _next_id: int = 0
 var _rng := RandomNumberGenerator.new()
 
 
-## setup = {"signals": int, "pos": {key: Vector2}, "orders": {key: [druh, cíl]} (nepovinné, viz set_order),
+## setup = {"pos": {key: Vector2}, "orders": {key: [druh, cíl]} (nepovinné, viz set_order),
 ##          "passives": {key: [klíče pasivek]} (nepovinné, jinak výchozí pasivky rodu),
 ##          "glory": počáteční sláva (běh ji přenáší), "names": {key: jméno} (nástupci),
 ##          "extra_enemies": [řádky nepřátel navíc] (uprchlíci, kteří se vrátili)}
@@ -156,7 +154,6 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	crossings = river["crossings"]
 	forests = scenario.get("forests", [])
 	glory = float(setup.get("glory", house["glory"]["start"]))
-	signals = setup.get("signals", 1)
 	task_ok = not scenario["optional_task"].has("kill")
 	mode = String(scenario.get("mode", "stret"))
 
@@ -245,7 +242,7 @@ static func scenario_list() -> Array:
 
 
 ## Výchozí rozestavení ze scénáře.
-static func default_setup(data: Dictionary, signal_count: int = 1) -> Dictionary:
+static func default_setup(data: Dictionary) -> Dictionary:
 	var pos := {}
 	var deploy: Dictionary = data["scenario"]["deploy"]
 	for key: String in deploy:
@@ -255,7 +252,7 @@ static func default_setup(data: Dictionary, signal_count: int = 1) -> Dictionary
 	var start: Dictionary = data["house"].get("start_passives", {})
 	for key: String in start:
 		passives[key] = (start[key] as Array).duplicate()
-	return {"signals": signal_count, "pos": pos, "orders": {}, "passives": passives}
+	return {"pos": pos, "orders": {}, "passives": passives}
 
 
 static func _read_json(path: String) -> Dictionary:
@@ -328,10 +325,6 @@ func by_id(id: String) -> Unit:
 		if u.id == id:
 			return u
 	return null
-
-
-func can_signal() -> bool:
-	return over == "" and signals > 0
 
 
 ## Pasivka hrdiny (data), nebo prázdný slovník, když ji nemá. Zlomená přísaha neplatí.
@@ -810,15 +803,6 @@ func use_ability(id: String, target: Variant = null) -> bool:
 
 # =============================================================== příkazy hráče
 
-func use_signal() -> bool:
-	if not can_signal():
-		return false
-	signals -= 1
-	signals_used += 1
-	_log("Signál: čas stojí", true)
-	return true
-
-
 func has_trait(u: Unit, key: String) -> bool:
 	return u.traits.has(key)
 
@@ -848,7 +832,7 @@ func charge_all() -> bool:
 # --------------------------------------------------------------- rozkazy hrdinům
 
 ## Proč rozkaz nejde dát ("" = jde). kind: "point" (cíl Vector2), "group" (číslo skupiny nebo id nepřítele),
-## "ally" (id hrdiny), "" (zrušit: hrdina drží, kde stojí). Během bitvy rozkazy dává scéna jen při signálu.
+## "ally" (id hrdiny), "" (zrušit: hrdina drží, kde stojí). Rozkazy jdou dávat kdykoli.
 func order_problem(id: String, kind: String = "", target: Variant = null) -> String:
 	var u := by_id(id)
 	if u == null or u.side != SIDE_KNIGHT or not u.alive():
@@ -899,12 +883,10 @@ func set_order(id: String, kind: String, target: Variant = null) -> bool:
 		_:
 			u.order = ""
 			u.home = u.pos
-	if t > 0.0:
-		_log("%s: %s" % [u.name, order_text(id)], false)
 	return true
 
 
-## Rozkaz přesunu (přetažení hrdiny při signálu): totéž co rozkaz na místo.
+## Rozkaz přesunu (přetažení hrdiny): totéž co rozkaz na místo.
 func order_move(id: String, target: Vector2) -> bool:
 	return set_order(id, "point", target)
 
