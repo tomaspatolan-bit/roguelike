@@ -12,7 +12,7 @@ Spojit bitvy do příběhu rodu: co se stane v jedné bitvě, nese se do další
 3. **Padlí zůstanou padlí:** padlý jde do `fallen`, na jeho místo nastoupí nástupce stejné třídy s novým jménem (`successors` v datech) a **bez pasivek**. Po závěrečné bitvě už nikdo nenastupuje.
 4. **Dědictví přísahy:** nedodržená přísaha padlého čeká v `pending_legacy`; převzít ji může živý hrdina bez přísahy (i nástupce), nebo zanikne. Hrdina má nejvýš 1 přísahu.
 5. **Porušená přísaha** po bitvě zmizí (zápis do kroniky).
-6. **Zranění se vyléčí:** každá bitva začíná s plným zdravím (simulace se staví znovu). **Sláva se přenáší** (`setup.glory`, strop `glory.max`).
+6. **Zranění se vyléčí:** každá bitva začíná s plným zdravím (simulace se staví znovu). **Sláva se přenáší** (`setup.glory`, nejvýš `glory.carry_max` = 50).
 7. **Odměna po vítězné bitvě:** 3 nabídky {hrdina, pasivka}, vybírá se jedna; pasivka sedí na třídu (nebo `any`), hrdina ji ještě nemá, přísahu nedostane hrdina, který už přísahu má. Nabídky se snaží o různé hrdiny a různé pasivky.
 8. **Uprchlíci:** nepřátelé, kteří utečou v bitvě bez `returnees`, se vrátí v první bitvě, která `returnees` má (závěrečná), v řadách kolem `returnees.pos`.
 9. **Prohra = padli všichni** (simulace jinak než vítězstvím neskončí) → běh končí.

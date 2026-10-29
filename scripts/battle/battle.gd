@@ -283,6 +283,7 @@ func _ability(id: String) -> void:
 	if (phase != Phase.BATTLE and phase != Phase.SIGNAL) or paused:
 		return
 	if not sim.can_use_ability(id):
+		ui.flash_hint(sim.ability_problem(id))
 		return
 	if sim.ability_target(id) == "none":
 		if sim.use_ability(id):

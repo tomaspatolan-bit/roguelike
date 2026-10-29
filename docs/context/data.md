@@ -29,6 +29,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 - Při exportu hry je potřeba přidat `*.json` do filtru exportovaných souborů (zatím neřešeno).
 
 ## Historie významných změn
+- 29.10.2026: `glory.extra_uses_max` (1), `glory.carry_max` (50), `cooldown` u schopnosti (Požehnání 20 s), chování `healer.defend`/`assist`, `assassin.roams`.
 - 28.10.2026: `run_zkusebni.json` (pořadí bitev, počet nabídek, jména nástupců), scénář `zaverecna_bitva` (Tábor na Vraní skále: `returnees`, úkol `kill`), nepřítel `vudce` (Hejtman Kuno, `leader`).
 - 28.10.2026: `passives` (15 pasivek, 3 přísahy), `start_passives` v rodu místo `oaths`.
 - 28.10.2026: přestavba na hrdiny: pryč `banner`, `postures`, `aura`, `shouts`, `banner_bearer`, postoje v rozestavení; nové `behaviors`, `abilities`, `glory.extra_use_cost`. Most: úkol Otec Jan nesmí padnout.

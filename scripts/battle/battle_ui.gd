@@ -422,7 +422,7 @@ func _fill_info(sim: Sim, deploy: bool, scenario_id: String) -> void:
 	tb.add_child(_label("Úkol: %s Odměna: %s." % [task["text"], task["reward"]], 13, INK, true))
 	info_box.add_child(tb)
 	if deploy:
-		info_box.add_child(_label("Každý hrdina má výchozí chování podle třídy a jednu schopnost na kartě (počet použití za bitvu). Sláva rodu platí použití navíc (%d slávy)." % int(sim.house["glory"]["extra_use_cost"]), 12, MUTED, true))
+		info_box.add_child(_label("Každý hrdina má výchozí chování podle třídy a jednu schopnost na kartě (počet použití za bitvu). Sláva rodu platí jedno použití navíc za bitvu (%d slávy)." % int(sim.house["glory"]["extra_use_cost"]), 12, MUTED, true))
 		info_box.add_child(_label("Přetáhni rytíře v modré zóně (puštěním na jiného je prohodíš). Na kartě hrdiny dole můžeš nakreslit trasu.", 12, MUTED, true))
 
 
@@ -439,7 +439,7 @@ func show_battle(sim: Sim, signal_phase: bool, selected: String, speed: float, l
 
 	var gl := HBoxContainer.new()
 	gl.add_theme_constant_override("separation", 4)
-	gl.tooltip_text = "Sláva rodu: roste za činy hrdinů. Za %d slávy dostane hrdina použití schopnosti navíc." % int(sim.house["glory"]["extra_use_cost"])
+	gl.tooltip_text = "Sláva rodu: roste za činy hrdinů. Za %d slávy dostane hrdina jedno použití schopnosti navíc za bitvu." % int(sim.house["glory"]["extra_use_cost"])
 	var gi := Icon.make("glory", GLORY, 18)
 	gi.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	gl.add_child(gi)
@@ -627,8 +627,17 @@ func update_dynamic(sim: Sim, signal_phase: bool, paused: bool) -> void:
 		var labs := b.find_children("*", "Label", true, false)
 		if not labs.is_empty():
 			var base := String(sim.ability_of(id)["name"])
-			var tail := ("●".repeat(u.uses) if u.uses > 0 else "%d slávy" % int(sim.ability_cost(id)))
+			var tail := ""
+			if u.ability_cd > 0.0:
+				tail = "%d s" % ceili(u.ability_cd)
+			elif u.uses > 0:
+				tail = "●".repeat(u.uses)
+			elif sim.extra_uses_left(id) > 0:
+				tail = "%d slávy" % int(sim.ability_cost(id))
+			else:
+				tail = "vyčerpáno"
 			(labs[0] as Label).text = "%s  %s" % [base, tail]
+			b.tooltip_text = String(sim.ability_of(id).get("desc", "")) + ("\n" + sim.ability_problem(id) if sim.ability_problem(id) != "" else "")
 	if _hint_t > 0.0:
 		_hint_t -= 0.1
 		if _hint_t <= 0.0:

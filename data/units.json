@@ -17,15 +17,15 @@
     "_info": "Výchozí chování tříd hrdinů. _common: help_window = jak dlouho (s) po útoku nebo zásahu se hrdina počítá jako bojující; decided_ratio = když síla jedné strany klesne pod tento podíl síly druhé, hrdinové dobojují sami.",
     "_common": {"help_window": 1.5, "decided_ratio": 0.15},
     "frontline": {"name": "Drží frontu", "desc": "Stojí kus před oddílem a napadne každého, kdo se přiblíží k němu nebo ke spojenci.", "engage": 4.5, "guard": 3.0, "ahead": 1.5},
-    "healer": {"name": "Léčí frontu", "desc": "Drží se kousek za tím, kdo bojuje, a léčí nejzraněnějšího hrdinu v dosahu.", "behind": 2.0},
+    "healer": {"name": "Léčí frontu", "desc": "Drží se kousek za tím, kdo bojuje, a léčí nejzraněnějšího hrdinu v dosahu.", "behind": 2.0, "defend": 2.5, "assist": 1},
     "archer": {"name": "Střílí zezadu", "desc": "Střílí na dostřel. Když se k němu nepřítel přiblíží, couvne.", "kite": 3.0, "kite_step": 4.0, "behind": 2.0},
     "rider": {"name": "Výpady", "desc": "Na nepřítele do 7 m od oddílu vyrazí, udeří a vrátí se k oddílu.", "engage": 7.0},
-    "assassin": {"name": "Loví střelce", "desc": "Jde po nepřátelských střelcích, když nejsou, po nejslabším nepříteli."}
+    "assassin": {"name": "Loví střelce", "desc": "Jde po nepřátelských střelcích, když nejsou, po nejslabším nepříteli.", "roams": 1}
   },
   "abilities": {
     "_info": "Schopnosti hrdinů. uses = použití za bitvu (obnova po bitvě), target = none / point (místo na zemi) / enemy (nepřítel), range = dosah cílení v m. Další čísla podle schopnosti.",
     "vyzva": {"name": "Výzva", "desc": "Na 4 s přitáhne útoky nepřátel do 6 m a dostává o 50 % menší zranění.", "uses": 2, "target": "none", "radius": 6.0, "duration": 4.0, "damage_taken": 0.5},
-    "pozehnani": {"name": "Požehnání", "desc": "Vyléčí všechny hrdiny do 8 m o 30 % jejich zdraví.", "uses": 1, "target": "none", "radius": 8.0, "heal_frac": 0.3},
+    "pozehnani": {"name": "Požehnání", "desc": "Vyléčí všechny hrdiny do 8 m o 30 % jejich zdraví.", "uses": 1, "cooldown": 20.0, "target": "none", "radius": 8.0, "heal_frac": 0.3},
     "salva": {"name": "Salva", "desc": "5 šípů do kruhu o poloměru 2 m na vybrané místo, každý za 9.", "uses": 2, "target": "point", "range": 12.0, "radius": 2.0, "arrows": 5, "dmg": 9},
     "najezd": {"name": "Nájezd", "desc": "Projede k vybranému místu (nejvýš 10 m), nepřátele v cestě zasáhne za 17 a omráčí na 1,5 s.", "uses": 2, "target": "point", "range": 10.0, "land": true, "dmg": 17, "stun": 1.5, "width": 1.0, "speed_mult": 3.0},
     "uder": {"name": "Úder ze stínu", "desc": "Skočí za vybraného nepřítele (nejvýš 8 m) a zasadí mu trojnásobný úder.", "uses": 2, "target": "enemy", "range": 8.0, "mult": 3.0}

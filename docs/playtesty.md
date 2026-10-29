@@ -13,6 +13,14 @@ Nejnovější nahoře. Každý záznam: datum, kdo hrál, build (větev nebo com
 - Z toho plyne (úkol v plan.md / nápad v napady.md / rozhodnutí):
 ```
 
+## 29.10.2026 – Tom, build `prapor-asasin` (b39f103), zkušební běh
+- Odehráno: celý zkušební běh.
+- Bavilo: funguje „fakt skvěle“, povedený celek.
+- Nebavilo / nečitelné:
+  - Bez trasy všichni kromě asasína stojí; rozběhnou se, až tank někoho uvidí. Lučištník, kněz a jezdec do prvního kontaktu kmitají. Kněz celou bitvu stojí a nic nedělá.
+  - Schopnosti jdou za slávu použít neomezeně, Požehnání je pak přesilné (dá se přeléčit k vítězství).
+- Z toho plyne: klidová místa s tolerancí (proti kmitání), lučištník couvá, dokud nemá odstup, oddíl nechodí za asasínem, kněz za vodou jde k bojujícímu přes přechod a když nikdo nepotřebuje léčit, pomáhá v boji. Schopnost navíc za slávu jen jednou za bitvu, Požehnání se 20 s nabíjí, do další bitvy si rod nese nejvýš 50 slávy. Test kmitání v `test_battle_sim.gd`.
+
 ## 28.10.2026 – Tom, build `prapor-asasin` (20ce480), bitva na hrdiny
 - Odehráno: Most a Brod se schopnostmi hrdinů.
 - Bavilo: funguje celkem dobře; přímé ovládání schopností, hlavně mířená Salva lučištníka a Nájezd jezdce s omráčením.

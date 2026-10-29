@@ -28,6 +28,8 @@ func _init() -> void:
 	_test_target_priority(data)
 	_test_morale(data)
 	_test_decided(data)
+	for sid: String in Sim.scenario_list():
+		_test_calm(sid)
 	_test_oath_and_signal(data)
 	_test_stand_firm(data)
 	var brod := Sim.load_data("brod_a_les")
@@ -163,6 +165,46 @@ func _test_glory_extra_use(data: Dictionary) -> void:
 	s.glory = 50.0
 	var cost := s.ability_cost("tank")
 	_check(cost > 0.0 and s.use_ability("tank") and is_equal_approx(s.glory, 50.0 - cost), "použití navíc stojí slávu")
+	s.glory = 100.0
+	tank.ability_cd = 0.0
+	_check(not s.can_use_ability("tank") and s.ability_problem("tank") != "", "za slávu jde schopnost navíc jen jednou za bitvu")
+
+	# Požehnání se po použití nabíjí
+	var s2 := Sim.new(data, Sim.default_setup(data, 0), 57)
+	s2.glory = 100.0
+	_check(s2.use_ability("knez"), "Požehnání jde použít")
+	_check(not s2.can_use_ability("knez"), "hned znovu ne (nabíjí se)")
+	var cd: float = s2.ability_of("knez").get("cooldown", 0.0)
+	while s2.t < cd + 0.5 and s2.over == "":
+		s2.step(DT)
+		s2.events.clear()
+	_check(s2.can_use_ability("knez"), "po nabití jde Požehnání za slávu znovu")
+
+
+## Nikdo nekmitá: hrdina v klidu nestřídá krok a stání pořád dokola, kněz nestojí celou bitvu.
+func _test_calm(sid: String) -> void:
+	var data := Sim.load_data(sid)
+	var s := Sim.new(data, Sim.default_setup(data, 0), 7)
+	var toggles := {}
+	var last := {}
+	var knez_idle := 0.0
+	while s.over == "" and s.t < 60.0:
+		s.step(DT)
+		s.events.clear()
+		_auto_abilities(s)
+		for u in s.living(Sim.SIDE_KNIGHT):
+			var calm := s.t - u.combat_t > 1.5   # v boji se za pohyblivým cílem rozbíhat smí
+			if calm and last.has(u.id) and last[u.id] != u.moving:
+				toggles[u.id] = int(toggles.get(u.id, 0)) + 1
+			last[u.id] = u.moving
+			if u.id == "knez" and not u.moving and s.t - u.combat_t > 1.0:
+				knez_idle += DT
+	var worst := 0
+	for id: String in toggles:
+		worst = maxi(worst, int(toggles[id]))
+	print("[%s] kmitání mimo boj (rozjezdy a zastavení): %s, kněz stál bez boje %.0f s z %.0f s" % [sid, toggles, knez_idle, s.t])
+	_check(worst <= 16, "[%s] hrdinové nekmitají (nejvíc %d změn)" % [sid, worst])
+	_check(knez_idle <= s.t * 0.5, "[%s] kněz nestojí víc než půl bitvy" % sid)
 
 
 ## Výchozí chování: tank jde před oddíl, lučištník couvne před blízkým nepřítelem, kněz se drží za bojujícím,

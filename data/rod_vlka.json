@@ -1,5 +1,5 @@
 {
-  "_info": "Rod Vlka: sestava je v units.json (knights), tady sláva a výchozí pasivky. Sláva je společná rezerva rodu: plní se činy hrdinů, extra_use_cost = cena použití schopnosti navíc. start_passives = pasivky a přísahy hrdinů na začátku (v prototypu má tank přísahu Nikdy neustoupí jen na zkoušku; ve hře budou odměnou v běhu).",
+  "_info": "Rod Vlka: sestava je v units.json (knights), tady sláva a výchozí pasivky. Sláva je společná rezerva rodu: plní se činy hrdinů, extra_use_cost = cena použití schopnosti navíc, extra_uses_max = kolikrát navíc smí hrdina za bitvu, carry_max = kolik slávy si rod nese do další bitvy běhu. start_passives = pasivky a přísahy hrdinů na začátku (v prototypu má tank přísahu Nikdy neustoupí jen na zkoušku; ve hře budou odměnou v běhu).",
   "name": "Rod Vlka",
   "glory": {
     "start": 25,
@@ -7,7 +7,9 @@
     "per_hit": 0.5,
     "per_kill": 10,
     "oath_per_second": 1.0,
-    "extra_use_cost": 40
+    "extra_use_cost": 40,
+    "extra_uses_max": 1,
+    "carry_max": 50
   },
   "start_passives": {
     "tank": [

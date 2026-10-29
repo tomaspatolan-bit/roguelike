@@ -51,7 +51,7 @@ func _test_rules() -> void:
 	# bitva 1: padne Bořek (s přísahou), utečou 2 lapkové a střelec
 	r.record_battle(_fake("win", ["tank"], ["lapka", "lapka", "strelec"], 61.0))
 	_check(r.stage == 1 and r.over == "", "po vítězství se jde dál")
-	_check(r.glory == 61.0, "sláva se přenáší")
+	_check(r.glory == 50.0, "sláva se přenáší, nejvýš carry_max (61 → 50)")
 	_check(r.hero_name("tank") == "Sir Vítek", "nastoupil nástupce stejné třídy")
 	_check((r.heroes["tank"]["passives"] as Array).is_empty(), "nástupce začíná bez pasivek")
 	_check(r.fallen.size() == 1 and r.fallen[0]["name"] == "Sir Bořek", "padlý je v seznamu padlých")

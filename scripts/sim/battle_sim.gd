@@ -68,6 +68,10 @@ class Unit:
 	var avenger: bool = false     # Mstitel: padl spojenec
 	var target_id: String = ""    # nepřítel: na koho právě útočí
 	var leader: bool = false      # vůdce nepřátel: když padne, zlomí se morálka
+	var extra_used: int = 0       # kolikrát hrdina v bitvě použil schopnost navíc za slávu
+	var ability_cd: float = 0.0   # nabíjení schopnosti (s), než jde použít znovu
+	var kiting: bool = false      # lučištník právě couvá (couvá, dokud nemá odstup)
+	var assisting: bool = false   # kněz pomáhá v boji (léčí dál, z dosahu léčení nemusí)
 	var mounted: bool = false
 	var vs_mounted: float = 1.0   # násobek poškození proti jízdě
 	var ignores: Array = []       # druhy terénu, které jednotku nezpomalují ("les")
@@ -498,11 +502,22 @@ func _nearest(list: Array[Unit], from: Vector2) -> Unit:
 func _group_center(exclude: Unit = null) -> Vector2:
 	var sum := Vector2.ZERO
 	var n := 0
+	var roamers := Vector2.ZERO
+	var nr := 0
 	for k in living(SIDE_KNIGHT):
-		if k != exclude:
-			sum += k.pos
-			n += 1
-	return sum / n if n > 0 else (exclude.pos if exclude != null else Vector2.ZERO)
+		if k == exclude:
+			continue
+		if _bparam(k, "roams", 0.0) > 0.0:
+			roamers += k.pos   # kdo se toulá (asasín), netáhne oddíl za sebou
+			nr += 1
+			continue
+		sum += k.pos
+		n += 1
+	if n > 0:
+		return sum / n
+	if nr > 0:
+		return roamers / nr
+	return exclude.pos if exclude != null else Vector2.ZERO
 
 
 ## Nejbližší jiný hrdina, který v posledních chvílích bojoval (útočil nebo dostal zásah).
@@ -510,7 +525,8 @@ func _engaged_ally(u: Unit) -> Unit:
 	var window := float(units_data["behaviors"]["_common"]["help_window"])
 	var list: Array[Unit] = []
 	for k in living(SIDE_KNIGHT):
-		if k != u and t - k.combat_t <= window:
+		# za tím, kdo se toulá sám (asasín), oddíl nechodí: táhl by ho přes řeku do přesily
+		if k != u and t - k.combat_t <= window and _bparam(k, "roams", 0.0) <= 0.0:
 			list.append(k)
 	return _nearest(list, u.pos)
 
@@ -536,12 +552,38 @@ func ability_cost(id: String) -> float:
 	return float(house["glory"]["extra_use_cost"])
 
 
+## Kolik použití navíc za slávu hrdinovi v této bitvě zbývá.
+func extra_uses_left(id: String) -> int:
+	var u := by_id(id)
+	if u == null:
+		return 0
+	return maxi(0, int(house["glory"].get("extra_uses_max", 1)) - u.extra_used)
+
+
+## Proč schopnost teď nejde použít ("" = jde). Pro nápovědu v UI.
+func ability_problem(id: String) -> String:
+	var u := by_id(id)
+	if u == null or not u.alive() or u.ability == "":
+		return "Hrdina nemá schopnost."
+	if u.ability_cd > 0.0:
+		return "Schopnost se nabíjí (%d s)." % ceili(u.ability_cd)
+	if u.uses > 0:
+		return ""
+	if extra_uses_left(id) <= 0:
+		return "Schopnost je pro tuto bitvu vyčerpaná."
+	if glory < ability_cost(id):
+		return "Chybí sláva (%d)." % int(ability_cost(id))
+	return ""
+
+
 ## Jde schopnost použít (bez ohledu na cíl)?
 func can_use_ability(id: String) -> bool:
 	var u := by_id(id)
 	if u == null or u.side != SIDE_KNIGHT or not u.alive() or u.ability == "" or over != "" or u.dashing:
 		return false
-	return u.uses > 0 or glory >= ability_cost(id)
+	if u.ability_cd > 0.0:
+		return false
+	return u.uses > 0 or (extra_uses_left(id) > 0 and glory >= ability_cost(id))
 
 
 ## Druh cíle schopnosti: "none", "point" (místo na zemi), "enemy" (nepřítel).
@@ -627,6 +669,8 @@ func use_ability(id: String, target: Variant = null) -> bool:
 		u.uses -= 1
 	else:
 		glory -= ability_cost(id)
+		u.extra_used += 1
+	u.ability_cd = float(a.get("cooldown", 0.0))
 	abilities_used += 1
 	var where: Vector2 = u.pos
 	match u.ability:
@@ -1068,6 +1112,15 @@ func _engage(u: Unit, tg: Unit, dt: float) -> void:
 
 
 ## Dojít na místo; rytíř s přísahou Nikdy neustoupí nejde tam, kde by byl dál od nepřítele.
+## Klidové místo (za oddílem, vedle oddílu…): kdo stojí a je blízko, zůstane stát.
+## Rozejde se, až se místo vzdálí o víc než `settle` m. Bez toho hrdinové kmitají
+## (krok, stop, krok), protože se jejich místa počítají jeden od druhého.
+func _settle(u: Unit, p: Vector2, dt: float, stop: float, foes: Array[Unit]) -> void:
+	if not u.moving and u.pos.distance_to(p) <= stop + _bparam(u, "settle", 1.2):
+		return
+	_go(u, p, dt, stop, foes)
+
+
 func _go(u: Unit, p: Vector2, dt: float, stop: float, foes: Array[Unit]) -> void:
 	if u.pos.distance_to(p) <= stop:
 		u.moving = false
@@ -1200,15 +1253,15 @@ func _think_frontline(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	if _no_retreat(u):
 		u.moving = false   # Stát pevně: bez nepřítele stojí, kde je
 		return
-	_go(u, spot, dt, 0.6, foes)
+	_settle(u, spot, dt, 0.6, foes)
 
 
 ## Kněz: drží se kousek za tím, kdo bojuje (léčí ho), jinak za středem oddílu.
 func _think_healer(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	var behind := _bparam(u, "behind", 2.0)
 	var close := _nearest(foes, u.pos)
-	if close != null and u.pos.distance_to(close.pos) <= u.reach + 0.5:
-		_engage(u, close, dt)
+	if close != null and u.pos.distance_to(close.pos) <= maxf(u.reach + 0.5, _bparam(u, "defend", 0.0)):
+		_engage(u, close, dt)   # nepřítel u kněze: brání se (a pomáhá tomu, koho léčí)
 		return
 	var mate := _engaged_ally(u)
 	var anchor: Vector2
@@ -1218,13 +1271,35 @@ func _think_healer(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		return
 	if mate != null:
 		var fn := _nearest(foes, mate.pos)
+		# nikdo v dosahu léčení nepotřebuje: kněz nestojí, pomůže tomu, kdo bojuje.
+		# Léčí dál (léčení je v dosahu i z boje); couvne, až je sám zraněný pod polovinu.
+		if u.hp < u.maxhp * 0.5:
+			u.assisting = false
+		elif _bparam(u, "assist", 0.0) > 0.0 and not _needs_heal(u):
+			u.assisting = true
+		if u.assisting and fn.pos.distance_to(mate.pos) <= mate.reach + 1.5:
+			_engage(u, fn, dt)
+			return
 		anchor = mate.pos + (mate.pos - fn.pos).normalized() * behind
-	else:
-		var c := _group_center(u)
-		anchor = c + (c - close.pos).normalized() * behind
+		if _in_water(anchor):
+			# za bojujícím je voda (boj na mostě, u brodu): jde k němu přes přechod
+			_go(u, mate.pos, dt, behind, foes)
+			return
+		_settle(u, anchor, dt, 0.5, foes)
+		return
+	var c := _group_center(u)
+	anchor = c + (c - close.pos).normalized() * behind
 	if _in_water(anchor):
 		anchor = u.pos
-	_go(u, anchor, dt, 0.8, foes)
+	_settle(u, anchor, dt, 0.8, foes)
+
+
+## Potřebuje někdo v dosahu kněze léčení?
+func _needs_heal(u: Unit) -> bool:
+	for k in living(SIDE_KNIGHT):
+		if k.hp < k.maxhp * 0.85 and k.pos.distance_to(u.pos) <= u.heal_range + 2.0:
+			return true
+	return false
 
 
 ## Lučištník: střílí na dostřel; když se nepřítel přiblíží, couvne; jinak se drží za oddílem
@@ -1238,13 +1313,19 @@ func _think_archer(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		if k != u and not k.ranged and k.behavior != "healer" and k.pos.distance_to(u.pos) <= 6.0:
 			cover = true
 			break
-	if close != null and cover and u.pos.distance_to(close.pos) < kite and not _no_retreat(u):
+	# couvá, dokud nemá odstup kite + kite_gap (jinak by kmital: krok, výstřel, krok)
+	if close == null or not cover or u.pos.distance_to(close.pos) >= kite + _bparam(u, "kite_gap", 1.5):
+		u.kiting = false
+	elif u.pos.distance_to(close.pos) < kite:
+		u.kiting = true
+	if u.kiting and not _no_retreat(u):
 		var away := u.pos + (u.pos - close.pos).normalized() * _bparam(u, "kite_step", 4.0)
 		# necouvá donekonečna: nejdál pár metrů za místo, kde začínal
 		if not _in_water(away) and away.y >= u.home.y - _bparam(u, "kite_limit", 6.0):
 			_walk(u, away, dt, 0.2)
 			if u.moving:
 				return
+		u.kiting = false
 	var cand: Array[Unit] = []
 	for f in foes:
 		if f.pos.distance_to(u.pos) <= u.reach:
@@ -1256,13 +1337,13 @@ func _think_archer(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		return
 	var mate := _engaged_ally(u)
 	if mate != null:
-		_go(u, mate.pos, dt, u.reach * 0.8, foes)
+		_settle(u, mate.pos, dt, u.reach * 0.8, foes)
 		return
 	var c := _group_center(u)
 	var spot := c + (c - close.pos).normalized() * _bparam(u, "behind", 2.0)
 	if _in_water(spot):
 		spot = u.pos
-	_go(u, spot, dt, 0.8, foes)
+	_settle(u, spot, dt, 0.8, foes)
 
 
 ## Jezdec: na nepřítele do `engage` m od oddílu vyrazí, udeří a vrátí se k oddílu.
@@ -1281,7 +1362,7 @@ func _think_rider(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	var spot := c + Vector2(side * 2.0, 0.0) + (nf.pos - c).normalized() * 0.5
 	if _in_water(spot):
 		spot = u.pos
-	_go(u, spot, dt, 1.0, foes)
+	_settle(u, spot, dt, 1.0, foes)
 
 
 ## Nájezd: jede rychle k cíli, každého nepřítele v cestě zasáhne a omráčí.
@@ -1510,6 +1591,7 @@ func step(dt: float) -> void:
 		u.atk = maxf(0.0, u.atk - dt)
 		u.hit = maxf(0.0, u.hit - dt)
 		u.taunt_t = maxf(0.0, u.taunt_t - dt)
+		u.ability_cd = maxf(0.0, u.ability_cd - dt)
 		u.stun_t = maxf(0.0, u.stun_t - dt)
 		u.hidden_t = maxf(0.0, u.hidden_t - dt)
 		u.shield_t = maxf(0.0, u.shield_t - dt)

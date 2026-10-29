@@ -2,6 +2,12 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 29.10.2026 – Po playtestu zkušebního běhu
+- **Schopnost navíc za slávu jen jednou za bitvu na hrdinu** (`glory.extra_uses_max`). Důvod: neomezená použití za slávu dělala z Požehnání nekonečné léčení.
+- **Nabíjení schopnosti** (`cooldown` v datech schopnosti): Požehnání 20 s, ostatní zatím bez nabíjení.
+- **Do další bitvy běhu si rod nese nejvýš 50 slávy** (`glory.carry_max`).
+- **Kněz pomáhá v boji**, když nikdo v jeho dosahu nepotřebuje léčit (léčí dál, couvne pod polovinou zdraví). Oddíl nechodí za asasínem, který se toulá sám.
+
 ## 28.10.2026 – Zkušební běh
 - **Nástupce nastoupí za každého padlého** (stejná třída, nové jméno, bez pasivek). Smrt tedy stojí získané pasivky a příběh hrdiny, ne místo v sestavě. Běh končí, až padnou všichni v jedné bitvě.
 - **Přísaha padlého** přechází na hrdinu bez přísahy podle volby hráče, nebo zanikne. Porušená přísaha po bitvě zmizí.

@@ -134,7 +134,7 @@ func record_battle(res: Dictionary) -> void:
 	last_result = res
 	var sname := stage_name()
 	var sc := Sim._read_json("res://data/scenarios/%s.json" % stage_key())
-	glory = minf(float(res["glory"]), float(house["glory"]["max"]))
+	glory = minf(float(res["glory"]), float(house["glory"].get("carry_max", house["glory"]["max"])))
 	var gb: Dictionary = res.get("glory_by", {})
 	for cls: String in gb:
 		if heroes.has(cls):
