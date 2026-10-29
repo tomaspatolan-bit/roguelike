@@ -2,6 +2,16 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 29.10.2026 – Bitva ve fázích, méně nepřátel, schopnosti bez slávy
+- **Polovina nepřátel a v každé bitvě velitel:** běžná bitva 7–8 nepřátel, elita 9, boss 9, obrana 12 ve 3 vlnách po 4. Tom: moc nepřátel dělalo shluky na jednom místě a jednotky se do sebe prolínaly; méně, ale významnějších postav.
+- **Bitva ve fázích:** nepřátelé stojí ve skupinkách (u mostu stráž, na břehu střelci, dál tábor) a skupinka se probudí, až se hrdinové přiblíží, až ji někdo zasáhne, nebo když se bojuje kousek od ní. Rozestavení před bitvou zůstává jen v obraně; ostatní bitvy začínají v pauze. Tom: „kdyby to bylo ve fázích, kdy přejdu most, najdu 2 strážce, přijdu do kempu, bude tam zbytek“.
+- **Nejvýš 3 pěší útočí na jednoho hrdinu**, ostatní čekají stranou; těla se odtlačují. Proti shlukům a prolínání.
+- **Schopnosti mají pevný počet použití za bitvu a nabíjení, slávou se nekupují:** Výzva 3× (15 s), Salva 3× (12 s), Úder ze stínu 2× (15 s), Nájezd 1× (omráčí, nadělá paseku), Požehnání 1×. Tom: hrdinové mají v bitvě ve fázích převahu, takže omezené schopnosti dávají rozhodnutím váhu a nejde se po každé skupince znovu doléčit.
+- **Kněz léčí sám jen v boji** (bdělý nepřítel do 10 m), ne mezi skupinkami.
+- **Sláva zůstává pro kroniku, události a porušení přísahy**, v bitvě už není měnou. Přísaha Slib chudoby (dřív za slávu) je teď Slib odříkání: +1 použití schopnosti, ale kněz hrdinu neléčí (pilíř Přísaha má cenu).
+- **Velitelé** (Pálič Vok, Ostrostřelec Jíra, Setník Bořivoj, Hejtman Kuno) mají schopnost, kterou ohlásí textem a červeným kruhem; hráč má čas uhnout, nebo ji přerušit omráčením (Nájezd). Dává smysl reagovat v reálném čase.
+- Obtížnost scénáře se ladí násobky `foe_hp` a `foe_dmg` (méně nepřátel, ale silnějších).
+
 ## 29.10.2026 – Bitva v reálném čase s pauzou
 - **Rozkazy jdou dávat kdykoli**, i během bitvy: výběr hrdinů (klik, Shift) a pravé tlačítko na místo, nepřítele nebo spojence. Tom: hráč musí reagovat na to, co dělá nepřítel; má jen jeden pokus a prohra kvůli tomu, že nepřítel udělal něco jiného, než čekal, by ho naštvala.
 - **Pauza na mezerníku** kdykoli (čas stojí, rozkazy a schopnosti jdou dál). Bez pauzy by rozhodovala rychlost klikání, ne úsudek. Zpomalení času nezavádíme.

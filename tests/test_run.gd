@@ -323,17 +323,17 @@ func _test_full_runs() -> void:
 				"bitva", "elita", "boss":
 					var data := r.load_stage_data()
 					var s := Sim.new(data, r.battle_setup(data), 500 + i * 7 + guard)
-					s.apply_orders(s.suggest_orders())
 					while s.over == "" and s.t < 400.0:
 						s.step(DT)
 						s.events.clear()
+						s.auto_command()
 						_auto(s)
 					if s.over == "":
 						stuck += 1
 						print("    bitva %s uvízla (t=%.0f, zlomeni=%s)" % [r.node()["scenario"], s.t, s.foes_broken])
 						for u in s.units:
 							if u.alive() and not u.fled:
-								print("      %s %s pos=(%.1f, %.1f) hp=%.0f hold=%s moving=%s" % [u.id, u.key, u.pos.x, u.pos.y, u.hp, u.hold, u.moving])
+								print("      %s %s pos=(%.1f, %.1f) hp=%.0f asleep=%s moving=%s" % [u.id, u.key, u.pos.x, u.pos.y, u.hp, u.asleep, u.moving])
 						break
 					battles += 1
 					r.record_battle(s.result())

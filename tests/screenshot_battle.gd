@@ -35,18 +35,29 @@ func _shot(file_name: String) -> void:
 func _process(_delta: float) -> bool:
 	frame += 1
 	if frame == 40:
-		_shot("01_rozestaveni.png")
-		_test_drag_swap()
+		_shot("01_start.png")
+		var deploy := int(scene.get("phase")) == 0
+		if deploy:
+			_test_drag_swap()   # rozestavení má jen obrana
+		else:
+			var sim0: Variant = scene.get("sim")
+			print("Bitva začíná v pauze: %s" % ("OK" if int(scene.get("phase")) == 2 and float(sim0.get("t")) == 0.0 else "CHYBA"))
+		_test_orders_by_click()
 	if frame == 45:
 		_shot("02_vyber.png")
-		scene.call("_try_start")
-		print("Start se všemi rozkazy: %s" % ("OK" if int(scene.get("phase")) == 1 and (scene.get("sim") as Object).call("unordered").is_empty() else "CHYBA"))
+		if int(scene.get("phase")) == 0:
+			scene.call("_try_start")
+		else:
+			scene.call("_toggle_pause")
+		print("Start: %s" % ("OK" if int(scene.get("phase")) == 1 else "CHYBA"))
 		scene.set("speed", 2.0)
 		started_at = frame
 	if started_at > 0:
 		var sim: Variant = scene.get("sim")
 		if sim != null and scene.get("phase") == 1:
-			# stejná zásada jako test simulace: schopnost, když ji rada doporučí; cílené přes klik na bojiště
+			# stejná zásada jako test simulace: velitel vede oddíl skupinku po skupince, schopnost, když ji rada
+			# doporučí; cílené přes klik na bojiště
+			sim.call("auto_command")
 			_auto_abilities(sim)
 			if bool(scene.get("paused")):
 				scene.call("_resume_pause")
@@ -110,17 +121,13 @@ func _test_drag_swap() -> void:
 	_test_orders_by_click()
 
 
-## Rozkazy klikem jako hráč: Začít bez rozkazů se zeptá, pak Poslat (výběr cíle) a klik na nepřítele,
+## Rozkazy klikem jako hráč: Poslat (výběr cíle) a klik na nepřítele,
 ## spojence nebo zem podle rady automatického velitele.
 func _test_orders_by_click() -> void:
 	var sim: Variant = scene.get("sim")
 	var cam: Camera3D = scene.get("cam")
 	var views: Dictionary = scene.get("views")
 	var ui: Variant = scene.get("ui")
-	scene.call("_try_start")
-	var asked := bool((ui.get("start_dialog") as Window).visible) and int(scene.get("phase")) == 0
-	(ui.get("start_dialog") as Window).hide()
-	print("Varování před bitvou bez rozkazů: %s" % ("OK" if asked else "CHYBA"))
 	var plan: Dictionary = sim.call("suggest_orders")
 	var ok := true
 	for id: String in plan:

@@ -1,177 +1,32 @@
 {
-  "_info": "Varianta brodu: terén a rozestavení z base. Zrcadlově: kopiníci hlídají levý brod, lapkové pravý, drží pozice kratší dobu (20 s).",
+  "_info": "Varianta brodu: terén a rozestavení z base. Hlídka u lávky, lapkové u pravého brodu, tábor s páličem za lesem.",
   "base": "brod_a_les",
-  "alarm_radius": 14,
+  "alarm_radius": 6,
   "mode": "utok",
+  "foe_hp": 2.0, "foe_dmg": 2.0,
   "auto_plan": "attack",
   "name": "Brod za svítání",
-  "subtitle": "Lapkové a kopiníci u Černého brodu, tentokrát obráceně · 9 pěšáků, 4 kopiníci, 3 střelci",
+  "subtitle": "Lapkové a kopiníci u Černého brodu, tentokrát obráceně · 6 pěšáků, 1 kopiník, 1 střelec",
   "win_title": "Brod je náš",
   "optional_task": {
     "text": "Otec Jan nesmí padnout.",
     "reward": "vzácné znamení",
     "protect": "knez"
   },
+  "pods": [
+    {"name": "Hlídka u lávky", "wake": 7.0},
+    {"name": "Lapkové u pravého brodu", "wake": 7.0},
+    {"name": "Tábor za lesem", "wake": 8.0}
+  ],
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
   "enemies": [
-    [
-      "kopinik",
-      -7.0,
-      9.6,
-      {
-        "hold": true,
-        "engage": 4.0,
-        "hold_time": 20
-      }
-    ],
-    [
-      "kopinik",
-      -8.5,
-      9.6,
-      {
-        "hold": true,
-        "engage": 4.0,
-        "hold_time": 20
-      }
-    ],
-    [
-      "kopinik",
-      -10.0,
-      9.6,
-      {
-        "hold": true,
-        "engage": 4.0,
-        "hold_time": 20
-      }
-    ],
-    [
-      "lapka",
-      -7.8,
-      11.2,
-      {
-        "hold": true,
-        "engage": 4.0,
-        "hold_time": 20
-      }
-    ],
-    [
-      "lapka",
-      -9.2,
-      11.2,
-      [
-        "zbabelec"
-      ],
-      {
-        "hold": true,
-        "engage": 4.0,
-        "hold_time": 20
-      }
-    ],
-    [
-      "kopinik",
-      -8.4,
-      12.0,
-      {
-        "hold": true,
-        "engage": 4.0,
-        "hold_time": 20
-      }
-    ],
-    [
-      "lapka",
-      9.5,
-      10.0,
-      {
-        "hold": true,
-        "engage": 4.5,
-        "hold_time": 20
-      }
-    ],
-    [
-      "lapka",
-      8.0,
-      9.6,
-      {
-        "hold": true,
-        "engage": 4.5,
-        "hold_time": 20
-      }
-    ],
-    [
-      "lapka",
-      6.8,
-      10.0,
-      {
-        "hold": true,
-        "engage": 4.5,
-        "hold_time": 20
-      }
-    ],
-    [
-      "lapka",
-      8.8,
-      11.5,
-      {
-        "hold": true,
-        "engage": 4.5,
-        "hold_time": 20
-      }
-    ],
-    [
-      "lapka",
-      7.4,
-      11.5,
-      {
-        "hold": true,
-        "engage": 4.5,
-        "hold_time": 20
-      }
-    ],
-    [
-      "lapka",
-      8.0,
-      12.5,
-      {
-        "hold": true,
-        "engage": 4.5,
-        "hold_time": 20
-      }
-    ],
-    [
-      "lapka",
-      0.0,
-      11.0,
-      {
-        "hold": true,
-        "engage": 4.0,
-        "hold_time": 20
-      }
-    ],
-    [
-      "strelec",
-      3.0,
-      9.0,
-      {
-        "hold": true,
-        "hold_time": 20
-      }
-    ],
-    [
-      "strelec",
-      -1.5,
-      9.0,
-      {
-        "hold": true,
-        "hold_time": 20
-      }
-    ],
-    [
-      "strelec",
-      -3.5,
-      9.0,
-      {
-        "hold": true,
-        "hold_time": 20
-      }
-    ]
+    ["lapka", -0.8, 10.4, {"pod": 0}],
+    ["strelec", 1.2, 11.2, {"pod": 0}],
+    ["lapka", 7.2, 10.4, {"pod": 1}],
+    ["lapka", 8.6, 10.0, {"pod": 1}],
+    ["lapka", 10.0, 10.4, {"pod": 1}],
+    ["palic", 0.0, 19.5, {"pod": 2}],
+    ["lapka", -1.6, 20.5, {"pod": 2}],
+    ["lapka", 1.6, 20.5, {"pod": 2}]
   ]
 }

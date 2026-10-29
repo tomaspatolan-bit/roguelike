@@ -1,10 +1,11 @@
 {
-  "_info": "Bitva Brod a les. Řeku jde přejít dvěma brody po stranách (zpomalí) a úzkou lávkou uprostřed. Za lávkou je les se stezkou, za lesem střelci. Nepřátelé drží pozice: vlevo lapkové a vpravo kopiníci (proti jízdě) hlídají brody, střelci stojí na břehu před lesem a střílí přes řeku. Pěšák, kterého něco zasáhne, vyrazí; po hold_time s postupují všichni. Asasína les nezpomaluje. Řádek nepřítele: [typ, x, y, (vlastnosti), (rozkazy {hold, engage, hold_time})].",
-  "alarm_radius": 30,
+  "_info": "Bitva Brod a les. Řeku jde přejít dvěma brody po stranách (zpomalí) a úzkou lávkou uprostřed. Za lávkou je les se stezkou. Nepřátelé jsou ve skupinkách (pods): hlídka u levého brodu, kopiníci u pravého, tábor za lesem se setníkem. Skupinka spí, dokud se k ní hrdina nepřiblíží na wake m, dokud ji někdo nezraní nebo dokud do alarm_radius m od ní nebojuje jiný nepřítel. Asasína les nezpomaluje. Řádek nepřítele: [typ, x, y, (vlastnosti), {pod, arrive}]. foe_hp, foe_dmg = obtížnost bitvy (násobky zdraví a poškození nepřátel).",
+  "alarm_radius": 6,
   "mode": "utok",
+  "foe_hp": 2.2, "foe_dmg": 2.2,
   "auto_plan": "hold",
   "name": "Brod a les",
-  "subtitle": "Lapkové a kopiníci od Černého brodu · 9 pěšáků, 4 kopiníci, 4 střelci",
+  "subtitle": "Lapkové a kopiníci od Černého brodu · 4 pěšáci, 2 kopiníci, 2 střelci",
   "stage_label": "Akt 1",
   "win_title": "Vítězství u brodu",
   "river": {"y0": 5.0, "y1": 8.5, "crossings": [
@@ -26,13 +27,20 @@
     "lucistnik": {"pos": [0.0, -3.5]}
   },
   "optional_task": {"text": "Nikdo nepadne.", "reward": "vzácné znamení", "protect": "all"},
-  "enemy_morale": {"break_losses": 0.7, "flee_y": 24.0},
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
+  "pods": [
+    {"name": "Hlídka u levého brodu", "wake": 7.0},
+    {"name": "Kopiníci u pravého brodu", "wake": 7.0},
+    {"name": "Tábor za lesem", "wake": 8.0}
+  ],
   "enemies": [
-    ["lapka", -9.5, 10.0, {"hold": true, "engage": 4.5, "hold_time": 30}], ["lapka", -8.0, 9.6, {"hold": true, "engage": 4.5, "hold_time": 30}], ["lapka", -6.8, 10.0, {"hold": true, "engage": 4.5, "hold_time": 30}],
-    ["lapka", -8.8, 11.5, {"hold": true, "engage": 4.5, "hold_time": 30}], ["lapka", -7.4, 11.5, {"hold": true, "engage": 4.5, "hold_time": 30}],
-    ["kopinik", 7.0, 9.6, {"hold": true, "engage": 4.0, "hold_time": 30}], ["kopinik", 8.5, 9.6, {"hold": true, "engage": 4.0, "hold_time": 30}], ["kopinik", 10.0, 9.6, {"hold": true, "engage": 4.0, "hold_time": 30}],
-    ["lapka", 7.8, 11.2, {"hold": true, "engage": 4.0, "hold_time": 30}], ["lapka", 9.2, 11.2, ["zbabelec"], {"hold": true, "engage": 4.0, "hold_time": 30}],
-    ["lapka", -8.0, 12.5, {"hold": true, "engage": 4.5, "hold_time": 30}], ["kopinik", 8.4, 12.0, {"hold": true, "engage": 4.0, "hold_time": 30}],
-    ["strelec", -3.0, 9.0, {"hold": true, "hold_time": 30}], ["strelec", 1.5, 9.0, {"hold": true, "hold_time": 30}], ["strelec", 3.5, 9.0, {"hold": true, "hold_time": 30}], ["strelec", -1.5, 13.5, {"hold": true, "hold_time": 30}], ["lapka", -9.5, 12.8, {"hold": true, "engage": 4.5, "hold_time": 30}]
+    ["lapka", -8.8, 10.5, {"pod": 0}],
+    ["lapka", -7.2, 10.5, {"pod": 0}],
+    ["kopinik", 7.6, 10.2, {"pod": 1}],
+    ["kopinik", 9.4, 10.2, {"pod": 1}],
+    ["setnik", -1.5, 19.5, {"pod": 2}],
+    ["lapka", 1.5, 19.5, {"pod": 2}],
+    ["strelec", -2.5, 21.5, {"pod": 2}],
+    ["strelec", 2.5, 21.5, {"pod": 2}]
   ]
 }

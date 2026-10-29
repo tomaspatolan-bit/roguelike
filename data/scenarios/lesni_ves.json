@@ -1,8 +1,10 @@
 {
-  "_info": "Obrana: rod drží Lesní ves proti třem vlnám lapků. Nepřítel s rozkazem arrive dorazí v daný čas bitvy (s). Chalupy jsou zástupná grafika (houses: x, y, šířka, hloubka, otočení).",
+  "_info": "Obrana: rod drží Lesní ves proti třem vlnám lapků (po čtyřech, ve třetí pálič). Nepřítel s rozkazem arrive dorazí v daný čas bitvy (s). Chalupy jsou zástupná grafika (houses: x, y, šířka, hloubka, otočení). Jediná bitva s rozestavením.",
   "mode": "obrana",
+  "foe_hp": 2.0,
+  "foe_dmg": 2.0,
   "name": "Obrana Lesní vsi",
-  "subtitle": "Lapkové táhnou na ves ve třech vlnách · 16 pěšáků, 3 kopiníci, 5 střelců",
+  "subtitle": "Lapkové táhnou na ves ve třech vlnách · 8 pěšáků, 2 kopiníci, 2 střelci",
   "stage_label": "Akt 1",
   "win_title": "Ves ubráněna",
   "river": {
@@ -160,12 +162,12 @@
   },
   "enemy_morale": {
     "break_losses": 0.7,
-    "flee_y": 30.0
+    "flee_y": 34.0
   },
   "enemies": [
     [
       "lapka",
-      -2.0,
+      -1.5,
       16.0
     ],
     [
@@ -175,35 +177,20 @@
     ],
     [
       "lapka",
-      2.0,
+      1.5,
       16.0
     ],
     [
-      "lapka",
-      -1.0,
-      18.0
-    ],
-    [
-      "lapka",
-      1.0,
-      18.0
-    ],
-    [
       "strelec",
-      -1.5,
-      20.0
-    ],
-    [
-      "strelec",
-      1.5,
-      20.0
+      0.0,
+      19.0
     ],
     [
       "lapka",
       11.0,
       15.0,
       {
-        "arrive": 22
+        "arrive": 25
       }
     ],
     [
@@ -211,7 +198,7 @@
       12.5,
       15.5,
       {
-        "arrive": 22
+        "arrive": 25
       }
     ],
     [
@@ -219,31 +206,15 @@
       11.5,
       17.0,
       {
-        "arrive": 22
-      }
-    ],
-    [
-      "lapka",
-      13.0,
-      17.0,
-      {
-        "arrive": 22
+        "arrive": 25
       }
     ],
     [
       "kopinik",
-      12.0,
-      18.5,
+      12.5,
+      17.5,
       {
-        "arrive": 22
-      }
-    ],
-    [
-      "strelec",
-      12.0,
-      20.0,
-      {
-        "arrive": 22
+        "arrive": 25
       }
     ],
     [
@@ -251,7 +222,7 @@
       -11.0,
       15.0,
       {
-        "arrive": 45
+        "arrive": 50
       }
     ],
     [
@@ -259,79 +230,23 @@
       -12.5,
       15.5,
       {
-        "arrive": 45
+        "arrive": 50
       }
     ],
     [
-      "lapka",
+      "palic",
       -11.5,
       17.0,
       {
-        "arrive": 45
-      }
-    ],
-    [
-      "lapka",
-      -13.0,
-      17.0,
-      {
-        "arrive": 45
-      }
-    ],
-    [
-      "lapka",
-      -12.0,
-      18.0,
-      {
-        "arrive": 45
-      }
-    ],
-    [
-      "kopinik",
-      -11.0,
-      19.0,
-      {
-        "arrive": 45
-      }
-    ],
-    [
-      "kopinik",
-      -13.0,
-      19.0,
-      {
-        "arrive": 45
+        "arrive": 50
       }
     ],
     [
       "strelec",
       -12.0,
-      21.0,
+      19.5,
       {
-        "arrive": 45
-      }
-    ],
-    [
-      "strelec",
-      -10.5,
-      21.0,
-      {
-        "arrive": 45
-      }
-    ],
-    [
-      "lapka",
-      -1.0,
-      19.0,
-      {
-        "arrive": 22
-      }
-    ],
-    [
-      "lapka",
-      1.0,
-      19.0,
-      {
-        "arrive": 22
+        "arrive": 50
       }
     ]
   ]

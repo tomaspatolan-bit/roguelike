@@ -144,11 +144,17 @@ func _drive_battle(battle: Node) -> void:
 		battle.call("_start_battle")
 		battle.set("speed", 4.0)
 		return
+	if phase == 2 and sim != null and float(sim.get("t")) == 0.0:
+		_shot("b%d_start.png" % (battles + 1))
+		battle.call("_toggle_pause")   # bitva bez rozestavení začíná v pauze
+		battle.set("speed", 4.0)
+		return
 	if sim == null:
 		return
 	if String(sim.get("over")) == "":
 		if bool(battle.get("paused")):
 			battle.call("_resume_pause")
+		sim.call("auto_command")
 		for u: Variant in sim.call("living", "k"):
 			var h: Array = sim.call("ability_hint", u.get("id"))
 			if h[0]:

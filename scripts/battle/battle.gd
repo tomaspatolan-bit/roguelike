@@ -39,6 +39,7 @@ var order_line: MeshInstance3D
 var zone: MeshInstance3D
 var field_root: Node3D
 var _order_marks: Array = []        # kruhy cílů rozkazů (barva hrdiny)
+var _warn_marks: Array = []         # ohlášené schopnosti velitelů: [kruh, plocha]
 var _order_flash: Dictionary = {}    # id hrdiny -> jak dlouho ještě ukazovat cíl právě daného rozkazu (s)
 var scenario_id: String = Sim.DEFAULT_SCENARIO
 
@@ -161,9 +162,9 @@ func _build_zone() -> void:
 	zone.position = Field.to_world(Vector2((float(z["x0"]) + float(z["x1"])) / 2.0, (float(z["y0"]) + float(z["y1"])) / 2.0), 0.03)
 
 
-## Výběr bitvy v rozestavení: načte scénář a postaví bojiště znovu.
+## Výběr bitvy (volná bitva, před začátkem): načte scénář a postaví bojiště znovu.
 func _load_scenario(id: String) -> void:
-	if phase != Phase.DEPLOY or id == scenario_id:
+	if id == scenario_id or not (phase == Phase.DEPLOY or (phase == Phase.PAUSE and sim.t == 0.0)):
 		return
 	scenario_id = id
 	data = Sim.load_data(id)
@@ -264,29 +265,32 @@ func _new_sim() -> void:
 	_acc = 0.0
 
 
+## Rozestavení má jen obrana (nepřítel přijde k vám); jinak bitva začne rovnou v pauze.
+func _needs_deploy() -> bool:
+	return String(data["scenario"].get("mode", "stret")) == "obrana"
+
+
 func _fresh_deploy() -> void:
 	_new_sim()
 	_clear_selection()
+	phase = Phase.DEPLOY if _needs_deploy() else Phase.PAUSE
 	_refresh_panel()
 
 
-## Začít bitvu: když někdo nemá rozkaz, nejdřív se zeptá.
+## Začít bitvu (z rozestavení obrany).
 func _try_start() -> void:
 	if phase != Phase.DEPLOY:
 		return
 	_order_id = ""
-	var missing := sim.unordered()
-	if missing.is_empty():
-		_start_battle()
-	else:
-		ui.ask_start(missing, _start_battle)
+	_start_battle()
 
 
+## Bitva od začátku: z rozestavení se rovnou běží, jinak začne v pauze (opakování bitvy).
 func _start_battle() -> void:
 	for u in sim.knights():
 		setup["pos"][u.id] = u.pos
 	_new_sim()
-	phase = Phase.BATTLE
+	phase = Phase.BATTLE if _needs_deploy() else Phase.PAUSE
 	_clear_selection()
 	_refresh_panel()
 
@@ -295,7 +299,7 @@ func _refresh_panel() -> void:
 	if phase == Phase.DEPLOY:
 		ui.show_deploy(sim, setup, selection, scenario_id, _order_id)
 	else:
-		ui.show_battle(sim, phase == Phase.PAUSE, selection, speed, log_lines, _aim_id, _order_id)
+		ui.show_battle(sim, phase == Phase.PAUSE, selection, speed, log_lines, _aim_id, _order_id, scenario_id)
 	ui.update_dynamic(sim, phase == Phase.PAUSE, paused)
 
 
@@ -375,7 +379,7 @@ func _selection_alive() -> Array:
 func _on_passive(id: String, key: String, on: bool) -> void:
 	if run != null:
 		return   # v běhu se pasivky získávají jen jako odměna
-	if phase != Phase.DEPLOY:
+	if not (phase == Phase.DEPLOY or (phase == Phase.PAUSE and sim.t == 0.0)):
 		return
 	if on:
 		var problem := sim.passive_problem(id, key)
@@ -791,6 +795,13 @@ func _flush_events() -> void:
 				var av: UnitView = views.get(String(ev.get("id", "")))
 				if av != null:
 					av.play_ability(speed)
+			"wake", "warn":
+				ui.flash_hint(String(ev.get("text", "")))
+			"skill":
+				var sr := Field.ring(maxf(float(ev.get("radius", 1.0)), 0.9), 0.2, Color(1.0, 0.3, 0.2, 0.85))
+				sr.position = Field.to_world(ev["pos"], 0.1)
+				add_child(sr)
+				_fx.append([sr, 0.6])
 			"decided":
 				# rozhodnutá bitva se dohraje zrychleně
 				speed = maxf(speed, 2.0)
@@ -893,6 +904,7 @@ func _sync_markers() -> void:
 		im.surface_end()
 
 	_sync_order_marks()
+	_sync_warnings()
 
 	# kroužky pod vybranými hrdiny v barvě hrdiny (hlavní výběr silnější)
 	var sel_alive := _selection_alive() if phase != Phase.OVER else []
@@ -915,6 +927,33 @@ func _sync_markers() -> void:
 	hold_marker.visible = su != null and su.alive() and phase != Phase.DEPLOY and phase != Phase.OVER and (su.order == "" or su.order_done)
 	if hold_marker.visible:
 		hold_marker.position = Field.to_world(su.home, 0.06)
+
+
+## Ohlášené schopnosti velitelů: červený kruh a plocha, které sílí, jak se blíží dopad.
+func _sync_warnings() -> void:
+	var ws: Array = sim.warnings() if phase != Phase.OVER else []
+	while _warn_marks.size() < ws.size():
+		var ring := Field.ring(1.0, 0.08, Color(1.0, 0.25, 0.2, 0.9))
+		var area := Field.disc(1.0, Color(1.0, 0.2, 0.15, 0.25))
+		add_child(ring)
+		add_child(area)
+		_warn_marks.append([ring, area])
+	for i in _warn_marks.size():
+		var pair: Array = _warn_marks[i]
+		var ring: MeshInstance3D = pair[0]
+		var area: MeshInstance3D = pair[1]
+		ring.visible = i < ws.size()
+		area.visible = ring.visible
+		if not ring.visible:
+			continue
+		var w: Dictionary = ws[i]
+		var r: float = w["radius"]
+		var urgency := clampf(1.0 - float(w["t"]) / 1.8, 0.0, 1.0)
+		ring.position = Field.to_world(w["pos"], 0.11)
+		ring.scale = Vector3(r, 0.05, r)
+		area.position = Field.to_world(w["pos"], 0.06)
+		area.scale = Vector3(r, 1.0, r)
+		(area.material_override as StandardMaterial3D).albedo_color = Color(1.0, 0.2, 0.15, 0.15 + 0.35 * urgency)
 
 
 ## Barva hrdiny pro kruhy na bojišti (zesvětlená barva z dat, aby byla vidět na trávě).

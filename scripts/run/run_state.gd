@@ -216,7 +216,10 @@ func returnee_rows(scenario: Dictionary) -> Array:
 		var row := i / per_row
 		var x := c.x + (col - (per_row - 1) / 2.0) * spread
 		var y := c.y + row * spread
-		rows.append([fled[i]["key"], x, y])
+		var rrow: Array = [fled[i]["key"], x, y]
+		if r.has("pod"):
+			rrow.append({"pod": int(r["pod"])})   # vrátí se do skupinky (třeba do tábora velitele)
+		rows.append(rrow)
 	return rows
 
 

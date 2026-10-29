@@ -75,12 +75,15 @@ func _process(_delta: float) -> bool:
 		var plan: Dictionary = (scene.get("sim") as Object).call("suggest_orders")
 		(scene.get("setup") as Dictionary)["orders"] = plan
 		scene.call("_start_battle")
+		if int(scene.get("phase")) == 2:
+			scene.call("_toggle_pause")   # bitva bez rozestavení začíná v pauze
 		scene.set("speed", 1.0)
 		started_at = frame
 	if started_at > 0 and frame > started_at:
 		var sim: Variant = _sim()
 		if bool(scene.get("paused")):
 			scene.call("_resume_pause")
+		sim.call("auto_command")
 		_auto_abilities(sim)
 		_send_rider(sim)
 		_observe(sim)
@@ -154,13 +157,13 @@ func _observe(sim: Variant) -> void:
 			_ok("veteran", is_equal_approx(float(tank.get("maxhp")), 375.0 * 1.15), "tank má %d zdraví místo 375" % int(tank.get("maxhp")))
 			_ok("milosrdenstvi", is_equal_approx(float(knez.get("heal")), 21.0), "kněz léčí %d místo 14" % int(knez.get("heal")))
 			_ok("rychle_ruce", is_equal_approx(float(luc.get("cd")), 1.04), "lučištník střílí každých %.2f s místo 1,30 s" % float(luc.get("cd")))
-			_ok("druhy_najezd", int(jezdec.get("uses")) == 3, "Nájezd má %d použití" % int(jezdec.get("uses")))
+			_ok("druhy_najezd", int(jezdec.get("uses")) == 2, "Nájezd má %d použití" % int(jezdec.get("uses")))
 			var labs: Array = (ui.get("_ability_buttons")["jezdec"] as Node).find_children("*", "Label", true, false)
 			seen["jezdec_label"] = (labs[0] as Label).text if not labs.is_empty() else ""
 			_ok("lovec", is_equal_approx(float(sim.call("_dmg_mult", asasin, _first_ranged(sim))), 1.3), "asasín má proti střelcům ×%.2f útok" % float(sim.call("_dmg_mult", asasin, _first_ranged(sim))))
 		else:
 			_ok("hlasita_vyzva", is_equal_approx(float(sim.call("ability_of", "tank")["radius"]), 9.0), "Výzva má dosah %d m" % int(sim.call("ability_of", "tank")["radius"]))
-			_ok("chudoba", int(asasin.get("uses")) == 3, "Úder ze stínu má %d použití (Slib chudoby)" % int(asasin.get("uses")))
+			_ok("chudoba", int(asasin.get("uses")) == 3, "Úder ze stínu má %d použití (Slib odříkání)" % int(asasin.get("uses")))
 	# ikonky nad hlavou a na kartě
 	var oh: Dictionary = ui.get("_overhead")
 	if oh.has("tank") and not seen.has("icons"):
@@ -261,10 +264,10 @@ func _first_ranged(sim: Variant) -> Variant:
 func _finish(sim: Variant) -> void:
 	var asasin: Variant = sim.call("by_id", "asasin")
 	if set_key == "A":
-		_ok("druhy_najezd (karta)", String(seen.get("jezdec_label", "")).contains("●●●"), "tlačítko na kartě: „%s“" % seen.get("jezdec_label", ""))
+		_ok("druhy_najezd (karta)", String(seen.get("jezdec_label", "")).contains("●●"), "tlačítko na kartě: „%s“" % seen.get("jezdec_label", ""))
 	else:
 		_ok("rozbeh", seen.has("primed"), "jezdec se rozjel k výpadu (dvojnásobný první úder)")
-		_ok("chudoba (sláva)", is_equal_approx(float(asasin.get("glory_earned")), 0.0), "asasín přinesl %d slávy" % int(asasin.get("glory_earned")))
+		_ok("chudoba (léčení)", bool(sim.call("_no_heal", asasin)), "kněz asasína neléčí (Slib odříkání)")
 	for k in ["ohniva_salva", "drtivy_najezd", "ukryt", "pozehnana_zbroj", "ze_stinu"]:
 		var needed: bool = (set_key == "A" and k in ["ohniva_salva", "drtivy_najezd", "ukryt"]) or (set_key == "B" and k in ["pozehnana_zbroj", "ze_stinu"])
 		if needed:

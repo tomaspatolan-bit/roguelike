@@ -13,6 +13,11 @@ Nejnovější nahoře. Každý záznam: datum, kdo hrál, build (větev nebo com
 - Z toho plyne (úkol v plan.md / nápad v napady.md / rozhodnutí):
 ```
 
+## 29.10.2026 – Tom, build `faze2-mapa` (22e78a5), barvy hrdinů a uhýbání
+- Nebavilo / nečitelné: nepřátel je moc, vznikají situace, kdy je spousta lidí na jednom místě, a nefeeluje to dobře (shluky, prolínání).
+- Nápady (Tom): polovina nepřátel, ale každá bitva má svého „bosse“ nebo významnější postavy; skupinky nepřátel potkávat postupně (most → 2 strážci → kemp se zbytkem), tím odpadne plánování kromě obrany; omezit schopnosti pevným počtem a nabíjením místo slávy (léčení 1× za mapu, Nájezd 1×), aby se nešlo po každé skupince doléčit.
+- Z toho plyne: bitva ve fázích se skupinkami, místa kolem hrdiny (nejvýš 3 pěší), schopnosti s pevným počtem, kněz léčí jen v boji, velitelé s ohlášenými schopnostmi, přeladění všech bitev (viz deník rozhodnutí).
+
 ## 29.10.2026 – Tom, build `faze2-mapa` (ffbe96c), reálný čas s výběrem tažením
 - Bavilo: funguje relativně dobře.
 - Nebavilo / nečitelné: jednotky při pohybu procházejí skrz sebe (clipping); asasín po Úderu ze stínu skočí, ale vrátí se a jde útočit odjinud; čáry rozkazů nejsou potřeba, stačí kruh, kam jsem ukázal; hrdinové nejdou rozlišit.
