@@ -56,6 +56,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [x] Kronika rodu na konci běhu (kdo padl, kdo co přísahal, kdo utekl a vrátil se)
   - [x] Bez výběru rodu, meta progrese, ukládání a finální grafiky
 - [ ] 1.8 Playtest běhu: Tom + aspoň jeden hráč mimo nás
+  - Otázka k testu: **používá hráč signál (zastavení času)?** Tom ho za celý běh nepoužil ani jednou. Když ho nepoužije ani hráč mimo nás, signál vymažeme (29.10.2026).
 - [ ] (podle 1.8) Podmíněné instrukce a úmysly nepřátel, jen když postoje na míru nestačí
 **Hotovo, když:** Tom řekne, že bitvy baví hrát opakovaně, a aspoň jeden člověk mimo nás to potvrdí.
 **Brána 1: prošla 29.10.2026** (Tom, odměny vážně zvažoval; hráč mimo nás zatím chybí, doplní se).

@@ -21,3 +21,6 @@ podporuje aspoň jeden pilíř? kolik stojí? řeší problém, který jsme vid�
 | 28.10.2026 | Podmíněné instrukce: pevný slovník (5 podmínek × 4 akce), 1 instrukce na rytíře, 2. slot jako odměna, přísahy platí | Velíš rodu, ne vojákovi | v plánu až podle playtestu běhu (1.8) |
 | 28.10.2026 | Úmysly nepřátel viditelné před bitvou (trasy a podmínky ve stejném slovníku jako hráč), podmínky odhaluje průzkum | Každý run je příběh rodu | v plánu 1.7, průzkum fáze 2 |
 | 2026-10-28 | Přísaha „Jen vpřed“: rytíř smí jen útočný postoj (silnější bonus, ale vyběhne z aury praporu) | Přísaha má cenu | odloženo na fázi 2 (přísahy jako odměny); chce Tom zachovat |
+| 29.10.2026 | Typ bitvy určuje chování oddílu: útok (nepřítel drží pozici, oddíl postupuje k cíli), obrana (držet bod, nepřítel útočí ve vlnách), střet; výchozí chování tříd se řídí typem bitvy | Velíš rodu | Tom navrhl, k rozhodnutí spolu s úkoly hrdinů |
+| 29.10.2026 | Úkoly hrdinů v rozestavení (Zadržet/Prorazit, Zavraždit skupinu, Výpad, Ostřelovat, Doprovázet) a pojmenované skupiny nepřátel s viditelným rozkazem | Velíš rodu | k rozhodnutí spolu s typem bitvy |
+| 29.10.2026 | Mířené Požehnání (kruh jako Salva), větší dosah léčení kněze; přísahy a pasivky se synergií (podle třídy, mezi hrdiny, s úkolem); kněz bez „Nikdy neustoupí“ | Přísaha má cenu | Tom souhlasí, po úkolech |
