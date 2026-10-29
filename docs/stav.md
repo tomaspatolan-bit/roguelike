@@ -3,9 +3,10 @@
 Aktualizováno: 28.10.2026
 
 ## Aktuální cíl
-**Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Další: 2.2 karta stage. Otevřené: playtest s hráčem mimo nás (1.8).
+**Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotový typ bitvy (útok/střet) a mířené Požehnání. Další: první obranná mapa (2.2b), pak instrukce pro hrdiny (2.2c). Otevřené: playtest s hráčem mimo nás (1.8).
 
 ## Hotovo
+- Typ bitvy: v útoku (Brod, elity, boss) oddíl postupuje k cíli a k nepříteli místo čekání, ve střetu (Most) čeká. Typ je vidět na mapě i v bitvě. Požehnání se míří kruhem, kněz léčí do 9 m. Poplach mezi nepřáteli na pozici (`alarm_radius`). Balanc všech 7 scénářů prošel.
 - Mapa aktu 1 (2.1): generovaná mapa 7 pater po 2–3 uzlech, bitvy (4 varianty map), elity (2, odměna 2 ze 4), události (Poutník, Vypálená ves, Zajatý lapka, Lesní kaple), tábor (odpočinek), boss. Zranění se nesou (+20 % po bitvě), sláva do další bitvy nejvýš 50. Pojistka: hrdinové po 25 s od zlomení dobojují sami. Struktura hry v `docs/struktura-hry.md`.
 - Po playtestu běhu: hrdinové bez trasy nekmitají (klidová místa s tolerancí, lučištník couvá s odstupem), kněz nestojí (jde k bojujícímu i přes přechod, když nikdo nepotřebuje léčit, pomáhá v boji), oddíl nechodí za asasínem přes řeku. Schopnost navíc za slávu jen 1× za bitvu, Požehnání se nabíjí 20 s, do další bitvy nejvýš 50 slávy.
 - Zkušební běh (1.7): Most přes řeku → Brod a les → Tábor na Vraní skále (vůdce Hejtman Kuno, smrt vůdce zlomí morálku). Po bitvě odměna 1 ze 3 (pasivka nebo přísaha pro konkrétního hrdinu), padlí zůstanou padlí a nastoupí nástupce bez pasivek, přísahu padlého může převzít hrdina bez přísahy, porušená přísaha zmizí, sláva se přenáší, uprchlíci z bitev 1–2 se vrátí v závěrečné bitvě, prohra = padli všichni, kronika rodu. Opraveny dva paty (lučištník couval donekonečna, kněz, který zbyl sám, utíkal). Testy: 20 auto-běhů 17 vítězných; Tábor 0/40 bez schopností, 40/40 se schopnostmi.

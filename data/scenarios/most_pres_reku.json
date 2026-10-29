@@ -1,5 +1,6 @@
 {
   "_info": "Bitva Most přes řeku. Souřadnice v metrech: x doprava, y dopředu (k nepříteli). Řeka vede napříč mezi river.y0 a y1, přejít jde jen přechody (crossings: x0–x1, kind most/brod/lavka, speed = násobek rychlosti). forests = lesy (obdélník, speed, path = stezka x0–x1 bez zpomalení). deploy.<rytíř>.route = výchozí trasa. optional_task.protect = id hrdiny, nebo 'all' (nikdo nesmí padnout). enemy_morale = kdy se nepřítel zlomí (podíl ztrát) a kam prchá (y okraje bojiště).",
+  "mode": "stret",
   "name": "Most přes řeku",
   "subtitle": "Lapkové z Hraběcího lesa · 11 pěšáků, 3 střelci",
   "stage_label": "Akt 1",

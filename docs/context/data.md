@@ -22,6 +22,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 12. **Terén ve scénáři:** `river` {`y0`, `y1`, `crossings`: [{`x0`, `x1`, `kind`: most/brod/lavka, `speed`}]}, `forests`: [{`x0`, `x1`, `y0`, `y1`, `speed`, `path`: [x0, x1]}], volitelně `trees`, `rocks`. Rozestavení: `deploy.<klíč>` = `pos` (+ volitelně `route`).
 13. **Nový scénář = nový soubor** v `data/scenarios/` a zápis do `index.json` (test balancu jede přes všechny). Scénář má `win_title`, `optional_task.protect` je id hrdiny nebo `"all"`, nebo `optional_task.kill` (klíč nepřítele). **Varianta** má `base` (klíč základního scénáře) a přepisuje jen svá pole (`Sim.read_scenario`). `elite: true` = elita (stačí 20/40 výher se schopnostmi). `returnees` = kde se vrátí uprchlíci.
 17. **Akt** (`akt_1.json`): `name`, `floors`, `width_min`/`width_max`, `first_floor`, `last_floor`, `weights` typů uzlů, `elite_from`, `battles`, `elites`, `boss`, `events`, `regen`, `camp_heal`, `offers`, `elite_offers`, `elite_picks`.
+19. **Typy bitev** (`battle_modes` v `units.json`): `utok` (`leaders`, `follow`, `cohesion`), `stret`, `obrana`; `name` a `desc` vidí hráč. Scénář: `mode` (výchozí `stret`), u útoku volitelně `objective` [x, y] (kam oddíl postupuje nejdřív) a `alarm_radius` (jak daleko se šíří poplach mezi nepřáteli na pozici).
 18. **Události** (`udalosti.json`): `name`, `text`, `options` [{`label`, `hint`, `effects`, `text`}]; efekty `glory`, `heal`/`wound` {`who`: all/random/wounded, `frac`}, `gift` (passive/oath), `fled` {klíč nepřítele: počet}. Nová událost = jen data; nový druh efektu = kód v `run_state.gd`.
 14. **Vlastnosti** (`traits`): `name`, `desc` a efekty `never_breaks`, `on_break`, `desperate_dmg_bonus`. Jízda: `mounted`; kopí: `dmg_vs_mounted`; terén: `ignores`.
 15. **Rozkazy nepřátel ve scénáři:** řádek `[typ, x, y, (vlastnosti), (rozkazy)]`, rozkazy `{"hold": true, "engage": m, "hold_time": s}`.
@@ -31,6 +32,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 - Při exportu hry je potřeba přidat `*.json` do filtru exportovaných souborů (zatím neřešeno).
 
 ## Historie významných změn
+- 29.10.2026: `battle_modes`, `mode` u scénářů (Most a Most pod palbou střet, ostatní útok), `objective` (Brod: levý brod), `alarm_radius`; Požehnání mířené (`target: point`, `range` 10, `radius` 4), `heal_range` kněze 9; Brod +1 střelec, Brod elita bez kopiníků na lávce, Garda −1 kopiník, boss +2 lapkové a Hejtman 480 zdraví.
 - 29.10.2026: akt 1 (`akt_1.json`), události (`udalosti.json`), varianty scénářů přes `base` (Most pod palbou, Brod za svítání, elity Lapkovská garda a Posádka Černého brodu), `successors` přesunuty do rodu (`run_zkusebni.json` zrušen), `morale.auto_charge_after` (25 s).
 - 29.10.2026: `glory.extra_uses_max` (1), `glory.carry_max` (50), `cooldown` u schopnosti (Požehnání 20 s), chování `healer.defend`/`assist`, `assassin.roams`.
 - 28.10.2026: `run_zkusebni.json` (pořadí bitev, počet nabídek, jména nástupců), scénář `zaverecna_bitva` (Tábor na Vraní skále: `returnees`, úkol `kill`), nepřítel `vudce` (Hejtman Kuno, `leader`).

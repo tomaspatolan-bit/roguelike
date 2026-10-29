@@ -1,6 +1,7 @@
 {
   "_info": "Varianta mostu: terén a rozestavení z base, jiní nepřátelé. Víc střelců za řekou, méně pěších.",
   "base": "most_pres_reku",
+  "mode": "stret",
   "name": "Most pod palbou",
   "subtitle": "Lapkové se střelci na druhém břehu · 9 pěšáků, 5 střelců",
   "win_title": "Most je volný",

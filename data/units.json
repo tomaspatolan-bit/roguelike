@@ -2,7 +2,7 @@
   "_info": "Statistiky jednotek. hp = zdraví, dmg = poškození za úder, reach = dosah útoku v m, speed = m/s, cd = prodleva mezi útoky v s, armor = podíl pohlceného poškození, radius = poloměr těla v m, palette_row = řádek paletové textury (barva látky). target_priority = koho rytíř přednostně napadá ('ranged' = střelce). mounted = jízda (kopiníci proti ní dávají dmg_vs_mounted). ignores = terén, který jednotku nezpomaluje ('les'). behavior = výchozí chování třídy (behaviors), ability = schopnost (abilities).",
   "knights": {
     "tank": {"name": "Sir Bořek", "role": "Tank", "hp": 375, "dmg": 11, "reach": 1.5, "speed": 2.2, "cd": 1.1, "armor": 0.35, "radius": 0.45, "palette_row": 1, "color": "#4d66a6", "behavior": "frontline", "ability": "vyzva"},
-    "knez": {"name": "Otec Jan", "role": "Kněz", "hp": 185, "dmg": 5, "reach": 1.4, "speed": 2.3, "cd": 1.2, "armor": 0.05, "radius": 0.4, "palette_row": 3, "color": "#d9d1b3", "heal": 14, "heal_cd": 2.5, "heal_range": 6, "behavior": "healer", "ability": "pozehnani"},
+    "knez": {"name": "Otec Jan", "role": "Kněz", "hp": 185, "dmg": 5, "reach": 1.4, "speed": 2.3, "cd": 1.2, "armor": 0.05, "radius": 0.4, "palette_row": 3, "color": "#d9d1b3", "heal": 14, "heal_cd": 2.5, "heal_range": 9, "behavior": "healer", "ability": "pozehnani"},
     "lucistnik": {"name": "Matěj", "role": "Lučištník", "hp": 165, "dmg": 9, "reach": 9.0, "speed": 2.6, "cd": 1.3, "armor": 0.05, "radius": 0.4, "palette_row": 2, "color": "#4d8c4d", "ranged": true, "behavior": "archer", "ability": "salva"},
     "jezdec": {"name": "Sir Radek", "role": "Jezdec", "hp": 285, "dmg": 17, "reach": 1.8, "speed": 5.0, "cd": 1.4, "armor": 0.2, "radius": 0.75, "palette_row": 4, "color": "#bf8c26", "mounted": true, "behavior": "rider", "ability": "najezd"},
     "asasin": {"name": "Kryštof", "role": "Asasín", "hp": 170, "dmg": 18, "reach": 1.3, "speed": 3.4, "cd": 0.85, "armor": 0.1, "radius": 0.38, "palette_row": 5, "color": "#6a5a8c", "target_priority": "ranged", "ignores": ["les"], "behavior": "assassin", "ability": "uder"}
@@ -11,7 +11,13 @@
     "lapka": {"name": "Lapka", "role": "Lapka", "hp": 120, "dmg": 7, "reach": 1.3, "speed": 2.5, "cd": 1.1, "armor": 0.0, "radius": 0.4, "on_break": "desperate", "traits": ["zoufalec"]},
     "kopinik": {"name": "Kopiník", "role": "Kopiník", "hp": 150, "dmg": 8, "reach": 2.2, "speed": 2.2, "cd": 1.3, "armor": 0.15, "radius": 0.4, "on_break": "desperate", "dmg_vs_mounted": 2.0, "traits": ["fanatik"]},
     "strelec": {"name": "Střelec", "role": "Střelec", "hp": 90, "dmg": 5, "reach": 8.0, "speed": 2.4, "cd": 1.6, "armor": 0.0, "radius": 0.4, "ranged": true, "on_break": "flee"},
-    "vudce": {"name": "Hejtman Kuno", "role": "Vůdce", "hp": 400, "dmg": 12, "reach": 1.6, "speed": 2.3, "cd": 1.2, "armor": 0.3, "radius": 0.5, "on_break": "desperate", "leader": true, "traits": ["fanatik"]}
+    "vudce": {"name": "Hejtman Kuno", "role": "Vůdce", "hp": 480, "dmg": 12, "reach": 1.6, "speed": 2.3, "cd": 1.2, "armor": 0.3, "radius": 0.5, "on_break": "desperate", "leader": true, "traits": ["fanatik"]}
+  },
+  "battle_modes": {
+    "_info": "Typ bitvy (scenario.mode) určuje, jak se oddíl chová, když nikdo nebojuje. utok = nepřítel drží pozice a sám nepřijde: vůdce postupu (podle leaders) jde k nejbližšímu nepříteli, ostatní za ním do follow m, vůdce počká, když je střed oddílu dál než cohesion m. stret = oba jdou proti sobě, oddíl čeká na nepřítele. obrana = oddíl drží místo (zatím jako stret).",
+    "utok": {"name": "Útok", "desc": "Nepřítel drží pozice. Oddíl postupuje k němu.", "leaders": ["frontline", "rider"], "follow": 3.0, "cohesion": 6.0},
+    "stret": {"name": "Střet", "desc": "Nepřítel jde proti vám. Oddíl ho čeká a bojuje s tím, kdo přijde."},
+    "obrana": {"name": "Obrana", "desc": "Držíte místo, nepřítel útočí. Oddíl nevybíhá."}
   },
   "behaviors": {
     "_info": "Výchozí chování tříd hrdinů. _common: help_window = jak dlouho (s) po útoku nebo zásahu se hrdina počítá jako bojující; decided_ratio = když síla jedné strany klesne pod tento podíl síly druhé, hrdinové dobojují sami.",
@@ -25,7 +31,7 @@
   "abilities": {
     "_info": "Schopnosti hrdinů. uses = použití za bitvu (obnova po bitvě), target = none / point (místo na zemi) / enemy (nepřítel), range = dosah cílení v m. Další čísla podle schopnosti.",
     "vyzva": {"name": "Výzva", "desc": "Na 4 s přitáhne útoky nepřátel do 6 m a dostává o 50 % menší zranění.", "uses": 2, "target": "none", "radius": 6.0, "duration": 4.0, "damage_taken": 0.5},
-    "pozehnani": {"name": "Požehnání", "desc": "Vyléčí všechny hrdiny do 8 m o 30 % jejich zdraví.", "uses": 1, "cooldown": 20.0, "target": "none", "radius": 8.0, "heal_frac": 0.3},
+    "pozehnani": {"name": "Požehnání", "desc": "Vyléčí hrdiny v kruhu (4 m) o 30 % jejich zdraví. Míří se do 10 m od kněze.", "uses": 1, "cooldown": 20.0, "target": "point", "range": 10.0, "radius": 4.0, "heal_frac": 0.3},
     "salva": {"name": "Salva", "desc": "5 šípů do kruhu o poloměru 2 m na vybrané místo, každý za 9.", "uses": 2, "target": "point", "range": 12.0, "radius": 2.0, "arrows": 5, "dmg": 9},
     "najezd": {"name": "Nájezd", "desc": "Projede k vybranému místu (nejvýš 10 m), nepřátele v cestě zasáhne za 17 a omráčí na 1,5 s.", "uses": 2, "target": "point", "range": 10.0, "land": true, "dmg": 17, "stun": 1.5, "width": 1.0, "speed_mult": 3.0},
     "uder": {"name": "Úder ze stínu", "desc": "Skočí za vybraného nepřítele (nejvýš 8 m) a zasadí mu trojnásobný úder.", "uses": 2, "target": "enemy", "range": 8.0, "mult": 3.0}

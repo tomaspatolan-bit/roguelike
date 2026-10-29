@@ -65,6 +65,9 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
 ## Fáze 2 – Jeden run
 Cíl: celý krátký run od výběru rodu po bosse.
 - [x] 2.1 Mapa aktu: uzly bitva, elita, událost, tábor, boss (kovář odložen, až bude výbava); zranění se nesou
+- [x] 2.2a Typ bitvy (útok, střet, obrana) řídí výchozí chování oddílu; mířené Požehnání
+- [ ] 2.2b První obranná mapa (vlny)
+- [ ] 2.2c Instrukce (úkoly) pro hrdiny: Zadržet/Prorazit, Zavraždit skupinu, Výpad, Ostřelovat, Doprovázet; pojmenované skupiny nepřátel s viditelným rozkazem
 - [ ] 2.2 Karta stage a volitelné úkoly z dat
 - [ ] 2.3 Odměny po stagi: pasivky, přísahy, nové schopnosti (2. a 3. slot u hrdiny)
 - [ ] 2.4 Více pasivek, přísah a schopností (obsah)

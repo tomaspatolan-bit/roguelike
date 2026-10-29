@@ -2,6 +2,13 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 29.10.2026 – Typ bitvy řídí chování oddílu
+- **Výchozí chování se řídí typem bitvy:** útok (nepřítel drží pozice, oddíl postupuje k cíli a k nepříteli), střet (oba jdou proti sobě, oddíl čeká), obrana (držíte místo; zatím jako střet, první obranná mapa přijde). Důvod: chování „reaguj na toho, kdo přijde“ proti nepříteli na pozici vedlo k patu.
+- **Pak instrukce pro hrdiny** (úkoly), společné pro všechny typy bitev, případně zvlášť pro typ. Až po typech bitev.
+- **Požehnání je mířené** (kruh 4 m do 10 m od kněze), léčení kněze dosáhne na 9 m.
+- **Signál** zůstává do playtestu s hráčem mimo nás; když ho nepoužije, vymažeme ho (Tom ho nepoužil ani jednou).
+- Pasivky a přísahy dostanou synergii (podle třídy, mezi hrdiny, s úkolem); kněz „Nikdy neustoupí“ nepotřebuje.
+
 ## 29.10.2026 – Mapa aktu (2.1)
 - **Zranění se nesou mezi bitvami** (po bitvě +20 % zdraví samo, tábor vyléčí vše). Mění pravidlo zkušebního běhu, že se zranění vyléčí; jinak by tábor neměl smysl.
 - **Kovář odložen**, dokud nebude výbava.

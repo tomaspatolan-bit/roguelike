@@ -1,6 +1,8 @@
 {
   "_info": "Varianta brodu: terén a rozestavení z base. Zrcadlově: kopiníci hlídají levý brod, lapkové pravý, drží pozice kratší dobu (20 s).",
   "base": "brod_a_les",
+  "alarm_radius": 14,
+  "mode": "utok",
   "name": "Brod za svítání",
   "subtitle": "Lapkové a kopiníci u Černého brodu, tentokrát obráceně · 9 pěšáků, 4 kopiníci, 3 střelci",
   "win_title": "Brod je náš",

@@ -88,7 +88,8 @@ func _tooltip(n: Dictionary) -> String:
 	match t:
 		"bitva", "elita", "boss":
 			var sc: Dictionary = run.scenario_info(String(n["scenario"]))
-			return "%s\n%s\nÚkol: %s" % [sc.get("name", ""), sc.get("subtitle", ""), sc.get("optional_task", {}).get("text", "")]
+			var md: Dictionary = run.units_data.get("battle_modes", {}).get(String(sc.get("mode", "stret")), {})
+			return "%s (%s)\n%s\nÚkol: %s" % [sc.get("name", ""), md.get("name", ""), sc.get("subtitle", ""), sc.get("optional_task", {}).get("text", "")]
 		"udalost":
 			return "Událost: %s" % run.events_data[n["event"]]["name"]
 		"tabor":

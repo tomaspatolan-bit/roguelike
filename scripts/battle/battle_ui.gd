@@ -413,6 +413,9 @@ func _fill_info(sim: Sim, deploy: bool, scenario_id: String) -> void:
 	info_box.add_child(_label(sc["name"], 24 if deploy else 20))
 	if deploy:
 		info_box.add_child(_label(sc["subtitle"], 13, MUTED, true))
+	var md: Dictionary = sim.units_data.get("battle_modes", {}).get(sim.mode, {})
+	if not md.is_empty():
+		info_box.add_child(_label("%s: %s" % [md.get("name", ""), md.get("desc", "")], 13, STEEL, true))
 	var task: Dictionary = sc["optional_task"]
 	var tb := PanelContainer.new()
 	var st := _box(Color(GLORY, 0.10), 6, 8)

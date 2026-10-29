@@ -30,6 +30,7 @@ func _init() -> void:
 	_test_decided(data)
 	for sid: String in Sim.scenario_list():
 		_test_calm(sid)
+		_test_mode(sid)
 	_test_oath_and_signal(data)
 	_test_stand_firm(data)
 	var brod := Sim.load_data("brod_a_les")
@@ -118,7 +119,8 @@ func _test_abilities(data: Dictionary) -> void:
 	var luc := s.by_id("lucistnik")
 	luc.pos = knez.pos + Vector2(2, 0)
 	luc.hp = 50.0
-	_check(s.use_ability("knez") and luc.hp > 50.0 + luc.maxhp * 0.29, "Požehnání léčí hrdiny v dosahu")
+	_check(not s.use_ability("knez", knez.pos + Vector2(0, 30)), "Požehnání nejde mimo dosah")
+	_check(s.use_ability("knez", luc.pos) and luc.hp > 50.0 + luc.maxhp * 0.29, "Požehnání léčí hrdiny v mířeném kruhu")
 	_check(not s.can_use_ability("knez") or s.glory >= s.ability_cost("knez"), "kněz má jen jedno použití")
 
 	var target := Vector2(luc.pos.x, luc.pos.y + 8.0)
@@ -174,13 +176,40 @@ func _test_glory_extra_use(data: Dictionary) -> void:
 	# Požehnání se po použití nabíjí
 	var s2 := Sim.new(data, Sim.default_setup(data, 0), 57)
 	s2.glory = 100.0
-	_check(s2.use_ability("knez"), "Požehnání jde použít")
+	_check(s2.use_ability("knez", s2.by_id("knez").pos), "Požehnání jde použít")
 	_check(not s2.can_use_ability("knez"), "hned znovu ne (nabíjí se)")
 	var cd: float = s2.ability_of("knez").get("cooldown", 0.0)
 	while s2.t < cd + 0.5 and s2.over == "":
 		s2.step(DT)
 		s2.events.clear()
 	_check(s2.can_use_ability("knez"), "po nabití jde Požehnání za slávu znovu")
+
+
+## Typ bitvy: v útoku oddíl postupuje k nepříteli (nečeká, až přijde), ve střetu drží místo.
+func _test_mode(sid: String) -> void:
+	var data := Sim.load_data(sid)
+	var s := Sim.new(data, Sim.default_setup(data, 0), 3)
+	var start := s.by_id("tank").pos
+	var nearest0 := _nearest_foe_dist(s, start)
+	var first_contact := -1.0
+	while s.over == "" and s.t < 20.0:
+		s.step(DT)
+		s.events.clear()
+		for u in s.living(Sim.SIDE_KNIGHT):
+			if first_contact < 0.0 and s.t - u.combat_t < 0.2 and u.id != "asasin":
+				first_contact = s.t
+	var tank := s.by_id("tank")
+	if s.mode == "utok":
+		var got := _nearest_foe_dist(s, tank.pos)
+		print("[%s] útok: tank k nejbližšímu nepříteli %.1f → %.1f m, první kontakt %.1f s" % [sid, nearest0, got, first_contact])
+		_check(first_contact >= 0.0 and first_contact < 20.0, "[%s] v útoku dojde ke kontaktu do 20 s (nikdo nestojí)" % sid)
+
+
+func _nearest_foe_dist(s: Sim, p: Vector2) -> float:
+	var best := INF
+	for f in s.living(Sim.SIDE_FOE):
+		best = minf(best, f.pos.distance_to(p))
+	return best
 
 
 ## Nikdo nekmitá: hrdina v klidu nestřídá krok a stání pořád dokola, kněz nestojí celou bitvu.

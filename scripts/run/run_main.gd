@@ -174,7 +174,8 @@ func _node_info(id: String) -> String:
 			var reward := "Odměna: 2 z %d nabídek." % int(run.act.get("elite_offers", 4)) if t == "elita" else "Odměna: 1 z %d nabídek." % int(run.act.get("offers", 3))
 			if t == "boss":
 				reward = "Boss aktu."
-			return "%s: %s\n%s\nÚkol: %s\n%s%s" % [run.NODE_NAMES[t], sc.get("name", ""), sc.get("subtitle", ""), sc.get("optional_task", {}).get("text", ""), reward, extra]
+			var md: Dictionary = run.units_data.get("battle_modes", {}).get(String(sc.get("mode", "stret")), {})
+			return "%s: %s\n%s: %s\n%s\nÚkol: %s\n%s%s" % [run.NODE_NAMES[t], sc.get("name", ""), md.get("name", ""), md.get("desc", ""), sc.get("subtitle", ""), sc.get("optional_task", {}).get("text", ""), reward, extra]
 		"udalost":
 			return "Událost: %s\nRozhodnutí s cenou." % run.events_data[n["event"]]["name"]
 		"tabor":

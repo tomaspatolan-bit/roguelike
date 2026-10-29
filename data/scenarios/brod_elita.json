@@ -2,8 +2,10 @@
   "_info": "Elita: brod se silnější posádkou (víc kopiníků a střelců). Terén z base.",
   "base": "brod_a_les",
   "elite": true,
+  "alarm_radius": 10,
+  "mode": "utok",
   "name": "Posádka Černého brodu",
-  "subtitle": "Elita · posádka drží oba brody i lávku · 8 pěšáků, 6 kopiníků, 4 střelci",
+  "subtitle": "Elita · posádka drží oba brody i lávku · 10 pěšáků, 4 kopiníci, 4 střelci",
   "win_title": "Černý brod padl",
   "optional_task": {"text": "Sir Radek nesmí padnout.", "reward": "vzácné znamení", "protect": "jezdec"},
   "enemies": [
@@ -12,7 +14,7 @@
     ["kopinik", 7.0, 9.6, {"hold": true, "engage": 4.0, "hold_time": 30}], ["kopinik", 8.5, 9.6, {"hold": true, "engage": 4.0, "hold_time": 30}], ["kopinik", 10.0, 9.6, {"hold": true, "engage": 4.0, "hold_time": 30}],
     ["lapka", 7.8, 11.2, {"hold": true, "engage": 4.0, "hold_time": 30}], ["lapka", 9.2, 11.2, ["zbabelec"], {"hold": true, "engage": 4.0, "hold_time": 30}],
     ["lapka", -8.0, 12.5, {"hold": true, "engage": 4.5, "hold_time": 30}], ["kopinik", 8.4, 12.0, {"hold": true, "engage": 4.0, "hold_time": 30}],
-    ["kopinik", -0.8, 10.0, {"hold": true, "engage": 3.5, "hold_time": 30}], ["kopinik", 0.8, 10.0, {"hold": true, "engage": 3.5, "hold_time": 30}],
+    ["lapka", -0.8, 10.0, {"hold": true, "engage": 3.5, "hold_time": 30}], ["lapka", 0.8, 10.0, {"hold": true, "engage": 3.5, "hold_time": 30}],
     ["strelec", -3.0, 9.0, {"hold": true, "hold_time": 30}], ["strelec", 1.5, 9.0, {"hold": true, "hold_time": 30}], ["strelec", 3.5, 9.0, {"hold": true, "hold_time": 30}], ["strelec", -1.5, 13.5, {"hold": true, "hold_time": 30}]
   ]
 }

@@ -2,13 +2,15 @@
   "_info": "Elita: most hlídá lapkovská garda (kopiníci fanatici drží předmostí). Terén z base.",
   "base": "most_pres_reku",
   "elite": true,
+  "alarm_radius": 10,
+  "mode": "utok",
   "name": "Lapkovská garda",
-  "subtitle": "Elita · garda kopiníků drží most, za ní lapkové a střelci · 9 pěšáků, 4 kopiníci, 3 střelci",
+  "subtitle": "Elita · garda kopiníků drží most, za ní lapkové a střelci · 9 pěšáků, 3 kopiníci, 3 střelci",
   "win_title": "Garda je rozprášena",
   "optional_task": {"text": "Nikdo nepadne.", "reward": "vzácné znamení", "protect": "all"},
   "enemies": [
     ["kopinik", -1.0, 9.0, {"hold": true, "engage": 4.0, "hold_time": 25}], ["kopinik", 1.0, 9.0, {"hold": true, "engage": 4.0, "hold_time": 25}],
-    ["kopinik", -2.5, 9.6, {"hold": true, "engage": 4.0, "hold_time": 25}], ["kopinik", 2.5, 9.6, {"hold": true, "engage": 4.0, "hold_time": 25}],
+    ["kopinik", 2.5, 9.6, {"hold": true, "engage": 4.0, "hold_time": 25}],
     ["lapka", -3.0, 11.5], ["lapka", -1.5, 11.0], ["lapka", 0.0, 11.7], ["lapka", 1.5, 11.0], ["lapka", 3.0, 11.5],
     ["lapka", -2.0, 12.8], ["lapka", 2.0, 12.8], ["lapka", -4.5, 12.3], ["lapka", 4.5, 12.3],
     ["strelec", -2.0, 14.0], ["strelec", 0.0, 14.4], ["strelec", 2.0, 14.0]
