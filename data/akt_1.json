@@ -1,0 +1,20 @@
+{
+  "_info": "Akt 1 běhu. Mapa: floors pater, na každém width_min–width_max uzlů, nahoře boss. Typ uzlu: bitva, elita, udalost, tabor (boss je vždy nahoře). first_floor/last_floor = typ celého patra (první patro samé bitvy, poslední před bossem tábor). weights = váhy typů na ostatních patrech, elite_from = nejnižší patro s elitou. battles/elites = klíče scénářů (bere se postupně z promíchaného seznamu), boss = scénář bosse, events = klíče z udalosti.json. regen = kolik zdraví (podíl) si hrdina doléčí po bitvě sám, camp_heal = kolik doléčí tábor. Elita: elite_offers nabídek, elite_picks výběrů.",
+  "name": "Hraběcí les",
+  "floors": 7,
+  "width_min": 2,
+  "width_max": 3,
+  "first_floor": "bitva",
+  "last_floor": "tabor",
+  "weights": {"bitva": 5, "elita": 2, "udalost": 3, "tabor": 1},
+  "elite_from": 3,
+  "battles": ["most_pres_reku", "brod_a_les", "most_pod_palbou", "brod_za_svitani"],
+  "elites": ["most_garda", "brod_elita"],
+  "boss": "zaverecna_bitva",
+  "events": ["poutnik", "vypalena_ves", "zajatec", "kaple"],
+  "regen": 0.2,
+  "camp_heal": 1.0,
+  "offers": 3,
+  "elite_offers": 4,
+  "elite_picks": 2
+}

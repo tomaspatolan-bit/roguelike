@@ -1,6 +1,7 @@
 extends SceneTree
-## Projde zkušební běh přes obrazovky: start → bitva → tábor (dědictví, odměna) → … → kronika.
-## Bitvy se hrají automaticky (schopnosti podle rady), odměna se bere první.
+## Projde běh přes obrazovky: start → mapa → uzly (bitva, elita, událost, tábor) → … → boss → kronika.
+## Cesta: na každém patře první dostupný uzel, ale přednostně typ, který ještě nebyl (ať se ukážou všechny obrazovky).
+## Bitvy se hrají automaticky (schopnosti podle rady), odměna a volba v události se berou první.
 ## Spuštění (s oknem, kvůli snímkům):
 ##   godot --path . --script res://tests/screenshot_run.gd -- <složka pro snímky>
 
@@ -10,6 +11,10 @@ var frame := 0
 var wait := 0
 var shots := {}
 var battles := 0
+var seen := {}
+var step := 0
+var map_pending := false
+const Run := preload("res://scripts/run/run_state.gd")
 
 
 func _init() -> void:
@@ -33,7 +38,7 @@ func _shot(file_name: String) -> void:
 
 func _process(_delta: float) -> bool:
 	frame += 1
-	if frame > 60 * 60 * 6:
+	if frame > 60 * 60 * 12:
 		print("CHYBA: běh nedoběhl včas")
 		return true
 	if wait > 0:
@@ -41,10 +46,30 @@ func _process(_delta: float) -> bool:
 		return false
 	var run: Variant = scene.get("run")
 	var battle: Variant = scene.get("battle")
-	if frame == 20:
-		_shot("01_start.png")
+	# napřed obrazovka události (na náhodné cestě nemusí být): podvržený běh s uzlem události
+	if frame == 10:
+		_shot("00_start.png")
+		var r := Run.new(21)
+		for n: Dictionary in r.map["nodes"].values():
+			if n["type"] == "udalost":
+				r.node_id = n["id"]
+				break
+		scene.set("run", r)
+		scene.call("show_event")
+		return false
+	if frame == 16:
+		_shot("00_udalost.png")
+		var r2: Variant = scene.get("run")
+		scene.set("_chron_mark", (r2.get("chronicle") as Array).size())
+		r2.call("event_choose", 0)
+		scene.call("show_event_result")
+		return false
+	if frame == 22:
+		_shot("00_udalost_vysledek.png")
 		scene.call("start_run")
-		wait = 30
+		wait = 20
+		return false
+	if frame < 22:
 		return false
 	if run == null:
 		return false
@@ -52,28 +77,60 @@ func _process(_delta: float) -> bool:
 		_drive_battle(battle)
 		return false
 	if String(run.get("over")) != "":
-		_shot("09_kronika.png")
-		print("Běh skončil: %s, bitev %d, záznamů v kronice %d" % [run.get("over"), battles, (run.get("chronicle") as Array).size()])
+		_shot("99_kronika.png")
+		print("Běh skončil: %s, bitev %d, uzlů %d, záznamů v kronice %d" % [run.get("over"), battles, (run.get("path") as Array).size(), (run.get("chronicle") as Array).size()])
+		print("Typy uzlů na cestě: %s" % [seen.keys()])
 		print("VÝSLEDEK: OK")
 		return true
-	# tábor
-	var n: int = run.get("stage")
-	if bool(run.call("has_legacy")):
-		_shot("%02d_tabor_dedictvi.png" % (n * 2))
-		var c: Array = run.call("legacy_candidates")
-		run.call("resolve_legacy", c[0] if not c.is_empty() else "")
-		scene.call("show_camp")
+	step += 1
+	var t: String = run.call("node_type")
+	# po bitvě: dědictví a odměna
+	if run.call("is_battle_node") and not bool(run.call("node_finished")):
+		if bool(run.call("has_legacy")):
+			_shot("%02d_dedictvi.png" % step)
+			var c: Array = run.call("legacy_candidates")
+			run.call("resolve_legacy", c[0] if not c.is_empty() else "")
+			scene.call("show_after_battle")
+		else:
+			_shot("%02d_odmena_%s.png" % [step, t])
+			run.call("pick_offer", 0)
+			scene.call("show_after_battle")
 		wait = 10
 		return false
-	var offers: Array = run.call("offers")
-	if not offers.is_empty():
-		_shot("%02d_tabor_odmena.png" % (n * 2 + 1))
-		run.call("pick_offer", 0)
-		scene.call("show_camp")
+	if t == "udalost" and not bool(run.get("event_done")):
+		_shot("%02d_udalost.png" % step)
+		var opts: Array = run.call("event")["options"]
+		for i in opts.size():
+			if run.call("event_option_problem", i) == "":
+				run.call("event_choose", i)
+				break
+		scene.call("show_event_result")
 		wait = 10
 		return false
-	_shot("%02d_tabor_pred_bitvou.png" % (n * 2 + 1))
-	scene.call("_start_battle")
+	if t == "udalost":
+		_shot("%02d_udalost_vysledek.png" % step)
+	if t == "tabor" and not bool(run.get("camp_done")):
+		_shot("%02d_tabor.png" % step)
+		run.call("camp_rest")
+		scene.call("show_campfire")
+		wait = 10
+		return false
+	# mapa a volba dalšího uzlu (snímek až po vykreslení)
+	if not map_pending:
+		scene.call("show_map")
+		map_pending = true
+		wait = 6
+		return false
+	map_pending = false
+	_shot("%02d_mapa.png" % step)
+	var av: Array = run.call("available")
+	var pick: String = av[0]
+	for id: String in av:
+		if not seen.has(run.call("node_type", id)):
+			pick = id
+			break
+	seen[run.call("node_type", pick)] = true
+	scene.call("go_to", pick)
 	wait = 30
 	return false
 

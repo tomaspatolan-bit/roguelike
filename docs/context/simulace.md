@@ -20,13 +20,13 @@ Celá pravidla bitvy bez grafiky. Scéna i testy ji jen volají. Když jde něco
 11. **Žádný pat:** každá bitva musí skončit. Nepřátelští střelci postupují na 60 % dostřelu, nepřátelé na pozici mají `hold_time`.
 12. **Balanc každého scénáře v `index.json`:** bez schopností vyhraje nejvýš čtvrtina bitev, se schopnostmi (automatické hraní podle `ability_hint`) aspoň tři čtvrtiny, bitva trvá 30–180 s.
 13. **Morálka nepřátel:** po ztrátě podílu `break_losses` jednotek (padlí i uprchlí) se nepřítel zlomí jednou: `flee` prchá k `flee_y` (`fled`, `hp = 0`, ne smrt), `desperate` útočí silněji. Vlastnosti (`traits`): `never_breaks`, `on_break`, `desperate_dmg_bonus`.
-14. **Dobojování:** po zlomení morálky smí hráč jednou dát Do boje! (`can_charge`, `charge_all`), všichni hrdinové útočí. Pojistka `decided` (síla pod `decided_ratio`), ve prospěch hrdinů jen dokud morálka není zlomená.
+14. **Dobojování:** po zlomení morálky smí hráč jednou dát Do boje! (`can_charge`, `charge_all`), všichni hrdinové útočí. Když ho hráč nedá do `morale.auto_charge_after` s (`broken_t`), hrdinové dobojují sami (pojistka proti patu, kdy zoufalec uvízl u břehu). Pojistka `decided` (síla pod `decided_ratio`), ve prospěch hrdinů jen dokud morálka není zlomená.
 15. **Trasy** (`set_route`, jen při `t == 0`, nejvýš 4 body, body ve vodě se zahazují): na trase hrdina bojuje jen s nepřítelem do `reach + 1 m`, na konci se vrátí k výchozímu chování. Rozkaz přesunu (`order_move`, při signálu) = hrdina drží místo (`holding`), dokud nepřijde Do boje! nebo `release`. Rozkaz, Do boje!, rozhodnutá bitva a Nájezd trasu ruší.
 16. **Nepřátelé** cílí nejbližšího hrdinu; kdo je v dosahu Výzvy, útočí na tanka. Omráčený nepřítel nic nedělá. Nepřítel na pozici (`hold`): střelec střílí z místa, pěšák vyrazí jen do `engage` m; zasažený pěšák uvolní skupinu do 5 m.
 
 ## Rozhraní, na které spoléhá scéna a testy
 - Stav: `units`, `projectiles`, `zones`, `grudges`, `glory`, `signals`, `signals_used`, `abilities_used`, `foes_broken`, `charging`, `decided`, `task_ok`, `over` ("", "win", "lose"), `t`, `events`.
-- Setup: `{"signals", "pos", "routes", "passives"}` (bez `passives` = `start_passives` rodu).
+- Setup: `{"signals", "pos", "routes", "passives"}` (bez `passives` = `start_passives` rodu), z běhu navíc `glory`, `names`, `hp` (podíl zdraví podle třídy), `extra_enemies`. Výsledek pro běh: `result()` (`dead`, `fled`, `glory`, `glory_by`, `oaths_broken`, `task_ok`, `hp`). Statické `read_scenario(klíč)` skládá varianty s `base`.
 - Dotazy: `knights()`, `living(side)`, `by_id()`, `can_signal()`, `is_retreat()`, `oath_of()`, `has_oath()`, `behavior_name()`, `behavior_desc()`, `ability_of()`, `ability_cost()`, `can_use_ability()`, `ability_target()`, `ability_target_problem()`, `ability_hint()`, `passives_of()`, `passives_for()`, `passive_problem()`, `oaths_broken()`, `order_problem()`, `can_charge()`, `power()`, `terrain_speed()`, `route_problem()`, `on_route()`, `has_trait()`; statické `load_data(klíč)`, `scenario_list()`, `default_setup()`, `simplify_route()`.
 - Příkazy: `step(dt)`, `use_signal()`, `use_ability(id, cíl)` (vrací bool), `order_move()` (vrací bool), `release()`, `charge_all()`, `set_route()`, `set_passive()`, `break_oath(id)`.
 - Události (`events`, scéna je po zpracování maže): `log`, `death`, `fled`, `decided`, `heal`, `shoot`, `ability` (`id`, `key`, `pos`), `end`.
@@ -39,6 +39,7 @@ Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, 
 - Krok simulace je pevný (1/60 s ze scény, 1/30 s v testu). Logika nesmí záviset na velikosti kroku víc, než je nutné.
 
 ## Historie významných změn
+- 29.10.2026: varianty scénářů (`read_scenario`, `base`), zranění z běhu (`setup.hp`, `result.hp`), samočinné Do boje! po 25 s od zlomení (pat u brodu v běhu), lučištník, který zbyl sám, jde střílet místo nekonečného ústupu.
 - 29.10.2026: po playtestu běhu: schopnost navíc jen 1× za bitvu, nabíjení (Požehnání 20 s), proti kmitání `_settle` a couvání lučištníka s odstupem, kněz pomáhá v boji, `roams` (oddíl nejde za asasínem přes řeku). Balanc: Most 0/40 a 40/40, Brod 0 a ~19/20, Tábor 0 a 20/20.
 - 28.10.2026: běh: setup `glory`, `names` (nástupci), `extra_enemies` (vrácení uprchlíci); `result()` pro běh; vůdce nepřátel (`leader`: jeho smrt zlomí morálku); úkol `kill` (klíč nepřítele, který musí padnout). Opravy patů: lučištník necouvá dál než `kite_limit` (6 m) za výchozí místo a kněz za krytí nepovažuje; kněz, který zbyl sám, bojuje. Tábor na Vraní skále: 0/40 bez schopností, 40/40 se schopnostmi (79 s, přeživší 2,9).
 - 28.10.2026: pasivky a přísahy (18 v datech), přísaha na hrdinu místo rodu, hořící zem, Úkryt, Probodnutí. Balanc beze změny (bez pasivek kromě přísahy tanka).

@@ -54,9 +54,10 @@
     "chudoba": {"name": "Slib chudoby", "class": "any", "kind": "oath", "desc": "Schopnost má o 1 použití víc, ale hrdina nepřinese rodu žádnou slávu.", "extra_uses": 1, "no_glory": true}
   },
   "morale": {
-    "_info": "Morálka nepřátel. Když nepřítel ztratí podíl break_losses jednotek (padlí i uprchlí), morálka se zlomí a každá jednotka zareaguje podle on_break: desperate = zoufale dobojuje (útok + desperate_dmg_bonus), flee = uteče za okraj bojiště (flee_y ve scénáři). Scénář může break_losses přepsat.",
+    "_info": "Morálka nepřátel. Když nepřítel ztratí podíl break_losses jednotek (padlí i uprchlí), morálka se zlomí a každá jednotka zareaguje podle on_break: desperate = zoufale dobojuje (útok + desperate_dmg_bonus), flee = uteče za okraj bojiště (flee_y ve scénáři). Scénář může break_losses přepsat. auto_charge_after = za kolik s po zlomení hrdinové sami dobojují, když hráč nedá Do boje! (pojistka proti patu).",
     "break_losses": 0.7,
-    "desperate_dmg_bonus": 0.2
+    "desperate_dmg_bonus": 0.2,
+    "auto_charge_after": 25.0
   },
   "traits": {
     "_info": "Vlastnosti nepřátel. Jednotka je má v units.json (traits) nebo je dostane ve scénáři (4. prvek řádku nepřítele). never_breaks = nikdy se nezlomí, on_break = přepíše reakci na zlomenou morálku, desperate_dmg_bonus = útok navíc při zoufalství.",

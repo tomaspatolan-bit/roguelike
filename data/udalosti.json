@@ -1,0 +1,36 @@
+{
+  "_info": "Události na mapě aktu. options[].effects: glory (+/- sláva; záporná = cena, bez dost slávy volba nejde), heal / wound {who: all|random|wounded, frac}, gift {kind: passive|oath} (náhodná pasivka/přísaha náhodnému hrdinovi, kterému sedí), fled {key: počet} (nepřátelé, kteří se vrátí u bosse). text = co se zapíše do kroniky.",
+  "poutnik": {
+    "name": "Poutník u cesty",
+    "text": "U rozcestí sedí starý poutník v otrhaném plášti. Tvrdí, že kdysi sloužil hraběti, a nabízí, že vyslechne přísahu toho, kdo se odváží.",
+    "options": [
+      {"label": "Složit přísahu před poutníkem", "hint": "Hrdina bez přísahy složí náhodnou přísahu.", "effects": [{"gift": "oath"}], "text": "Před poutníkem u rozcestí byla složena přísaha."},
+      {"label": "Dát mu almužnu (15 slávy)", "hint": "Poutník rod požehná: všichni se doléčí o 25 %.", "effects": [{"glory": -15}, {"heal": {"who": "all", "frac": 0.25}}], "text": "Rod dal poutníkovi almužnu a ten jej požehnal."},
+      {"label": "Jet dál", "hint": "Nic se nestane.", "effects": [], "text": ""}
+    ]
+  },
+  "vypalena_ves": {
+    "name": "Vypálená ves",
+    "text": "Ze vsi zbyly jen doutnající trámy. Lapkové, kteří ji zapálili, utíkají k lesu s kořistí.",
+    "options": [
+      {"label": "Pronásledovat žháře", "hint": "+30 slávy, jeden hrdina utrží zranění (40 % zdraví).", "effects": [{"glory": 30}, {"wound": {"who": "random", "frac": 0.4}}], "text": "Rod dostihl žháře z vypálené vsi."},
+      {"label": "Pomoci přeživším", "hint": "Nic nezískáš, ale 3 lapkové utečou a vrátí se v boji s Hejtmanem.", "effects": [{"fled": {"lapka": 3}}], "text": "Rod pomáhal přeživším ve vypálené vsi, žháři zmizeli v lese."}
+    ]
+  },
+  "zajatec": {
+    "name": "Zajatý lapka",
+    "text": "Hlídka chytila mladého lapku. Prosí o život a nabízí, že prozradí, kde jeho druzi schovali léčivé byliny.",
+    "options": [
+      {"label": "Popravit ho", "hint": "+10 slávy.", "effects": [{"glory": 10}], "text": "Zajatý lapka byl popraven."},
+      {"label": "Propustit ho za byliny", "hint": "Všichni se doléčí o 20 %, ale lapka se vrátí v boji s Hejtmanem.", "effects": [{"heal": {"who": "all", "frac": 0.2}}, {"fled": {"lapka": 1}}], "text": "Zajatý lapka prozradil skrýš bylin a byl propuštěn."}
+    ]
+  },
+  "kaple": {
+    "name": "Lesní kaple",
+    "text": "V hloubi lesa stojí opuštěná kaple. Na oltáři leží stříbrný relikviář, kolem něj zvláštní ticho.",
+    "options": [
+      {"label": "Pomodlit se", "hint": "Zranění se doléčí o 30 %.", "effects": [{"heal": {"who": "wounded", "frac": 0.3}}], "text": "Rod se pomodlil v lesní kapli."},
+      {"label": "Vzít relikviář", "hint": "Jeden hrdina získá náhodnou pasivku, všichni ztratí 15 % zdraví.", "effects": [{"gift": "passive"}, {"wound": {"who": "all", "frac": 0.15}}], "text": "Rod si odnesl relikviář z lesní kaple."}
+    ]
+  }
+}

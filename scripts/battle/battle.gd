@@ -67,7 +67,7 @@ var _drag_target_raw := Vector2.ZERO
 
 func _ready() -> void:
 	if run != null:
-		scenario_id = run.stage_key()
+		scenario_id = String(run.node()["scenario"])
 		data = run.load_stage_data()
 		setup = run.battle_setup(data)
 	else:
@@ -111,7 +111,7 @@ func _ready() -> void:
 	ui = BattleUI.new()
 	if run != null:
 		ui.run_mode = true
-		ui.run_label = "Zkušební běh · bitva %d ze %d" % [run.stage + 1, run.stage_count()]
+		ui.run_label = "%s · %s · patro %d ze %d" % [run.act["name"], run.NODE_NAMES.get(run.node_type(), ""), run.current_floor(), run.floor_count()]
 	add_child(ui)
 	ui.run_continue_pressed.connect(func() -> void: battle_done.emit(sim.result()))
 	ui.knight_clicked.connect(_select)

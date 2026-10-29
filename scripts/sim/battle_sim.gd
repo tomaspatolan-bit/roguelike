@@ -123,6 +123,7 @@ var grudges: Dictionary = {}    # nepřátelé, kteří zranili hrdinu (Přísah
 var task_ok: bool = true
 var over: String = ""
 var foes_broken: bool = false
+var broken_t: float = -1.0         # kdy se zlomila morálka nepřítele
 var decided: String = ""        # "k" / "e": strana, která má bitvu rozhodnutou ve svůj prospěch
 var charging: bool = false      # hráč vydal povel Do boje! (jednorázový)
 var _next_id: int = 0
@@ -167,6 +168,9 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		var names: Dictionary = setup.get("names", {})
 		if names.has(key):
 			u.name = names[key]
+		var hp_frac: Dictionary = setup.get("hp", {})
+		if hp_frac.has(key):
+			u.hp = u.maxhp * clampf(float(hp_frac[key]), 0.05, 1.0)   # zranění z minulé bitvy běhu
 
 	var foes_data: Dictionary = units_data["foes"]
 	var i := 0
@@ -200,8 +204,20 @@ static func load_data(scenario: String = DEFAULT_SCENARIO) -> Dictionary:
 	return {
 		"units": _read_json("res://data/units.json"),
 		"house": _read_json("res://data/rod_vlka.json"),
-		"scenario": _read_json(path),
+		"scenario": read_scenario(path),
 	}
+
+
+## Scénář; varianta s "base" převezme vše ze základního scénáře a přepíše jen svá pole.
+static func read_scenario(path_or_key: String) -> Dictionary:
+	var path := path_or_key if path_or_key.begins_with("res://") else "res://data/scenarios/%s.json" % path_or_key
+	var sc := _read_json(path)
+	if sc.has("base"):
+		var base := read_scenario(String(sc["base"]))
+		base.merge(sc, true)
+		base.erase("base")
+		return base
+	return sc
 
 
 ## Seznam scénářů v pořadí pro výběr bitvy.
@@ -1339,6 +1355,9 @@ func _think_archer(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	if mate != null:
 		_settle(u, mate.pos, dt, u.reach * 0.8, foes)
 		return
+	if living(SIDE_KNIGHT).size() == 1:
+		_go(u, close.pos, dt, u.reach * 0.9, foes)   # zbyl sám: neutíká donekonečna, jde střílet
+		return
 	var c := _group_center(u)
 	var spot := c + (c - close.pos).normalized() * _bparam(u, "behind", 2.0)
 	if _in_water(spot):
@@ -1543,6 +1562,7 @@ func _break_morale() -> void:
 	if foes_broken:
 		return
 	foes_broken = true
+	broken_t = t
 	for u in living(SIDE_FOE):
 		if bool(_trait_value(u, "never_breaks", false)):
 			continue
@@ -1564,6 +1584,10 @@ func power(side: String) -> float:
 
 
 func _check_decided() -> void:
+	# pojistka proti patu: když hráč po zlomení morálky dlouho nedá Do boje!, hrdinové dobojují sami
+	if foes_broken and not charging and broken_t >= 0.0 and t - broken_t > float(units_data["morale"].get("auto_charge_after", 25.0)):
+		charging = true
+		_log("Hrdinové sami dobíjejí zbytek nepřátel", true)
 	if decided != "":
 		return
 	var r := float(units_data["behaviors"]["_common"]["decided_ratio"])
@@ -1659,7 +1683,9 @@ func result() -> Dictionary:
 	var dead: Array = []
 	var glory_by := {}
 	var broken: Array = []
+	var hp := {}
 	for k in knights():
+		hp[k.id] = k.hp / k.maxhp if k.alive() else 0.0
 		if not k.alive():
 			dead.append(k.id)
 		glory_by[k.id] = k.glory_earned
@@ -1669,4 +1695,4 @@ func result() -> Dictionary:
 	for u in units:
 		if u.side == SIDE_FOE and u.fled:
 			fled.append(u.key)
-	return {"over": over, "t": t, "dead": dead, "fled": fled, "glory": glory, "glory_by": glory_by, "oaths_broken": broken, "task_ok": task_ok}
+	return {"over": over, "t": t, "dead": dead, "fled": fled, "glory": glory, "glory_by": glory_by, "oaths_broken": broken, "task_ok": task_ok, "hp": hp}

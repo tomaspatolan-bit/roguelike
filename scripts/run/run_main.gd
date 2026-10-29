@@ -1,5 +1,5 @@
 extends Node
-## Hlavní scéna: start, zkušební běh (bitva → tábor s odměnou → další bitva) a kronika rodu.
+## Hlavní scéna: start, mapa aktu, bitva → dědictví a odměna, událost, tábor, kronika rodu.
 ## Logika běhu je v run_state.gd; tady jen obrazovky a přepínání mezi nimi a bitvou.
 ## Vzhled obrazovek je zástupný, finální UI navrhne Tom.
 
@@ -7,6 +7,7 @@ const Run := preload("res://scripts/run/run_state.gd")
 const BattleScene := preload("res://scenes/battle/battle.tscn")
 const BattleUI := preload("res://scripts/battle/battle_ui.gd")
 const Icon := preload("res://scripts/battle/ui_icon.gd")
+const MapView := preload("res://scripts/run/map_view.gd")
 
 const INK := BattleUI.INK
 const MUTED := BattleUI.MUTED
@@ -20,6 +21,7 @@ var run: Run = null
 var battle: Node = null
 var layer: CanvasLayer
 var screen: Control
+var _chron_mark := 0       # odkud v kronice ukázat, co přinesla událost
 var _ui_helper: BattleUI   # půjčené styly (téma, tlačítka) z UI bitvy, nepřidává se do stromu
 
 
@@ -38,7 +40,7 @@ func _exit_tree() -> void:
 
 # ================================================================ přepínání
 
-func _new_screen() -> VBoxContainer:
+func _new_screen(margin: int = 220) -> VBoxContainer:
 	if screen != null:
 		screen.queue_free()
 	var bg := ColorRect.new()
@@ -54,7 +56,7 @@ func _new_screen() -> VBoxContainer:
 	var center := MarginContainer.new()
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for side in ["left", "right"]:
-		center.add_theme_constant_override("margin_" + side, 220)
+		center.add_theme_constant_override("margin_" + side, margin)
 	center.add_theme_constant_override("margin_top", 48)
 	center.add_theme_constant_override("margin_bottom", 48)
 	scroll.add_child(center)
@@ -73,11 +75,11 @@ func _hide_screen() -> void:
 func show_start() -> void:
 	var v := _new_screen()
 	v.add_child(_label("Rytíři", 44))
-	v.add_child(_label("Prototyp · krok 1.7", 14, MUTED))
-	v.add_child(_label("Zkušební běh: tři bitvy za sebou. Po každé vítězné bitvě si vybereš jednu ze tří odměn pro konkrétního hrdinu. Padlí zůstanou padlí, na jejich místo nastoupí nástupce a jejich přísahu může někdo převzít. Kdo z nepřátel uteče, vrátí se v závěrečné bitvě.", 16, INK, true))
+	v.add_child(_label("Prototyp · fáze 2", 14, MUTED))
+	v.add_child(_label("Běh: Rod Vlka táhne krajem %s. Na mapě aktu si na každém patře vybereš, kudy půjdeš: bitva, elita (těžší, lepší odměna), událost nebo tábor (odpočinek). Nahoře čeká Hejtman Kuno. Zranění se nesou mezi bitvami, padlí zůstanou padlí a nastoupí za ně nástupci. Kdo z nepřátel uteče, vrátí se v boji s Hejtmanem." % String(Run.Sim._read_json("res://data/akt_1.json").get("name", "")), 16, INK, true))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	var b := _primary("Zkušební běh")
+	var b := _primary("Nový běh")
 	b.pressed.connect(start_run)
 	row.add_child(b)
 	var f := _button("Volná bitva")
@@ -89,7 +91,7 @@ func show_start() -> void:
 
 func start_run() -> void:
 	run = Run.new()
-	_start_battle()
+	show_map()
 
 
 func _free_battle() -> void:
@@ -114,16 +116,79 @@ func _on_battle_done(result: Dictionary) -> void:
 	if run.over != "":
 		show_chronicle()
 	else:
-		show_camp()
+		show_after_battle()
 
 
-# ================================================================ tábor mezi bitvami
+## Volba uzlu na mapě: bitva rovnou do bitvy, jinak obrazovka uzlu.
+func go_to(id: String) -> void:
+	if not run.choose(id):
+		return
+	match run.node_type():
+		"bitva", "elita", "boss":
+			_start_battle()
+		"udalost":
+			show_event()
+		"tabor":
+			show_campfire()
 
-func show_camp() -> void:
+
+# ================================================================ mapa aktu
+
+func show_map() -> void:
+	var v := _new_screen(60)
+	var head := HBoxContainer.new()
+	head.add_child(_label("%s · %s" % [run.act["name"], "začátek" if run.node_id == "" else "patro %d ze %d" % [run.current_floor(), run.floor_count()]], 26))
+	v.add_child(head)
+	v.add_child(_label("Vyber, kudy rod půjde dál. Najetím na uzel uvidíš, co tě tam čeká.", 14, MUTED))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 20)
+	v.add_child(row)
+	var mv := MapView.new()
+	mv.custom_minimum_size = Vector2(880, 700)
+	mv.size = mv.custom_minimum_size
+	row.add_child(mv)
+	var side := VBoxContainer.new()
+	side.add_theme_constant_override("separation", 12)
+	side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(side)
+	var info := _label("", 15, INK, true)
+	var info_panel := _panel(info)
+	side.add_child(info_panel)
+	side.add_child(_roster())
+	mv.node_pressed.connect(go_to)
+	mv.node_hovered.connect(func(id: String) -> void: info.text = _node_info(id))
+	mv.setup(run)
+	var av: Array = run.available()
+	info.text = _node_info(av[0]) if not av.is_empty() else ""
+
+
+func _node_info(id: String) -> String:
+	var n: Dictionary = run.node(id)
+	var t: String = n["type"]
+	match t:
+		"bitva", "elita", "boss":
+			var sc: Dictionary = run.scenario_info(String(n["scenario"]))
+			var extra := ""
+			if sc.has("returnees") and not run.fled.is_empty():
+				extra = "\nVrátí se uprchlíci: %d" % run.fled.size()
+			var reward := "Odměna: 2 z %d nabídek." % int(run.act.get("elite_offers", 4)) if t == "elita" else "Odměna: 1 z %d nabídek." % int(run.act.get("offers", 3))
+			if t == "boss":
+				reward = "Boss aktu."
+			return "%s: %s\n%s\nÚkol: %s\n%s%s" % [run.NODE_NAMES[t], sc.get("name", ""), sc.get("subtitle", ""), sc.get("optional_task", {}).get("text", ""), reward, extra]
+		"udalost":
+			return "Událost: %s\nRozhodnutí s cenou." % run.events_data[n["event"]]["name"]
+		"tabor":
+			return "Tábor\nOdpočinek: zranění se zahojí."
+	return ""
+
+
+# ================================================================ po bitvě: dědictví a odměna
+
+func show_after_battle() -> void:
 	var v := _new_screen()
-	var last := run.stage_name(run.stage - 1)
-	v.add_child(_label("Tábor po bitvě: %s" % last, 30))
-	v.add_child(_label("Bitva %d ze %d za vámi · další: %s" % [run.stage, run.stage_count(), run.stage_name()], 14, MUTED))
+	var last := run.node_label()
+	v.add_child(_label("Po bitvě: %s" % last, 30))
+	v.add_child(_label("%s · patro %d ze %d" % [run.act["name"], run.current_floor(), run.floor_count()], 14, MUTED))
 
 	# co se v bitvě stalo
 	var news := VBoxContainer.new()
@@ -134,8 +199,74 @@ func show_camp() -> void:
 
 	if run.has_legacy():
 		_legacy_block(v)
-	else:
+	elif not run.offers().is_empty():
 		_reward_block(v)
+	else:
+		var go := _primary("Na mapu")
+		go.pressed.connect(show_map)
+		v.add_child(go)
+	v.add_child(_roster())
+
+
+# ================================================================ událost
+
+func show_event() -> void:
+	var v := _new_screen()
+	var ev: Dictionary = run.event()
+	v.add_child(_label("Událost", 14, MUTED))
+	v.add_child(_label(String(ev["name"]), 30, GLORY))
+	v.add_child(_panel(_label(String(ev["text"]), 16, INK, true)))
+	var opts: Array = ev["options"]
+	for i in opts.size():
+		var o: Dictionary = opts[i]
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 6)
+		var b := _primary(String(o["label"]))
+		var problem: String = run.event_option_problem(i)
+		b.disabled = problem != ""
+		b.pressed.connect(func() -> void:
+			_chron_mark = run.chronicle.size()
+			run.event_choose(i)
+			show_event_result())
+		box.add_child(b)
+		box.add_child(_label(String(o.get("hint", "")) + ("  (%s)" % problem if problem != "" else ""), 14, MUTED, true))
+		v.add_child(_panel(box))
+	v.add_child(_roster())
+
+
+func show_event_result() -> void:
+	var v := _new_screen()
+	var ev: Dictionary = run.event()
+	v.add_child(_label(String(ev["name"]), 30, GLORY))
+	var news := VBoxContainer.new()
+	for e: Dictionary in run.chronicle.slice(_chron_mark):
+		news.add_child(_label("• " + String(e["text"]), 15, INK, true))
+	if news.get_child_count() > 0:
+		v.add_child(_panel(news))
+	var go := _primary("Na mapu")
+	go.pressed.connect(show_map)
+	v.add_child(go)
+	v.add_child(_roster())
+
+
+# ================================================================ tábor
+
+func show_campfire() -> void:
+	var v := _new_screen()
+	v.add_child(_label("Tábor", 30, OK))
+	v.add_child(_label("Rod rozdělá oheň. Odpočinek zahojí zranění všech hrdinů.", 16, INK, true))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	var rest := _primary("Odpočinout si")
+	rest.disabled = run.camp_done
+	rest.pressed.connect(func() -> void:
+		run.camp_rest()
+		show_campfire())
+	row.add_child(rest)
+	var go := _button("Na mapu")
+	go.pressed.connect(show_map)
+	row.add_child(go)
+	v.add_child(row)
 	v.add_child(_roster())
 
 
@@ -151,12 +282,12 @@ func _legacy_block(v: VBoxContainer) -> void:
 		var b := _button("%s (%s)" % [run.hero_name(cls), run.class_name_of(cls)])
 		b.pressed.connect(func() -> void:
 			run.resolve_legacy(cls)
-			show_camp())
+			show_after_battle())
 		row.add_child(b)
 	var no := _button("Nechat přísahu zemřít")
 	no.pressed.connect(func() -> void:
 		run.resolve_legacy("")
-		show_camp())
+		show_after_battle())
 	row.add_child(no)
 	box.add_child(row)
 	v.add_child(_panel(box))
@@ -164,12 +295,7 @@ func _legacy_block(v: VBoxContainer) -> void:
 
 func _reward_block(v: VBoxContainer) -> void:
 	var offers := run.offers()
-	if offers.is_empty():
-		var go := _primary("Do bitvy: %s" % run.stage_name())
-		go.pressed.connect(_start_battle)
-		v.add_child(go)
-		return
-	v.add_child(_label("Odměna: vyber jednu", 22, GLORY))
+	v.add_child(_label("Odměna: vyber jednu" if run.picks_left() <= 1 else "Odměna elity: vyber %d" % run.picks_left(), 22, GLORY))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	for i in offers.size():
@@ -187,7 +313,7 @@ func _reward_block(v: VBoxContainer) -> void:
 		var pick := _primary("Vybrat")
 		pick.pressed.connect(func() -> void:
 			run.pick_offer(i)
-			show_camp())
+			show_after_battle())
 		card.add_child(pick)
 		var p := _panel(card)
 		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -208,8 +334,15 @@ func _roster() -> Control:
 		row.add_theme_constant_override("separation", 8)
 		row.add_child(Icon.make(cls, INK, 18))
 		var nl := _label("%s (%s)" % [h["name"], run.class_name_of(cls)], 15)
-		nl.custom_minimum_size = Vector2(240, 0)
+		nl.custom_minimum_size = Vector2(220, 0)
 		row.add_child(nl)
+		var hpb := _ui_helper._bar(OK if run.hp_of(cls) > 0.5 else (GLORY if run.hp_of(cls) > 0.25 else BAD), 8)
+		hpb.max_value = 1.0
+		hpb.value = run.hp_of(cls)
+		hpb.custom_minimum_size = Vector2(70, 8)
+		hpb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		hpb.tooltip_text = "Zdraví %d %%" % roundi(run.hp_of(cls) * 100.0)
+		row.add_child(hpb)
 		var pl := _label(", ".join(names) if not names.is_empty() else "bez pasivek", 14, MUTED, true)
 		pl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(pl)

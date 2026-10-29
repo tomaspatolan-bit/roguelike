@@ -63,7 +63,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
 
 ## Fáze 2 – Jeden run
 Cíl: celý krátký run od výběru rodu po bosse.
-- [ ] 2.1 Mapa aktu: uzly bitva, elita, událost, tábor, kovář, boss
+- [x] 2.1 Mapa aktu: uzly bitva, elita, událost, tábor, boss (kovář odložen, až bude výbava); zranění se nesou
 - [ ] 2.2 Karta stage a volitelné úkoly z dat
 - [ ] 2.3 Odměny po stagi: pasivky, přísahy, nové schopnosti (2. a 3. slot u hrdiny)
 - [ ] 2.4 Více pasivek, přísah a schopností (obsah)
