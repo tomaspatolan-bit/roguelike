@@ -35,6 +35,12 @@ var _prev_hit := 0.0
 var _dead_played := false
 var _ragdoll := false
 var _foe_body: RigidBody3D = null
+var _figure: Node3D = null          # postava hrdiny (u jezdce jezdec na koni, jinak totéž co body)
+# kůň jezdce (mount_model): vlastní kostra a animace, jezdec sedí na kosti `saddle`
+var _mount_anim: AnimationPlayer = null
+var _mount_names := {"idle": "A_Horse_Idle", "walk": "A_Horse_Walk", "gallop": "A_Horse_Gallop", "hit": "A_Horse_Hit", "death": "A_Horse_Death"}
+var _mount_walk_speed := 5.0
+var _mount_hit_t := 0.0
 # tětiva luku (lučištník): konce v prostoru modelu luku, úseky horní a dolní
 var _bow: Node3D = null
 var _bow_top := Vector3.ZERO
@@ -76,8 +82,17 @@ func _build_knight(u: Sim.Unit) -> void:
 	var model := String(u.base.get("model", ""))
 	if model != "" and ResourceLoader.exists(model):
 		scene = load(model) as PackedScene
-	body = scene.instantiate() as Node3D
-	add_child(body)
+	var figure := scene.instantiate() as Node3D
+	var mount_path := String(u.base.get("mount_model", ""))
+	if mount_path != "" and ResourceLoader.exists(mount_path):
+		# jezdec na koni: kůň je tělo jednotky, jezdec sedí na kosti `saddle`
+		body = (load(mount_path) as PackedScene).instantiate() as Node3D
+		add_child(body)
+		_mount_setup(u, figure)
+	else:
+		body = figure
+		add_child(body)
+	_figure = figure
 	palette_mat = ShaderMaterial.new()
 	palette_mat.shader = PALETTE_SHADER
 	palette_mat.set_shader_parameter("palette_albedo", PAL_ALBEDO)
@@ -94,7 +109,7 @@ func _build_knight(u: Sim.Unit) -> void:
 	_anim_death = String(anims.get("death", ANIM_DEATH))
 	_anim_attack = String(anims.get("attack", _anim_attack))
 	_anim_ability = String(anims.get("ability", _anim_ability))
-	var players := body.find_children("*", "AnimationPlayer", true, false)
+	var players := _figure.find_children("*", "AnimationPlayer", true, false)
 	if not players.is_empty():
 		anim = players[0] as AnimationPlayer
 		for a_name: String in anim.get_animation_list():
@@ -102,9 +117,6 @@ func _build_knight(u: Sim.Unit) -> void:
 		if anim.has_animation(_anim_idle):
 			anim.play(_anim_idle)
 			anim.seek(randf() * anim.current_animation_length, true)
-	if u.key == "jezdec":
-		# Jezdec zatím nemá koně: je o kousek větší a rychlejší.
-		body.scale = Vector3.ONE * 1.08
 	var wm := String(u.base.get("weapon_model", ""))
 	if wm != "" and ResourceLoader.exists(wm):
 		var w := _attach_weapon_model(wm, String(u.base.get("weapon_bone", "hand_r")))
@@ -115,10 +127,71 @@ func _build_knight(u: Sim.Unit) -> void:
 		_attach_weapon(String(u.base.get("weapon", "")))
 
 
+## Kůň: jezdce posadí na kost `saddle` (rider_offset = počátek jezdce od počátku koně v klidové póze,
+## souřadnice Godotu) a připraví animace koně (mount_anims, mount_walk_speed = rychlost, při které klus hraje 1×).
+func _mount_setup(u: Sim.Unit, rider: Node3D) -> void:
+	var names: Dictionary = u.base.get("mount_anims", {})
+	for k: String in names:
+		_mount_names[k] = String(names[k])
+	_mount_walk_speed = float(u.base.get("mount_walk_speed", 5.0))
+	var skels := body.find_children("*", "Skeleton3D", true, false)
+	var off_a: Array = u.base.get("rider_offset", [0.0, 0.0, 0.0])
+	var off := Vector3(float(off_a[0]), float(off_a[1]), float(off_a[2]))
+	if skels.is_empty() or (skels[0] as Skeleton3D).find_bone("saddle") < 0:
+		rider.position = off
+		body.add_child(rider)
+	else:
+		var skel := skels[0] as Skeleton3D
+		var att := BoneAttachment3D.new()
+		att.bone_name = "saddle"
+		skel.add_child(att)
+		var rest := skel.get_bone_global_rest(skel.find_bone("saddle"))
+		rider.transform = rest.affine_inverse() * Transform3D(Basis.IDENTITY, off)
+		att.add_child(rider)
+	var players := body.find_children("*", "AnimationPlayer", true, false)
+	for pl in players:
+		if pl.get_parent() == body or not rider.is_ancestor_of(pl):
+			_mount_anim = pl as AnimationPlayer
+			break
+	if _mount_anim != null:
+		for a_name: String in _mount_anim.get_animation_list():
+			var looped: bool = a_name in [_mount_names["idle"], _mount_names["walk"], _mount_names["gallop"]]
+			_mount_anim.get_animation(a_name).loop_mode = Animation.LOOP_LINEAR if looped else Animation.LOOP_NONE
+		if _mount_anim.has_animation(_mount_names["idle"]):
+			_mount_anim.play(_mount_names["idle"])
+			_mount_anim.seek(randf() * _mount_anim.current_animation_length, true)
+
+
+## Kůň podle stavu jednotky: klid, klus, cval při Nájezdu, zásah; smrt spouští _start_ragdoll.
+func _sync_mount(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> void:
+	if _mount_anim == null or not u.alive():
+		return
+	if sim_running:
+		_mount_hit_t -= delta * time_scale
+	var want: String = _mount_names["idle"]
+	var scale := time_scale
+	if u.dashing and sim_running:
+		want = _mount_names["gallop"]
+	elif u.moving and sim_running:
+		want = _mount_names["walk"]
+		scale = clampf(u.speed / maxf(_mount_walk_speed, 0.1), 0.5, 2.0) * time_scale
+	elif _mount_hit_t > 0.0:
+		want = _mount_names["hit"]
+	elif u.hit > _prev_hit + 0.01 and sim_running and _mount_anim.has_animation(_mount_names["hit"]):
+		want = _mount_names["hit"]
+		_mount_hit_t = _mount_anim.get_animation(want).length
+	if _mount_anim.current_animation != want and _mount_anim.has_animation(want):
+		_mount_anim.play(want, 0.15)
+	if not sim_running:
+		_mount_anim.speed_scale = 1.0 if want == _mount_names["idle"] else 0.0
+	else:
+		_mount_anim.speed_scale = maxf(scale, 0.01)
+
+
 ## Zbraň z modelu (GLB z Blenderu, paleta jako postava). Úchop: počátek zbraně je v pěsti
 ## (0,08 m po ose Y kosti od zápěstí), osa zbraně (+Z v Blenderu, po importu +Y) leží v ose Z kosti ruky.
 func _attach_weapon_model(path: String, hand: String) -> Node3D:
-	var skels := body.find_children("*", "Skeleton3D", true, false)
+	var skels := _figure.find_children("*", "Skeleton3D", true, false)
 	if skels.is_empty():
 		return null
 	var skel := skels[0] as Skeleton3D
@@ -146,7 +219,7 @@ func _setup_bow_string(w: Node3D, bs: Dictionary) -> void:
 	_bow = w
 	_bow_top = Vector3(float(top[0]), float(top[1]), float(top[2]))
 	_bow_bottom = Vector3(float(bottom[0]), float(bottom[1]), float(bottom[2]))
-	_skel = body.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	_skel = _figure.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
 	_hand_r = _skel.find_bone("hand_r")
 	var cm := CylinderMesh.new()
 	cm.top_radius = 0.007
@@ -227,7 +300,7 @@ static func _place_segment(mi: MeshInstance3D, a: Vector3, b: Vector3) -> void:
 func _attach_weapon(kind: String) -> void:
 	if kind == "":
 		return
-	var skels := body.find_children("*", "Skeleton3D", true, false)
+	var skels := _figure.find_children("*", "Skeleton3D", true, false)
 	if skels.is_empty():
 		return
 	var skel := skels[0] as Skeleton3D
@@ -339,6 +412,7 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 			palette_mat.set_shader_parameter("flash", Color(0, 0, 0, 0))
 		return
 
+	_sync_mount(u, delta, sim_running, time_scale)
 	if anim != null:
 		# jednorázové animace: útok (náběh u.atk), zásah (náběh u.hit, jen když neútočí)
 		if sim_running:
@@ -384,12 +458,15 @@ func _start_ragdoll(u: Sim.Unit) -> void:
 	var push := Vector3(-u.face.x, 0.0, u.face.y)   # dozadu od směru, kterým se díval (k nepříteli)
 	if is_knight:
 		_ragdoll = _knight_ragdoll(push)
+		if _mount_anim != null and _mount_anim.has_animation(_mount_names["death"]):
+			_mount_anim.play(_mount_names["death"], 0.1)   # kůň padne na bok, jezdec z něj spadne
+			_mount_anim.speed_scale = 1.0
 	else:
 		_ragdoll = _foe_ragdoll(push)
 
 
 func _knight_ragdoll(push: Vector3) -> bool:
-	var skels := body.find_children("*", "Skeleton3D", true, false)
+	var skels := _figure.find_children("*", "Skeleton3D", true, false)
 	if skels.is_empty():
 		return false
 	var skel := skels[0] as Skeleton3D
