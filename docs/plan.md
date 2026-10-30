@@ -84,7 +84,7 @@ Cíl: celý krátký run od výběru rodu po bosse.
 **Brána 2 (Tom):** je run zábavný jako celek?
 
 ## Fáze 3 – Vizuální identita a zvuk
-- [ ] 3.1 Finální styl (Tom schvaluje): rytíř, nepřátelé, prostředí. Soupiska tříd (30.10.2026): kněz hotový a schválený (hůl, útok na dálku), lučištník hotový a schválený (tvář doladit, `napady.md`), jezdec s koněm hotový a schválený (útok píchnutím), asasín hotový a čeká na schválení.
+- [ ] 3.1 Finální styl (Tom schvaluje): rytíř, nepřátelé, prostředí. Soupiska tříd (30.10.2026): kněz hotový a schválený (hůl, útok na dálku), lučištník hotový a schválený (tvář doladit, `napady.md`), jezdec s koněm hotový a schválený (útok píchnutím), asasín hotový a schválený (kápě doladit, `napady.md`).
 - [ ] 3.2 Kůň pro jezdce, sada nepřátel, kit bojiště (les, vesnice, most, pahorek)
 - [ ] 3.3 Animace boje (zástupné hotové 29.10.2026: útok podle třídy, schopnost, zásah, smrt; finální podle stylu)
 - [ ] 3.4 Styl UI
