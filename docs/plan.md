@@ -71,7 +71,8 @@ Cíl: celý krátký run od výběru rodu po bosse.
 - [x] 2.2d Bitva ve fázích (29.10.2026): skupinky nepřátel se probouzejí postupně, polovina nepřátel, velitel v každé bitvě s ohlášenou schopností, nejvýš 3 pěší na hrdinu, schopnosti s pevným počtem a nabíjením, kněz léčí jen v boji. Hotovo, když: Tom odehraje bitvu a nevidí shluky ani prolínání; balanc všech scénářů prošel.
 - [x] 2.2e Kamera s pevným úhlem podle mapy (30.10.2026): posun v hranicích mapy, malé přiblížení, bez otáčení; pravé tlačítko jen rozkazy. Hotovo, když: Tom odehraje bitvu na každé mapě a nic důležitého není mimo výřez nebo pod kartami.
 - [x] 2.2g Výcvik ve hře (30.10.2026): kroky v první bitvě, splní se akcí hráče, přeskočit, „Výcvik znovu“. Hotovo, když: tester bez vysvětlování projde první bitvu.
-- [ ] 2.2f Mapy z modulárních assetů: kit (Claude, Blender), kostra mapy z dat a vygenerovaná scéna (Claude), nástroj na překážky do dat, vzhled map v editoru (Tom). Hotovo, když: Tom sám oblékne jednu mapu a testy na ní projdou.
+- [ ] 2.0s Zkouška stylu (Bad North, rozhodnutí 30.10.2026): tank a kousek bojiště ve finálním směru (světlo a obraz, zkosené hrany, proporce, měkké váhy, animace z knihovny). Hotovo, když: Tom rozhodne, jestli styl dotáhneme sami, nebo zadáme hrdiny a animace externě.
+- [ ] 2.2f Mapy z modulárních assetů (až ve vertical slice po bráně, viz níže): kit (Claude, Blender), kostra mapy z dat a vygenerovaná scéna (Claude), nástroj na překážky do dat, vzhled map v editoru (Tom). Hotovo, když: Tom sám oblékne jednu mapu a testy na ní projdou.
 - [ ] 2.2 Karta stage a volitelné úkoly z dat
 - [ ] 2.3 Odměny po stagi: pasivky, přísahy, nové schopnosti (2. a 3. slot u hrdiny)
 - [ ] 2.4 Více pasivek, přísah a schopností (obsah); směr od 30.10.2026: vazby mezi hrdiny, odměna za riziko (vzor Slib odříkání)
@@ -82,6 +83,8 @@ Cíl: celý krátký run od výběru rodu po bosse.
 - [ ] 2.8 Generátor bitev (scénáře z dílků místo ručně psaných)
 **Hotovo, když:** jde odehrát run o 6–8 stagích s bossem a rozhodnutí na mapě mají smysl.
 **Brána 2 (Tom):** je run zábavný jako celek?
+
+**Brána před polishem (rozhodnutí 30.10.2026):** pravidla boje se zásadně nemění; odměny s vazbami a rizikem (2.3, 2.4, aspoň 15–20) dělají runy různými; hráč mimo nás dohraje run a chce hrát znovu (1.8). Pak Fáze 3 začíná vertical slicem prvního aktu ve finální kvalitě (zdroj pro Steam stránku a demo).
 
 ## Fáze 3 – Vizuální identita a zvuk
 - [ ] 3.1 Finální styl (Tom schvaluje): rytíř, nepřátelé, prostředí. Soupiska tříd (30.10.2026): kněz hotový a schválený (hůl, útok na dálku), lučištník hotový a schválený (tvář doladit, `napady.md`), jezdec s koněm hotový a schválený (útok píchnutím), asasín hotový a schválený (kápě doladit, `napady.md`).

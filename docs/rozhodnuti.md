@@ -2,6 +2,11 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 30.10.2026 – Směr stylu a kdy začít polish
+- **Vizuální směr: čistý low-poly ve stylu Bad North** (ploché barvy, jasné siluety, měkké světlo a stíny, okluze, mlha a barevné ladění scény, malé čitelné postavy). Tom: „něco na styl Bad North, za mě top“. Důvod: tenhle styl Claude dotáhne sám (pevné geometrické tvary: zbroj, helmy, zbraně, budovy), organické tvary a ručně malované textury by potřebovaly artistu. Slabé místo jsou animace: zlepšit převodem hotových pohybů z knihovny na kostru (názvy kostí podle UE5).
+- **Polish až po bráně, ne až po „všem“:** pravidla boje se zásadně nemění, odměny s vazbami a rizikem (15–20) dělají runy různými, hráč mimo nás dohraje run a chce znovu (playtest 1.8). Pak vertical slice prvního aktu ve finální kvalitě (styl hrdinů a nepřátel, kit map, styl UI, zvuk, úvod příběhu), ze slice Steam stránka a demo, pak výroba dalšího obsahu. Assety se nevyrábějí před schváleným stylem (dělaly by se dvakrát); kit map (2.2f) proto až ve slice.
+- **Zkouška stylu hned a levně:** tank a kousek bojiště ve stylu Bad North (světlo a obraz, zkosené hrany, proporce, měkké váhy); podle výsledku Tom rozhodne, jestli styl stačí, nebo se hrdinové a animace zadají externě.
+
 ## 30.10.2026 – Soupiska tříd podle tanka
 - **Každá třída dostane vlastní model podle Tomova zadání** (kněz, lučištník, jezdec s koněm, asasín), tank je vzor stylu, měřítka a stavby zbroje. Postavy po jedné: kněz první, další až po Tomově schválení stylu (chyba stylu se neopakuje čtyřikrát).
 - **Barvy:** zbroj, zlato a karmín jako jeden řád; navy řádu na detailech (štóla, znak); **barva hrdiny na plášti a hlavní látce**, protože karty, kruhy a hlavně pohled zezadu podle ní hrdiny rozlišují (zadání chtělo navy pro všechny, Tom zvolil navy základ + barvu hrdiny).

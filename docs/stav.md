@@ -3,6 +3,7 @@
 Aktualizováno: 30.10.2026
 
 ## Aktuální cíl
+**Rozhodnuto 30.10.2026:** styl jako Bad North; polish až po bráně (jádro boje, odměny s vazbami, playtest mimo nás), pak vertical slice prvního aktu. Teď: zkouška stylu (2.0s) a odměny s vazbami (2.3, 2.4).
 **Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotové všechny tři typy bitev (útok, střet, obrana s Lesní vsí) a animace boje hrdinů. Hotové rozkazy pro hrdiny (2.2c). Další: karta stage a volitelné úkoly (2.2). Otevřené: playtest s hráčem mimo nás (1.8).
 
 ## Hotovo
