@@ -23,6 +23,8 @@ signal continue_pressed
 signal retry_pressed
 signal redeploy_pressed
 signal run_continue_pressed
+signal tutorial_skip_pressed
+signal tutorial_ok_pressed
 
 const INK := Color("#e7e9ec")
 const MUTED := Color("#9aa3ad")
@@ -43,6 +45,10 @@ const ORDER_ICONS := {"": "hold", "point": "route", "group": "zarod", "ally": "h
 const ABILITY_ICONS := {"vyzva": "hradba", "pozehnani": "heal", "salva": "lucistnik", "najezd": "charge", "uder": "asasin"}
 
 var root: Control
+var tutorial: PanelContainer        # panel výcviku (show_tutorial / hide_tutorial)
+var _tut_title: Label
+var _tut_text: Label
+var _tut_ok: Button
 var top_bar: PanelContainer
 var top_row: HBoxContainer
 var info_card: PanelContainer
@@ -172,6 +178,40 @@ func _ready() -> void:
 	th.add_child(tb)
 	toast.visible = false
 	root.add_child(toast)
+
+	# výcvik: krok vpravo pod deníkem (show_tutorial, _place_tutorial)
+	tutorial = PanelContainer.new()
+	tutorial.anchor_left = 1.0
+	tutorial.anchor_right = 1.0
+	tutorial.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	tutorial.offset_right = -12
+	tutorial.offset_top = 120
+	tutorial.add_theme_stylebox_override("panel", _box(Color(0.10, 0.11, 0.14, 0.95), 10, 14, GLORY, 2))
+	var tv := VBoxContainer.new()
+	tv.add_theme_constant_override("separation", 8)
+	tutorial.add_child(tv)
+	_tut_title = _label("", 12, GLORY)
+	tv.add_child(_tut_title)
+	_tut_text = _label("", 15, INK, true)
+	_tut_text.custom_minimum_size = Vector2(290, 0)
+	tv.add_child(_tut_text)
+	var trow := HBoxContainer.new()
+	trow.add_theme_constant_override("separation", 8)
+	trow.alignment = BoxContainer.ALIGNMENT_END
+	tv.add_child(trow)
+	var skip := Button.new()
+	skip.text = "Přeskočit výcvik"
+	skip.flat = true
+	skip.focus_mode = Control.FOCUS_NONE
+	skip.pressed.connect(func() -> void: tutorial_skip_pressed.emit())
+	trow.add_child(skip)
+	_tut_ok = _primary(Button.new())
+	_tut_ok.text = "Rozumím"
+	_tut_ok.focus_mode = Control.FOCUS_NONE
+	_tut_ok.pressed.connect(func() -> void: tutorial_ok_pressed.emit())
+	trow.add_child(_tut_ok)
+	tutorial.visible = false
+	root.add_child(tutorial)
 
 	_hint = _label("", 15, Color.WHITE)
 	_hint.anchor_left = 0.5
@@ -577,6 +617,24 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 		cards_row.add_child(card)
 
 
+## Krok výcviku: nadpis s číslem kroku, text; `ok` = krok potvrdí tlačítko Rozumím.
+func show_tutorial(title: String, step: int, total: int, text: String, ok: bool) -> void:
+	_tut_title.text = "%s · krok %d z %d" % [title.to_upper(), step, total]
+	_tut_text.text = text
+	_tut_ok.visible = ok
+	tutorial.visible = true
+	_place_tutorial()
+
+
+func hide_tutorial() -> void:
+	tutorial.visible = false
+
+
+## Panel výcviku leží pod deníkem bitvy (deník mění výšku, proto se volá i z update_dynamic).
+func _place_tutorial() -> void:
+	tutorial.offset_top = log_panel.position.y + log_panel.size.y + 10.0
+
+
 func set_log(lines: Array) -> void:
 	if _log_box == null:
 		return
@@ -596,6 +654,8 @@ func set_log(lines: Array) -> void:
 
 ## Části, které se mění každý zlomek sekundy (bez přestavby panelů).
 func update_dynamic(sim: Sim, _pause_phase: bool, paused: bool) -> void:
+	if tutorial.visible:
+		_place_tutorial()
 	if _time_label != null:
 		_time_label.text = "%d:%02d" % [int(sim.t) / 60, int(sim.t) % 60]
 		var nw := sim.next_wave_t()

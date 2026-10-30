@@ -1,6 +1,6 @@
 # Kontext: herní data
 
-Soubory: `data/units.json`, `data/rod_vlka.json`, `data/scenarios/*.json`, `data/akt_*.json`, `data/udalosti.json`
+Soubory: `data/vycvik.json`, `data/units.json`, `data/rod_vlka.json`, `data/scenarios/*.json`, `data/akt_*.json`, `data/udalosti.json`
 Hlídá: `tests/test_battle_sim.gd` (balanc), `tests/screenshot_battle.gd` (načtení)
 
 ## Účel
@@ -30,6 +30,8 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 20. **Vzhled hrdiny** (`knights.<klíč>`): `anim_attack`, `anim_ability` (názvy animací z GLB), `weapon` (`sword`, `dagger`, `mace`, `bow`; zástupná zbraň v ruce).
 
 22. **Kamera** (`camera` v `units.json` výchozí, ve scénáři přepíše jednotlivé klíče): `target` [x, y] výchozí střed výřezu, `yaw`, `pitch` (°), `distance`, `zoom` [min, max], `bounds` [x0, x1, y0, y1] (kam smí střed výřezu; stejné hodnoty = tím směrem se nehýbe), `pan_speed`. Výchozí výřez má ukázat hrdiny nad kartami.
+
+23. **Výcvik** (`vycvik.json`): `title`, `steps` [{`done`, `text`}]; klíče `done` viz `scena-bitvy.md` (invariant 16). Nový krok s existujícím klíčem = jen data, nový klíč = kód v `battle.gd`.
 
 ## Úskalí
 - JSON nemá komentáře: popis patří do klíče `_info`.

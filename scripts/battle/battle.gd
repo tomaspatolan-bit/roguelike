@@ -9,6 +9,13 @@ const BattleUI := preload("res://scripts/battle/battle_ui.gd")
 const OrbitCamera := preload("res://scripts/battle/orbit_camera.gd")
 
 const STEP := 1.0 / 60.0
+const SETTINGS := "user://nastaveni.cfg"   # hráčova nastavení (výcvik hotový)
+
+## Výcvik (data/vycvik.json): 0 = jen dokud ho hráč nedokončí nebo nepřeskočí, 1 = vždy, -1 = nikdy (testy).
+static var tutorial_mode := 0
+var _tut_steps: Array = []
+var _tut_i := -1                     # krok výcviku (-1 = výcvik neběží)
+var _tut_flags: Dictionary = {}      # co už hráč udělal (klíče done z dat)
 
 enum Phase { DEPLOY, BATTLE, PAUSE, OVER }
 
@@ -149,8 +156,70 @@ func _ready() -> void:
 		ui.hide_result()
 		phase = Phase.DEPLOY
 		_fresh_deploy())
+	ui.tutorial_skip_pressed.connect(_tut_finish)
+	ui.tutorial_ok_pressed.connect(func() -> void: _tut_mark("ok"))
 
 	_fresh_deploy()
+	_tut_init()
+
+
+# ================================================================ výcvik
+
+## Je výcvik hotový (dokončený nebo přeskočený)? Uloženo v nastavení hráče.
+static func tutorial_done() -> bool:
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS) != OK:
+		return false
+	return bool(cfg.get_value("vycvik", "hotovo", false))
+
+
+static func set_tutorial_done(done: bool) -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(SETTINGS)
+	cfg.set_value("vycvik", "hotovo", done)
+	cfg.save(SETTINGS)
+
+
+func _tut_init() -> void:
+	if tutorial_mode < 0 or (tutorial_mode == 0 and tutorial_done()):
+		return
+	var d := Sim._read_json("res://data/vycvik.json")
+	_tut_steps = d.get("steps", [])
+	if _tut_steps.is_empty():
+		return
+	_tut_i = 0
+	_tut_flags = {}
+	_tut_show()
+
+
+func _tut_show() -> void:
+	var st: Dictionary = _tut_steps[_tut_i]
+	var d := Sim._read_json("res://data/vycvik.json")
+	ui.show_tutorial(String(d.get("title", "Výcvik")), _tut_i + 1, _tut_steps.size(), String(st["text"]), String(st["done"]) == "ok")
+
+
+## Hráč udělal něco, co výcvik hlídá; když to je cíl kroku, jde se dál (a přes kroky, které už splnil).
+func _tut_mark(key: String) -> void:
+	if _tut_i < 0 or _tut_flags.has(key):
+		return
+	_tut_flags[key] = true
+	var moved := false
+	while _tut_i < _tut_steps.size() and _tut_flags.has(String((_tut_steps[_tut_i] as Dictionary)["done"])):
+		_tut_i += 1
+		moved = true
+	if _tut_i >= _tut_steps.size():
+		_tut_finish()
+	elif moved:
+		_tut_show()
+
+
+func _tut_finish() -> void:
+	if _tut_i < 0:
+		return
+	_tut_i = -1
+	ui.hide_tutorial()
+	if tutorial_mode == 0:
+		set_tutorial_done(true)
 
 
 # ================================================================ stav
@@ -231,6 +300,7 @@ func _give_order(u: Sim.Unit, kind: String, target: Variant) -> void:
 	var apply := func() -> void:
 		if sim.set_order(u.id, kind, target):
 			_order_flash[u.id] = 2.0
+			_tut_mark("order_" + kind)
 			if phase == Phase.DEPLOY:
 				setup["orders"][u.id] = [kind, target]
 		paused = false
@@ -325,6 +395,7 @@ func _select(id: String) -> void:
 	else:
 		selection = [id]
 		selected = id
+	_tut_mark("selected")
 	_refresh_panel()
 
 
@@ -335,11 +406,15 @@ func _set_selected(id: String) -> void:
 	else:
 		selection = [id]
 		selected = id
+	if not selection.is_empty():
+		_tut_mark("selected")
 	_refresh_panel()
 
 
 ## H: vybraní hrdinové zruší rozkaz a drží místo, kde stojí.
 func _hold_selected() -> void:
+	if not _selection_alive().is_empty():
+		_tut_mark("hold")
 	for id: String in _selection_alive():
 		_clear_order(id)
 
@@ -353,6 +428,8 @@ func _select_all() -> void:
 		if u.alive():
 			selection.append(u.id)
 	selected = String(selection[0]) if not selection.is_empty() else ""
+	if not selection.is_empty():
+		_tut_mark("selected")
 	_refresh_panel()
 
 
@@ -394,6 +471,8 @@ func _box_select(rect: Rect2) -> void:
 		if not selection.has(id):
 			selection.append(id)
 	selected = String(selection[-1]) if not selection.is_empty() else ""
+	if not selection.is_empty():
+		_tut_mark("selected")
 	_refresh_panel()
 
 
@@ -835,6 +914,13 @@ func _process(delta: float) -> void:
 	_sync_projectiles()
 	_sync_markers()
 
+	if _tut_i >= 0:
+		if phase == Phase.BATTLE:
+			_tut_mark("running")
+		if phase == Phase.OVER:
+			_tut_i = -1   # bitva skončila dřív: výcvik se ukáže znovu v další bitvě
+			ui.hide_tutorial()
+
 	_ui_t += delta
 	if _ui_t > 0.1:
 		_ui_t = 0.0
@@ -859,6 +945,7 @@ func _flush_events() -> void:
 					views[nu.id] = nv
 			"ability":
 				_spawn_fx(String(ev["key"]), ev["pos"])
+				_tut_mark("ability")
 				var av: UnitView = views.get(String(ev.get("id", "")))
 				if av != null:
 					av.play_ability(speed)

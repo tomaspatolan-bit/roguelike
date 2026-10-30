@@ -14,9 +14,11 @@ var broken_shot := false
 
 
 const TacticalCamera := preload("res://scripts/battle/orbit_camera.gd")
+const BattleScript := preload("res://scripts/battle/battle.gd")
 
 func _init() -> void:
 	TacticalCamera.edge_scroll_all = false   # posun myší u okraje by měnil snímky
+	BattleScript.tutorial_mode = 1   # výcvik vždy (a nic se neuloží do nastavení)
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
 		out_dir = args[0]
@@ -39,6 +41,8 @@ func _process(_delta: float) -> bool:
 	frame += 1
 	if frame == 40:
 		_shot("01_start.png")
+		var ui0: Variant = scene.get("ui")
+		print("Výcvik se ukázal: %s" % ("OK" if bool((ui0.get("tutorial") as Control).visible) and int(scene.get("_tut_i")) == 0 else "CHYBA"))
 		var deploy := int(scene.get("phase")) == 0
 		if deploy:
 			_test_drag_swap()   # rozestavení má jen obrana
@@ -71,6 +75,7 @@ func _process(_delta: float) -> bool:
 			_test_realtime_orders()
 		if frame == started_at + 300:
 			_shot("03_bitva.png")
+			_test_tutorial_end()
 		if frame == started_at + 900:
 			_shot("04_bitva_pozdeji.png")
 		if sim != null and bool(sim.get("foes_broken")) and not broken_shot:
@@ -234,6 +239,16 @@ func _test_realtime_orders() -> void:
 	print("Náhled rozkazu nad nepřítelem: %s" % ("OK" if not hc.is_empty() and hc[0] == "group" else "CHYBA (%s)" % [hc]))
 	scene.call("_toggle_pause")
 	scene.call("_clear_selection")
+
+
+## Výcvik: akce testu (výběr, rozkazy, start, schopnosti, H) prošly kroky; zbývá Rozumím.
+func _test_tutorial_end() -> void:
+	var steps: int = (scene.get("_tut_steps") as Array).size()
+	var at_last := int(scene.get("_tut_i")) == steps - 1
+	var ui: Variant = scene.get("ui")
+	ui.emit_signal("tutorial_ok_pressed")
+	var closed := int(scene.get("_tut_i")) == -1 and not bool((ui.get("tutorial") as Control).visible)
+	print("Výcvik prošel kroky: %s" % ("OK" if at_last and closed else "CHYBA (krok %d z %d, %s)" % [int(scene.get("_tut_i")) + 1, steps, scene.get("_tut_flags")]))
 
 
 ## Kamera má pevný úhel podle mapy a výřez neujede za hranice mapy.

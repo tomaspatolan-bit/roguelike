@@ -18,6 +18,7 @@ Spojit bitvy do příběhu rodu na mapě aktu. Struktura hry: `docs/struktura-hr
 9. **Uprchlíci:** nepřátelé, kteří utečou v bitvě bez `returnees` (nebo z události), se vrátí v bitvě, která `returnees` má (boss), nejvýš `returnees.max` (u Hejtmana 3), ostatní se rozutekli nadobro.
 10. **Prohra = padli všichni** v jedné bitvě → běh končí (`over = "lose"`). Po bossovi `over = "win"`.
 11. **Kronika** (`chronicle`: {stage, text}): vítězství a porážky, padlí a jejich sláva, nástupci, útěky a návraty, přísahy (složené, převzaté, porušené, zaniklé), odměny, události, tábor.
+13. **Úvodní obrazovka:** Nový běh, Volná bitva a po dokončeném výcviku „Výcvik znovu“ (`BattleScript.set_tutorial_done(false)`).
 12. **Bitva v běhu** (`battle.gd` s `run` ≠ null): scénář z uzlu, bez výběru bitvy, pasivky jen ke čtení, výsledek s „Pokračovat v běhu“ → `battle_done(result)`.
 
 ## Rozhraní

@@ -1,0 +1,13 @@
+{
+  "_info": "Výcvik v první bitvě (rozhodnutí 30.10.2026): kroky jdou po sobě, krok skončí, až hráč udělá, co popisuje (done). Klíče done hlídá battle.gd: selected (vybraný hrdina), order_point (rozkaz na místo), running (bitva běží), order_group (rozkaz na skupinu nepřátel), ability (použitá schopnost), hold (H), ok (jen tlačítko Rozumím). Co hráč udělal dřív, platí: krok pak hned přeskočí.",
+  "title": "Výcvik",
+  "steps": [
+    {"done": "selected", "text": "Vyber hrdinu: klikni na něj levým tlačítkem, nebo levým táhni obdélník přes víc hrdinů. Ctrl+A vybere celý oddíl."},
+    {"done": "order_point", "text": "Pošli vybrané: klikni pravým tlačítkem na zem. Kruh pod kurzorem ukazuje, co se stane (bílý = jdi sem, modrý = drž se spojence, červený = útok na skupinu)."},
+    {"done": "running", "text": "Bitva teď stojí v pauze. Pusť ji mezerníkem. Mezerníkem ji kdykoli zase zastavíš a v klidu dáš rozkazy."},
+    {"done": "order_group", "text": "Zaútoč: vyber hrdiny a pravým klikni na nepřítele. Půjdou po celé jeho skupině. Nepřátelé stojí ve skupinkách a přidají se, až se přiblížíš."},
+    {"done": "ability", "text": "Použij schopnost: stiskni klávesu v rámečku na kartě hrdiny (1–5). Cílenou pak pravým tlačítkem namiř na bojiště. Každá schopnost má 3 použití za bitvu a nabíjí se."},
+    {"done": "hold", "text": "Klávesa H zruší rozkaz vybraným: zůstanou stát a brání se. Tak hrdinu zastavíš, když zabíhá moc daleko."},
+    {"done": "ok", "text": "Pozor na velitele: svou schopnost ohlásí textem a červeným kruhem na zemi. Uhni z kruhu, nebo velitele omrač Nájezdem. Hodně štěstí!"}
+  ]
+}

@@ -2,6 +2,9 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 30.10.2026 – Výcvik ve hře
+- **Výcvik je interaktivní, ne demo:** v první bitvě panel krok po kroku řekne, co udělat (výběr, rozkaz pravým, pauza, útok na skupinu, schopnost, H, velitelé), a krok skončí, až to hráč udělá. Nic neblokuje, jde přeskočit, po dokončení se už neukáže (na úvodní obrazovce „Výcvik znovu“). Kroky jsou v datech (`vycvik.json`). Důvod: pasivní demo hráči přeskakují a naučí se z něj málo; učení akcí je levnější a funguje v každé bitvě. Tom: onboarding bude součástí hry.
+
 ## 30.10.2026 – Karta hrdiny bez rozkazů; směr odměn
 - **Z karty hrdiny pryč text rozkazu, Poslat a ✕**; tlačítko schopnosti ukazuje klávesu. Rozkaz zrušíš klávesou H. Tom: ovládání má v ruce, karta má být přehledná.
 - **Směr pasivek a přísah (odměn): interakce mezi hrdiny, která dává smysl, odmění a zároveň je riskantní.** Vzor: Slib odříkání (schopnost má o 1 použití víc, ale kněz hrdinu nesmí léčit). Nové odměny navrhujeme hlavně takto (vazba na jiného hrdinu, síla za omezení, pilíře Velíš rodu a Přísaha má cenu).

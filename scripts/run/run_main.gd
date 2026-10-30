@@ -4,6 +4,7 @@ extends Node
 ## Vzhled obrazovek je zástupný, finální UI navrhne Tom.
 
 const Run := preload("res://scripts/run/run_state.gd")
+const BattleScript := preload("res://scripts/battle/battle.gd")
 const BattleScene := preload("res://scenes/battle/battle.tscn")
 const BattleUI := preload("res://scripts/battle/battle_ui.gd")
 const Icon := preload("res://scripts/battle/ui_icon.gd")
@@ -86,6 +87,14 @@ func show_start() -> void:
 	f.tooltip_text = "Jedna bitva s výběrem mapy a pasivek na zkoušku (jako dřív)."
 	f.pressed.connect(_free_battle)
 	row.add_child(f)
+	if BattleScript.tutorial_done():
+		var t := _button("Výcvik znovu")
+		t.tooltip_text = "V příští bitvě se znovu ukáže výcvik ovládání."
+		t.pressed.connect(func() -> void:
+			BattleScript.set_tutorial_done(false)
+			t.disabled = true
+			t.text = "Výcvik bude v příští bitvě")
+		row.add_child(t)
 	v.add_child(row)
 
 

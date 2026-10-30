@@ -8,7 +8,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 
 ## Invarianty
 1. **Žádná herní logika.** UI nemění simulaci, jen emituje signály, které zpracuje `battle.gd`.
-2. **Signály:** `knight_clicked`, `ability_pressed`, `passive_toggled`, `scenario_changed`, `order_pressed`, `order_clear_pressed`, `start_pressed`, `pause_pressed`, `charge_pressed`, `resume_pressed`, `speed_changed`, `continue_pressed`, `retry_pressed`, `redeploy_pressed`, `run_continue_pressed`.
+2. **Signály:** `tutorial_skip_pressed`, `tutorial_ok_pressed`, `knight_clicked`, `ability_pressed`, `passive_toggled`, `scenario_changed`, `order_pressed`, `order_clear_pressed`, `start_pressed`, `pause_pressed`, `charge_pressed`, `resume_pressed`, `speed_changed`, `continue_pressed`, `retry_pressed`, `redeploy_pressed`, `run_continue_pressed`.
 3. **Rozvržení:** nahoře uprostřed lišta velení (`top_row`: v rozestavení a úvodní pauze Začít bitvu; v bitvě čas, Pauza / Pokračovat, Do boje!, rychlost), vlevo nahoře karta bitvy (`info_box`), dole karty hrdinů (`cards_row`), vpravo nahoře sbalitelný deník. Přestavuje se jen při změně stavu (`show_deploy`, `show_battle`); plynulé věci aktualizuje `update_dynamic` (každých 0,1 s) a `update_hp_bars` (každý snímek). Ikonky se mění jen při změně podpisu (`_sig`).
 4. **Hráč se soustředí na hrdiny:** žádné bonusy pro celý oddíl v UI. Musí vždy vidět: použití a nabíjení schopností na kartách, stav úkolu, zda čas stojí (pauza).
 5. **Texty česky,** krátce. Zkratky kláves na tlačítkách odpovídají `battle.gd`.
@@ -22,6 +22,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 
 13. **Režim běhu** (`run_mode`): bez výběru bitvy, menu Pasivky jen ukazuje, co hrdina má, nad názvem bitvy `run_label` („Zkušební běh · bitva 2 ze 3“), výsledek má jediné tlačítko „Pokračovat v běhu“ / „Kronika rodu“.
 14. **Dialog před bitvou** je zrušený (bitva začíná v pauze, hrdina bez rozkazu drží místo).
+16. **Výcvik** (`show_tutorial`, `hide_tutorial`, signály `tutorial_skip_pressed`, `tutorial_ok_pressed`): panel vpravo pod deníkem bitvy (`_place_tutorial`, i v `update_dynamic`) s krokem („VÝCVIK · krok 2 z 7“), textem z dat, Přeskočit výcvik a u posledního kroku Rozumím. Nezakrývá hrdiny ani nepřátele u mostu.
 15. **Obdélník výběru** (`select_box`, `show_box`, `hide_box`): při tažení levým tlačítkem na zemi.
 
 ## Úskalí
@@ -29,6 +30,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 - Místní proměnná se nesmí jmenovat jako metoda `CanvasLayer` (`hide`, `show`).
 
 ## Historie významných změn
+- 30.10.2026: panel výcviku.
 - 30.10.2026: karta bez textu rozkazu, Poslat a ✕; klávesa schopnosti v rámečku na tlačítku.
 - 29.10.2026: bitva ve fázích: pryč ukazatel slávy a dialog před bitvou, schopnost ukazuje použití a nabíjení, ikonky spící skupinky, velitele a chystané schopnosti, počet čekajících skupinek, úvodní pauza s výběrem bitvy.
 - 29.10.2026: barvy hrdinů: rámeček karty a jméno, rámeček ukazatele zdraví nad hlavou.
