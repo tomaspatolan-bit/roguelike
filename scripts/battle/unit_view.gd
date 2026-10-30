@@ -25,6 +25,10 @@ var _fall := 0.0
 var _heal_flash := 0.0
 var _anim_attack := ANIM_ATTACK
 var _anim_ability := ANIM_ATTACK
+var _anim_idle := ANIM_IDLE
+var _anim_walk := ANIM_WALK
+var _anim_hit := ANIM_HIT
+var _anim_death := ANIM_DEATH
 var _oneshot_t := 0.0      # jak dlouho ještě hraje jednorázová animace (útok, zásah, schopnost)
 var _prev_atk := 0.0
 var _prev_hit := 0.0
@@ -57,7 +61,12 @@ func setup(u: Sim.Unit) -> void:
 
 
 func _build_knight(u: Sim.Unit) -> void:
-	body = KNIGHT_SCENE.instantiate() as Node3D
+	# model třídy z dat (`model`), jinak společný rytíř; stejná kostra a paleta pro všechny
+	var scene: PackedScene = KNIGHT_SCENE
+	var model := String(u.base.get("model", ""))
+	if model != "" and ResourceLoader.exists(model):
+		scene = load(model) as PackedScene
+	body = scene.instantiate() as Node3D
 	add_child(body)
 	palette_mat = ShaderMaterial.new()
 	palette_mat.shader = PALETTE_SHADER
@@ -68,18 +77,49 @@ func _build_knight(u: Sim.Unit) -> void:
 		(n as MeshInstance3D).material_override = palette_mat
 	_anim_attack = String(u.base.get("anim_attack", ANIM_ATTACK))
 	_anim_ability = String(u.base.get("anim_ability", _anim_attack))
+	var anims: Dictionary = u.base.get("anims", {})
+	_anim_idle = String(anims.get("idle", ANIM_IDLE))
+	_anim_walk = String(anims.get("walk", ANIM_WALK))
+	_anim_hit = String(anims.get("hit", ANIM_HIT))
+	_anim_death = String(anims.get("death", ANIM_DEATH))
+	_anim_attack = String(anims.get("attack", _anim_attack))
+	_anim_ability = String(anims.get("ability", _anim_ability))
 	var players := body.find_children("*", "AnimationPlayer", true, false)
 	if not players.is_empty():
 		anim = players[0] as AnimationPlayer
 		for a_name: String in anim.get_animation_list():
-			anim.get_animation(a_name).loop_mode = Animation.LOOP_LINEAR if a_name in [ANIM_IDLE, ANIM_WALK] else Animation.LOOP_NONE
-		if anim.has_animation(ANIM_IDLE):
-			anim.play(ANIM_IDLE)
+			anim.get_animation(a_name).loop_mode = Animation.LOOP_LINEAR if a_name in [_anim_idle, _anim_walk] else Animation.LOOP_NONE
+		if anim.has_animation(_anim_idle):
+			anim.play(_anim_idle)
 			anim.seek(randf() * anim.current_animation_length, true)
 	if u.key == "jezdec":
 		# Jezdec zatím nemá koně: je o kousek větší a rychlejší.
 		body.scale = Vector3.ONE * 1.08
-	_attach_weapon(String(u.base.get("weapon", "")))
+	var wm := String(u.base.get("weapon_model", ""))
+	if wm != "" and ResourceLoader.exists(wm):
+		_attach_weapon_model(wm, String(u.base.get("weapon_bone", "hand_r")))
+	else:
+		_attach_weapon(String(u.base.get("weapon", "")))
+
+
+## Zbraň z modelu (GLB z Blenderu, paleta jako postava). Úchop: počátek zbraně je v pěsti
+## (0,08 m po ose Y kosti od zápěstí), osa zbraně (+Z v Blenderu, po importu +Y) leží v ose Z kosti ruky.
+func _attach_weapon_model(path: String, hand: String) -> void:
+	var skels := body.find_children("*", "Skeleton3D", true, false)
+	if skels.is_empty():
+		return
+	var skel := skels[0] as Skeleton3D
+	if skel.find_bone(hand) < 0:
+		return
+	var att := BoneAttachment3D.new()
+	att.bone_name = hand
+	skel.add_child(att)
+	var w := (load(path) as PackedScene).instantiate() as Node3D
+	w.transform = Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(0, 0.08, 0))
+	att.add_child(w)
+	for mi in w.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).material_override = palette_mat
+		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
 
 ## Zbraň v ruce hrdiny (zástupná primitiva na kosti ruky; finální modely ve fázi 3).
@@ -182,11 +222,11 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 			if palette_mat != null:
 				palette_mat.set_shader_parameter("flash", Color(0, 0, 0, 0))
 			return
-		if anim != null and anim.has_animation(ANIM_DEATH):
+		if anim != null and anim.has_animation(_anim_death):
 			# hrdina padne animací a zůstane ležet (poslední snímek)
 			if not _dead_played:
 				_dead_played = true
-				anim.play(ANIM_DEATH, 0.08)
+				anim.play(_anim_death, 0.08)
 			anim.speed_scale = maxf(time_scale, 0.01) if sim_running else 0.0
 		else:
 			_fall = minf(1.0, _fall + delta * 2.5)
@@ -204,7 +244,7 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 			if u.atk > _prev_atk + 0.01:
 				_play_once(_anim_attack, time_scale)
 			elif u.hit > _prev_hit + 0.01 and _oneshot_t <= 0.0:
-				_play_once(ANIM_HIT, time_scale)
+				_play_once(_anim_hit, time_scale)
 			_oneshot_t -= delta * time_scale
 		_prev_atk = u.atk
 		_prev_hit = u.hit
@@ -214,12 +254,12 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 			else:
 				anim.speed_scale = time_scale
 		else:
-			var want := ANIM_WALK if u.moving and sim_running else ANIM_IDLE
+			var want := _anim_walk if u.moving and sim_running else _anim_idle
 			if anim.current_animation != want and anim.has_animation(want):
 				anim.play(want, 0.15)
 			if not sim_running:
-				anim.speed_scale = 1.0 if want == ANIM_IDLE else 0.0
-			elif want == ANIM_WALK:
+				anim.speed_scale = 1.0 if want == _anim_idle else 0.0
+			elif want == _anim_walk:
 				anim.speed_scale = clampf(u.speed / 2.4, 0.8, 2.2) * time_scale
 			else:
 				anim.speed_scale = time_scale

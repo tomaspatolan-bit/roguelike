@@ -39,7 +39,8 @@ func _init() -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 1)
 	var picks: Array = s.knights()
 	picks.append(s.by_id("e0"))
-	picks.append(s.by_id("e11"))
+	var foes := s.living(Sim.SIDE_FOE)
+	picks.append(foes[foes.size() - 1])   # poslední nepřítel scénáře (počet se mění s balancem)
 	var i := 0
 	for u in picks:
 		var v := UnitView.new()

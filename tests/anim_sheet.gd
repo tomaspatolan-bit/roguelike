@@ -65,9 +65,9 @@ func _pose(kind: String, f: float) -> void:
 			"ability":
 				name = v._anim_ability
 			"hit":
-				name = UnitView.ANIM_HIT
+				name = v._anim_hit
 			"death":
-				name = UnitView.ANIM_DEATH
+				name = v._anim_death
 		if a == null or not a.has_animation(name):
 			print("CHYBÍ animace ", name)
 			continue

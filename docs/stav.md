@@ -6,6 +6,7 @@ Aktualizováno: 30.10.2026
 **Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotové všechny tři typy bitev (útok, střet, obrana s Lesní vsí) a animace boje hrdinů. Hotové rozkazy pro hrdiny (2.2c). Další: karta stage a volitelné úkoly (2.2). Otevřené: playtest s hráčem mimo nás (1.8).
 
 ## Hotovo
+- Kněz má vlastní model podle Tomova zadání soupisky: slonovinový dlouhý šat a plášť (barva hrdiny), navy štóla a znak řádu, velký navy kříž na zádech, zlatá koruna s křížem na přilbě, kniha a medailon u pasu, menší nárameníky; palcát jako samostatný model, který drží svisle jako žezlo; vlastní animace (klid, chůze, šikmý úder, Požehnání), zásah a smrt z rytíře. Postava se staví skriptem (`art/cleric/`).
 - Výcvik ve hře: v první bitvě karta přišpendlená šipkou k cíli provede hráče sedmi kroky (výběr, rozkaz, pauza, útok, schopnost, H, velitelé); u nepřátel, boje a velitele se bitva sama zastaví a kamera se tam posune; krok skončí akcí hráče, jde přeskočit, po dokončení se neukáže (úvodní obrazovka: „Výcvik znovu“). Mezerník v rozestavení obrany spustí bitvu.
 - Karta hrdiny bez textu rozkazu, Poslat a ✕; tlačítko schopnosti ukazuje klávesu (1–5). Klávesa H: vybraní hrdinové zruší rozkaz a drží místo.
 - Pravé tlačítko vždy provede akci: rozkaz, cílenou schopnost (po tlačítku nebo klávese 1–5) i rozkaz z tlačítka Poslat; levé vybírá.
@@ -42,6 +43,7 @@ Aktualizováno: 30.10.2026
 - Žádný zvuk.
 
 ## Čeká na Toma
+- **Schválit styl kněze** (snímky v chatu, nebo ve hře: Otec Jan): sedí k tankovi? Pak udělám lučištníka, jezdce s koněm a asasína stejným postupem.
 - **Vyzkoušet kameru** na každé mapě: je vidět, co potřebuješ? Nejsou hrdinové pod kartami? Sedí úhel (dá se změnit v datech scénáře)?
 - **Poslat testerovi** build `Rytiri_test_2026-10-30.zip` (větev `testovaci-buildy` na GitHubu, nebo ve složce Blender\Roguelike). Repo je soukromé: testera přidej jako collaboratora s právem čtení (Settings → Collaborators), nebo mu ZIP pošli. Jeho dojmy zapiš do `playtesty.md` (krok 1.8).
 - **Vyzkoušet bitvu ve fázích** (Most, Brod, Lesní ves, boss): nejsou shluky a prolínání? Čtou se probuzení skupinek a ohlášené schopnosti velitelů (stihneš uhnout)? Nejsou schopnosti moc skoupé, nebo bitvy moc lehké s plnou kontrolou? Nový exe pro testera na požádání.

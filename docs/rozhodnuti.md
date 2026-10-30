@@ -2,6 +2,13 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 30.10.2026 – Soupiska tříd podle tanka
+- **Každá třída dostane vlastní model podle Tomova zadání** (kněz, lučištník, jezdec s koněm, asasín), tank je vzor stylu, měřítka a stavby zbroje. Postavy po jedné: kněz první, další až po Tomově schválení stylu (chyba stylu se neopakuje čtyřikrát).
+- **Barvy:** zbroj, zlato a karmín jako jeden řád; navy řádu na detailech (štóla, znak); **barva hrdiny na plášti a hlavní látce**, protože karty, kruhy a hlavně pohled zezadu podle ní hrdiny rozlišují (zadání chtělo navy pro všechny, Tom zvolil navy základ + barvu hrdiny).
+- **Jen animace, které hra používá** (klid, chůze, útok, schopnost, zásah, smrt; kůň klid, krok, cval, zásah, pád). Úskok, vrhací nože, nabitá a vícenásobná střela, ochranné gesto, plížení, těžký útok, sesednutí a vzepnutí koně až s mechanikou (`napady.md`).
+- Zbraně jsou samostatné modely připnuté na kost ruky; každá postava se staví skriptem v repozitáři, aby šla kdykoli postavit znovu.
+- Rozšířené zadání (rig, kontrola kvality, prezentace, postup po etapách) platí se stejnými pravidly. Odchylky: herní síť postavy je jedna (díly jsou ve stavěcím skriptu, ne jako samostatné objekty) a formát je GLB; společná sestava všech pěti tříd (lineup) až budou hotové všechny.
+
 ## 30.10.2026 – Výcvik ve hře
 - **Výcvik je interaktivní, ne demo:** v první bitvě panel krok po kroku řekne, co udělat (výběr, rozkaz pravým, pauza, útok na skupinu, schopnost, H, velitelé), a krok skončí, až to hráč udělá. Nic neblokuje, jde přeskočit, po dokončení se už neukáže (na úvodní obrazovce „Výcvik znovu“). Kroky jsou v datech (`vycvik.json`). Důvod: pasivní demo hráči přeskakují a naučí se z něj málo; učení akcí je levnější a funguje v každé bitvě. Tom: onboarding bude součástí hry.
 - **Výcvik zastaví bitvu, když se něco děje** (nepřátelé jdou na oddíl, začne boj, velitel chystá schopnost), posune kameru na to místo a poradí, jak zareagovat; karta výcviku je přišpendlená šipkou k tomu, čeho se krok týká. Tom: hráč má vždy vidět, co se děje, a podle výcviku zareagovat.

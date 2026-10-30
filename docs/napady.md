@@ -27,3 +27,4 @@ podporuje aspoň jeden pilíř? kolik stojí? řeší problém, který jsme vid�
 | 30.10.2026 | Mapy proti prolínání (Tom): most je úzký a jednotky se na něm tlačí; širší most, víc přechodů, nebo stráž až za mostem | Velíš rodu | k zvážení při úpravě map |
 | 30.10.2026 | Hrdinové na klávesách: F1–F5 vybere hrdinu (jako ve Shadow Tactics), případně ovládání jen z karet (Tom) | Velíš rodu | až po hraní s ovládáním podle RTS |
 | 30.10.2026 | Hotové balíky assetů pro mapy, kdyby vlastní kit nestačil: Kenney a Quaternius (zdarma, CC0, low-poly), Synty POLYGON (placené); hlídat styl s rytířem a licenci | – | záloha, nejdřív vlastní kit (Tom) |
+| 30.10.2026 | Animace ze zadání soupisky, které zatím nemají mechaniku: úskok (lučištník, asasín), vrhací nůž, nabitá a vícenásobná střela, ochranné gesto a soustředění kněze, plížení asasína, těžký útok, běh, jezdec: kopí připravené, sesednutí, vzepnutí koně | Velíš rodu | až s mechanikou (Tom 30.10.2026) |
