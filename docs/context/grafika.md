@@ -1,6 +1,6 @@
 # Kontext: grafika a 3D pipeline
 
-Soubory: `art/` (`art/knight/` rytíř a paleta, `art/cleric/` kněz, `art/tools/hero_kit.py` stavebnice hrdinů); zdroj v Blenderu `C:\Users\sirko\Documents\Knight.blend`, exporty v `C:\Users\sirko\Blender\Roguelike\`
+Soubory: `art/` (`art/knight/` rytíř a paleta, `art/cleric/` kněz, `art/archer/` lučištník, `art/tools/hero_kit.py` stavebnice hrdinů); zdroj v Blenderu `C:\Users\sirko\Documents\Knight.blend`, exporty v `C:\Users\sirko\Blender\Roguelike\`
 Hlídá: `tests/screenshot_battle.gd` (model se načte a animuje)
 
 ## Účel
@@ -18,10 +18,12 @@ Modely, textury a shadery hry a cesta z Blenderu do Godotu.
 9. **Soupiska tříd (od 30.10.2026, zadání Toma):** každá třída má vlastní model postavený z tanka (`SK_Knight`) jako vzoru: stejná kostra a měřítko, stejná paleta, stejná stavba zbroje, ale vlastní silueta a výbava. Postava se staví skriptem v repozitáři (`art/<třída>/build_<třída>.py` + `art/tools/hero_kit.py`: díly z tanka se upraví nebo vymění, nové díly dostanou UV buňky palety a tuhé váhy), animace skriptem `anims_<třída>.py`. Vždy jde postavit znovu (skript, ze kterého vznikl tank, se nedochoval).
 10. **Barvy (rozhodnutí 30.10.2026):** stříbrná zbroj, zlato a karmínové detaily pro všechny; navy řádu ve sloupcích palety 9 a 10 (stejné ve všech řádcích); barva hrdiny (sloupce 3 a 4, řádek role) na plášti a hlavní látce, protože ve hře je hrdina vidět hlavně zezadu. Buňky palety: 0 ocel, 1 tmavá ocel, 2 zlato, 3–4 barva hrdiny, 5 karmín, 6 kůže, 7 kroužková zbroj, 8 tmavá, 9–10 navy.
 11. **Zbraně jsou samostatné GLB** (`SM_<Třída>_<Zbraň>.glb`, paleta jako postava). Úchop: počátek zbraně v pěsti, zbraň míří po +Z (v Blenderu); ve hře ji `unit_view` připne na kost ruky (`weapon_bone`, výchozí `hand_r`) posunutou o 0,08 m po ose Y kosti a otočenou tak, že osa zbraně leží v ose Z kosti. S předloktím vodorovně dopředu pak zbraň stojí svisle. **Export:** scéna náhledů `PREVIEW` má kolekci `PV_objs`; před exportem musí být prázdná, jinak exportér přibalí i její objekty (tak se do GLB hole dostal kněz i zem).
-12. **Animace třídy** `A_<Třída>_<Činnost>` (kněz `A_Cleric_Idle`, `_Walk`, `_Attack` = výpad holí na dálku, `_Bless`), na stejné kostře; co třída nemá vlastní, bere z rytíře (zásah, smrt). Exportér glTF nejde omezit na akce jedné třídy, proto každý GLB nese i ostatní akce (malé, hra vybírá podle jména z dat). Jen animace, které hra používá (Tom 30.10.2026); další až s mechanikou (`napady.md`).
+12. **Animace třídy** `A_<Třída>_<Činnost>` (kněz `A_Cleric_Idle`, `_Walk`, `_Attack` = výpad holí na dálku, `_Bless`; lučištník `A_Archer_Idle`, `_Walk`, `_Shoot`, `_Salvo`), na stejné kostře; co třída nemá vlastní, bere z rytíře (zásah, smrt). Exportér glTF nejde omezit na akce jedné třídy, proto každý GLB nese i ostatní akce (malé, hra vybírá podle jména z dat). Jen animace, které hra používá (Tom 30.10.2026); další až s mechanikou (`napady.md`).
 
 13. **Kontrola kvality každé postavy** (zadání, oddíl 9): normály nových dílů ven (`hero_kit` je přepočítá u uzavřených dílů), žádné nevážené vrcholy a součet vah 1, počátek u chodidel, zbraň s počátkem v pěsti, nohy neprochází dlouhým šatem v chůzi ani při výpadu (paprsky na deformované síti), siluety zepředu, 3/4, z boku a zezadu. Prezentace: `Blender\Roguelike\renders\<třída>_*.png` (pohledy, detail zbraně, pózy animací) ve scéně `PREVIEW` v `Knight.blend`. Kontrolní bod po každé třídě: `Knight_kontrola_<třída>.blend`.
 14. **Herní síť je jedna** (jako tank): díly se v Blenderu neukládají jako samostatné objekty, stavěcí skript je zdroj modularity (zadání chtělo samostatné objekty pro díly; jedna síť = jedno vykreslení ve hře). Formát pro hru je GLB (glTF), ne FBX.
+15. **Luk a tětiva (lučištník, 30.10.2026):** luk drží levá ruka (`weapon_bone: hand_l`), konce luku se stáčí k lučištníkovi (−Y v prostoru luku). Tětiva není v GLB: kreslí ji `unit_view` ze dvou úseků mezi konci luku (`bow_string` v datech, souřadnice luku v Godotu). Je-li pravá ruka do 0,2 m od roviny luku a za tětivou (nejvýš 0,75 m), vede tětiva přes ni (natažení), jinak je rovně (po vypuštění se narovná). Pózy střelby jsou dohledané numericky v Blenderu (luk svisle, šíp dopředu, ruka u brady). Konvence kostry: `upperarm_l` i `_r` rotace X kladná = paže dopředu, `lowerarm` X kladná = ohyb lokte, `spine_02` rotace Y = otočení trupu (záporná = levé rameno dopředu), rotace Z = úklon.
+16. **Šíp je model** (`projectile_model`, `SM_Archer_Arrow.glb`, hrot po +Z v Blenderu); `battle.gd` ho natočí k cíli a obarví paletou střelce. Zbraně se exportují ze scény `Scene` s vybranou jen zbraní (pomocník `export_alone` vybíral i zem `PV_ground`).
 
 ## Evidence AI obsahu
 | Asset | Vznik | Poznámka |
@@ -33,8 +35,10 @@ Modely, textury a shadery hry a cesta z Blenderu do Godotu.
 | animace boje rytíře (útok ×3, schopnost, zásah, smrt) | Claude, klíčové snímky skriptem v Blenderu | zástupné, `Knight.blend` |
 | zbraně v ruce, chalupy | Claude, primitiva v kódu | zástupná grafika |
 | `SK_Cleric.glb`, `SM_Cleric_Staff.glb`, animace `A_Cleric_*` | Claude, skriptem v Blenderu (`art/cleric/`) | kněz: model, hůl, klid, chůze, útok holí na dálku, Požehnání |
+| `SK_Archer.glb`, `SM_Archer_Bow.glb`, `SM_Archer_Arrow.glb`, animace `A_Archer_*` | Claude, skriptem v Blenderu (`art/archer/`) | lučištník: model, dlouhý luk, šíp, klid, chůze, výstřel, Salva; tětiva v kódu |
 
 ## Historie významných změn
+- 30.10.2026: lučištník (`SK_Archer`: bez pláště, toulec na zádech, přilba s krempou a otevřenou tváří, těžší levé rameno, kožený chránič předloktí, zelená tunika s navy lemem, dýka), dlouhý luk v levé ruce s tětivou v kódu, šíp jako model, animace `A_Archer_*`. Kontrolní bod `Knight_kontrola_lucistnik.blend`.
 - 30.10.2026: kněz má místo palcátu hůl (`SM_Cleric_Staff`, Tom) a útok holí na dálku; palcát z repozitáře pryč.
 - 30.10.2026: kněz (`SK_Cleric`, palcát `SM_Cleric_Mace`, animace `A_Cleric_*`), stavebnice hrdinů `art/tools/hero_kit.py`, paleta má navy sloupce 9 a 10, zbraně jako samostatné GLB s úchopem v pěsti.
 - 29.10.2026: paže u těla ve všech animacích (rytíř už nestojí v A-póze jako „Y“), nový export GLB.

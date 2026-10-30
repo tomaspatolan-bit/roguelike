@@ -1091,11 +1091,33 @@ func _flush_events() -> void:
 		_refresh_panel()
 
 
+## Střela z modelu (projectile_model střelce, GLB s hrotem po ose Y): uzel míří po -Z jako look_at.
+## Barva z palety střelce (jeho řádek role). Bez modelu null (pak zástupný tvar).
+func _projectile_model(shooter: Sim.Unit) -> Node3D:
+	if shooter == null:
+		return null
+	var path := String(shooter.base.get("projectile_model", ""))
+	if path == "" or not ResourceLoader.exists(path):
+		return null
+	var root := Node3D.new()
+	var m := (load(path) as PackedScene).instantiate() as Node3D
+	m.transform = Transform3D(Basis(Vector3.RIGHT, -PI / 2.0), Vector3.ZERO)
+	root.add_child(m)
+	var v: UnitView = views.get(shooter.id)
+	for mi in m.find_children("*", "MeshInstance3D", true, false):
+		if v != null and v.palette_mat != null:
+			(mi as MeshInstance3D).material_override = v.palette_mat
+	return root
+
+
 func _sync_projectiles() -> void:
 	var alive := {}
 	for p in sim.projectiles:
 		alive[p.id] = true
-		var mi: MeshInstance3D = projectile_views.get(p.id)
+		var mi: Node3D = projectile_views.get(p.id)
+		if mi == null:
+			var shooter := sim.by_id(p.from_id)
+			mi = _projectile_model(shooter)
 		if mi == null:
 			mi = MeshInstance3D.new()
 			var shooter := sim.by_id(p.from_id)
@@ -1104,18 +1126,19 @@ func _sync_projectiles() -> void:
 				var sm := SphereMesh.new()
 				sm.radius = 0.13
 				sm.height = 0.26
-				mi.mesh = sm
+				(mi as MeshInstance3D).mesh = sm
 				var lm := StandardMaterial3D.new()
 				lm.albedo_color = Color("#ffe9a8")
 				lm.emission_enabled = true
 				lm.emission = Color("#ffd36a")
 				lm.emission_energy_multiplier = 2.5
-				mi.material_override = lm
+				(mi as MeshInstance3D).material_override = lm
 			else:
 				var m := BoxMesh.new()
 				m.size = Vector3(0.05, 0.05, 0.7)
-				mi.mesh = m
-				mi.material_override = Field.mat(Color("#5a3d22"))
+				(mi as MeshInstance3D).mesh = m
+				(mi as MeshInstance3D).material_override = Field.mat(Color("#5a3d22"))
+		if mi.get_parent() == null:
 			add_child(mi)
 			projectile_views[p.id] = mi
 		var pos := Field.to_world(p.pos, 1.3)

@@ -35,6 +35,16 @@ var _prev_hit := 0.0
 var _dead_played := false
 var _ragdoll := false
 var _foe_body: RigidBody3D = null
+# tětiva luku (lučištník): konce v prostoru modelu luku, úseky horní a dolní
+var _bow: Node3D = null
+var _bow_top := Vector3.ZERO
+var _bow_bottom := Vector3.ZERO
+var _string_a: MeshInstance3D = null
+var _string_b: MeshInstance3D = null
+var _skel: Skeleton3D = null
+var _hand_r := -1
+const STRING_PLANE := 0.2    # jak blízko roviny luku musí být pravá ruka, aby tětivu táhla (m)
+const STRING_DRAW_MAX := 0.75   # dál než plné natažení: ruka je pryč (po vypuštění), tětiva rovně
 
 ## Ragdoll: kosti, které dostanou fyzikální tělo [kost, poloměr, hmotnost, kloub].
 ## Kloub: "cone" (kulový s omezením), "hinge" (loket, koleno).
@@ -97,20 +107,23 @@ func _build_knight(u: Sim.Unit) -> void:
 		body.scale = Vector3.ONE * 1.08
 	var wm := String(u.base.get("weapon_model", ""))
 	if wm != "" and ResourceLoader.exists(wm):
-		_attach_weapon_model(wm, String(u.base.get("weapon_bone", "hand_r")))
+		var w := _attach_weapon_model(wm, String(u.base.get("weapon_bone", "hand_r")))
+		var bs: Dictionary = u.base.get("bow_string", {})
+		if w != null and not bs.is_empty():
+			_setup_bow_string(w, bs)
 	else:
 		_attach_weapon(String(u.base.get("weapon", "")))
 
 
 ## Zbraň z modelu (GLB z Blenderu, paleta jako postava). Úchop: počátek zbraně je v pěsti
 ## (0,08 m po ose Y kosti od zápěstí), osa zbraně (+Z v Blenderu, po importu +Y) leží v ose Z kosti ruky.
-func _attach_weapon_model(path: String, hand: String) -> void:
+func _attach_weapon_model(path: String, hand: String) -> Node3D:
 	var skels := body.find_children("*", "Skeleton3D", true, false)
 	if skels.is_empty():
-		return
+		return null
 	var skel := skels[0] as Skeleton3D
 	if skel.find_bone(hand) < 0:
-		return
+		return null
 	var att := BoneAttachment3D.new()
 	att.bone_name = hand
 	skel.add_child(att)
@@ -120,6 +133,94 @@ func _attach_weapon_model(path: String, hand: String) -> void:
 	for mi in w.find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).material_override = palette_mat
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	return w
+
+
+## Tětiva luku: dva tenké úseky od konců luku. Leží-li pravá ruka u roviny luku za tětivou
+## (natahuje), vede tětiva přes ni, jinak je rovně. Řídí to póza animace, ne simulace.
+func _setup_bow_string(w: Node3D, bs: Dictionary) -> void:
+	var top: Array = bs.get("top", [])
+	var bottom: Array = bs.get("bottom", [])
+	if top.size() != 3 or bottom.size() != 3:
+		return
+	_bow = w
+	_bow_top = Vector3(float(top[0]), float(top[1]), float(top[2]))
+	_bow_bottom = Vector3(float(bottom[0]), float(bottom[1]), float(bottom[2]))
+	_skel = body.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	_hand_r = _skel.find_bone("hand_r")
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.007
+	cm.bottom_radius = 0.007
+	cm.height = 1.0
+	cm.radial_segments = 4
+	cm.rings = 1
+	var mat := Field.mat(Color("#e8e2d0"), 0.9)
+	_string_a = MeshInstance3D.new()
+	_string_b = MeshInstance3D.new()
+	for mi: MeshInstance3D in [_string_a, _string_b]:
+		mi.mesh = cm
+		mi.material_override = mat
+		mi.top_level = true
+		add_child(mi)
+
+
+## Bod, přes který vede tětiva (globálně); Vector3.INF = tětiva rovně.
+func bow_pull_point() -> Vector3:
+	if _bow == null or _hand_r < 0:
+		return Vector3.INF
+	var t := _bow.global_transform * _bow_top
+	var b := _bow.global_transform * _bow_bottom
+	var grip := _bow.global_position
+	var hand := _skel.global_transform * _skel.get_bone_global_pose(_hand_r) * Vector3(0, 0.08, 0)
+	var axis := t - b
+	var n := axis.cross(grip - b)
+	if n.length() < 0.0001 or axis.length() < 0.0001:
+		return Vector3.INF
+	n = n.normalized()
+	var off := (hand - b).dot(n)
+	if absf(off) > STRING_PLANE:
+		return Vector3.INF
+	var p := hand - n * off
+	var k := (p - b).dot(axis) / axis.length_squared()
+	if k < 0.15 or k > 0.85:
+		return Vector3.INF
+	var on_line := b + axis * k
+	var back := on_line - grip   # směr od rukojeti k tětivě (k lučištníkovi)
+	var pull := (p - on_line).dot(back.normalized())
+	if pull < 0.0 or pull > STRING_DRAW_MAX:
+		return Vector3.INF
+	return p
+
+
+func _process(_delta: float) -> void:
+	if _bow == null:
+		return
+	var t := _bow.global_transform * _bow_top
+	var b := _bow.global_transform * _bow_bottom
+	var p := bow_pull_point()
+	if p == Vector3.INF:
+		var m := (t + b) * 0.5
+		_place_segment(_string_a, t, m)
+		_place_segment(_string_b, m, b)
+	else:
+		_place_segment(_string_a, t, p)
+		_place_segment(_string_b, p, b)
+
+
+static func _place_segment(mi: MeshInstance3D, a: Vector3, b: Vector3) -> void:
+	var d := b - a
+	var l := d.length()
+	if l < 0.001:
+		mi.visible = false
+		return
+	mi.visible = true
+	var y := d / l
+	var x := y.cross(Vector3.UP)
+	if x.length() < 0.01:
+		x = y.cross(Vector3.RIGHT)
+	x = x.normalized()
+	var z := x.cross(y)
+	mi.global_transform = Transform3D(Basis(x, y * l, z), (a + b) * 0.5)
 
 
 ## Zbraň v ruce hrdiny (zástupná primitiva na kosti ruky; finální modely ve fázi 3).
