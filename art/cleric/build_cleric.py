@@ -1,6 +1,6 @@
 # Kněz (Cleric): bitevní kněz řádu, staví se z herního rytíře SK_Knight (stejná kostra, paleta, styl).
 # Spuštění v Blenderu (Knight.blend): exec(open(r"<repo>/art/cleric/build_cleric.py", encoding="utf-8").read(), {"KIT": r"<repo>/art/tools/hero_kit.py"})
-# Výsledek: SK_Cleric (kolekce CLERIC_game) a zbraň SM_Cleric_Mace.
+# Výsledek: SK_Cleric (kolekce CLERIC_game) a zbraň SM_Cleric_Staff (hůl, kněz útočí na dálku).
 # Barvy: barva hrdiny (ROLE, u kněze slonovinová) na dlouhém šatu a plášti (ve hře je hrdina vidět hlavně zezadu),
 # navy řádu (sloupce NAVY) na štóle a znaku, zlato na koruně, kříži a lemech.
 import math
@@ -181,28 +181,36 @@ bm.to_mesh(ob.data)
 bm.free()
 ob.data.update()
 
-# --- palcát (samostatný objekt; úchop v počátku, míří po +Z)
-mace = new_weapon("SM_Cleric_Mace", "CLERIC_game")
-mb = bmesh.new()
-MB = Builder(mace, mb)
+# --- hůl (samostatný objekt; úchop v počátku, míří po +Z; Tom 30.10.2026: hůl a útok na dálku místo palcátu)
+staff = new_weapon("SM_Cleric_Staff", "CLERIC_game")
+for nm in ("SM_Cleric_Mace",):
+    old = bpy.data.objects.get(nm)
+    if old is not None:
+        bpy.data.objects.remove(old)
+sb = bmesh.new()
+SB = Builder(staff, sb)
 W0 = {}
-MB.cylinder((0, 0, -0.10), (0, 0, 0.46), 0.018, LEATHER, W0, segs=8)          # násada s omotávkou
-MB.cylinder((0, 0, -0.13), (0, 0, -0.10), 0.03, GOLD, W0, r1=0.022, segs=8)    # hlavice rukojeti
-MB.cylinder((0, 0, 0.12), (0, 0, 0.46), 0.021, STEEL_DARK, W0, segs=8)       # kovová násada
-MB.cylinder((0, 0, 0.44), (0, 0, 0.475), 0.036, GOLD, W0, segs=8)            # zlatý prstenec
-MB.cylinder((0, 0, 0.475), (0, 0, 0.69), 0.055, STEEL, W0, r1=0.048, segs=8)  # jádro hlavice
-for i in range(6):                                                            # šest břitů
-    a = 2 * math.pi * i / 6
-    d = Vector((math.cos(a), math.sin(a), 0))
-    pts = [Vector((0, 0, 0.475)) + d * 0.04, Vector((0, 0, 0.51)) + d * 0.11,
-           Vector((0, 0, 0.65)) + d * 0.11, Vector((0, 0, 0.70)) + d * 0.04]
-    MB.prism(pts, 0.02, Vector((-math.sin(a), math.cos(a), 0)), STEEL, W0)
-    MB.box(Vector((0, 0, 0.58)) + d * 0.111, (0.012, 0.012, 0.03), GOLD, W0, rot=Euler((0, 0, a)))   # zlaté nýty
-MB.cylinder((0, 0, 0.69), (0, 0, 0.725), 0.036, GOLD, W0, r1=0.02, segs=8)    # zlatá špička
-MB.box((0, 0, 0.77), (0.016, 0.016, 0.08), GOLD, W0)                         # kříž na vrcholu
-MB.box((0, 0, 0.78), (0.058, 0.016, 0.016), GOLD, W0)
-mb.normal_update()
-mb.to_mesh(mace.data)
-mb.free()
+SB.cylinder((0, 0, -0.62), (0, 0, -0.56), 0.026, GOLD, W0, r1=0.022, segs=8)        # kovaná pata
+SB.cylinder((0, 0, -0.56), (0, 0, 0.92), 0.02, LEATHER, W0, segs=8)                # dřevěná násada
+SB.cylinder((0, 0, -0.10), (0, 0, 0.12), 0.024, NAVY_DARK, W0, segs=8)             # omotávka v pěsti
+for z in (-0.12, 0.14, 0.55):                                                      # zlaté objímky
+    SB.cylinder((0, 0, z), (0, 0, z + 0.03), 0.027, GOLD, W0, segs=8)
+SB.cylinder((0, 0, 0.92), (0, 0, 0.98), 0.03, GOLD, W0, r1=0.022, segs=8)           # krček hlavice
+# hlavice: zlatý kruh (osmiboký prstenec) s křížem uvnitř a rubínem uprostřed, kolmo k násadě
+ring_c = Vector((0, 0, 1.12))
+R0, R1 = 0.12, 0.095
+for i in range(8):
+    a0 = 2 * math.pi * i / 8
+    a1 = 2 * math.pi * (i + 1) / 8
+    pts = [ring_c + Vector((math.cos(a0) * R0, 0, math.sin(a0) * R0)), ring_c + Vector((math.cos(a1) * R0, 0, math.sin(a1) * R0)),
+           ring_c + Vector((math.cos(a1) * R1, 0, math.sin(a1) * R1)), ring_c + Vector((math.cos(a0) * R1, 0, math.sin(a0) * R1))]
+    SB.prism(pts, 0.03, Vector((0, 1, 0)), GOLD, W0)
+SB.box(ring_c, (0.024, 0.026, 0.2), GOLD, W0)                                      # kříž v kruhu
+SB.box(ring_c + Vector((0, 0, 0.025)), (0.2, 0.026, 0.024), GOLD, W0)
+SB.box(ring_c + Vector((0, 0, 0.025)), (0.042, 0.04, 0.042), CRIMSON, W0, rot=Euler((0, math.pi / 4, 0)))   # rubín
+SB.box(ring_c + Vector((0, 0, 0.145)), (0.03, 0.03, 0.05), GOLD, W0, taper=(0.2, 0.2))   # hrot nahoře
+sb.normal_update()
+sb.to_mesh(staff.data)
+sb.free()
 
-RESULT = {"tris": sum(len(p.vertices) - 2 for p in ob.data.polygons), "mace_tris": sum(len(p.vertices) - 2 for p in mace.data.polygons)}
+RESULT = {"tris": sum(len(p.vertices) - 2 for p in ob.data.polygons), "staff_tris": sum(len(p.vertices) - 2 for p in staff.data.polygons)}

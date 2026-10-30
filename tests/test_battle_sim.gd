@@ -386,7 +386,7 @@ func _test_orders(data: Dictionary) -> void:
 	var near := s2.by_id("e1")
 	for f in [far, near]:
 		f.speed = 0.0
-		f.asleep = true
+		f.asleep = false   # stojí (rychlost 0); spícího by hrdina sám nenapadl
 	far.pos = t2.pos + Vector2(0.0, 8.0)
 	near.pos = t2.pos + Vector2(2.5, 1.0)
 	far.home = far.pos   # poplach po zásahu blízkého (do alarm_radius od jeho místa) vzdáleného nesmí uvolnit

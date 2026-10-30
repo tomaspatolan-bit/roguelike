@@ -1,14 +1,15 @@
 # Animace kněze (A_Cleric_*), stejná kostra jako rytíř. Spouští se v Blenderu po build_cleric.py:
 # exec(open(r"<repo>/art/cleric/anims_cleric.py", encoding="utf-8").read(), {})
+# Kněz nosí hůl (Tom 30.10.2026) a útočí na dálku.
 # Úchop zbraně (všechny nové zbraně): počátek zbraně v pěsti (hlava kosti ruky + 0,08 m po ose Y),
-# osa zbraně = osa Z kosti ruky. S předloktím vodorovně dopředu tak palcát stojí svisle jako žezlo.
+# osa zbraně = osa Z kosti ruky. S předloktím vodorovně dopředu tak zbraň stojí svisle (hůl kněze).
 # Zásah a smrt bere kněz z rytíře (A_Knight_Hit, A_Knight_Death).
 import bpy
 
 arm = bpy.data.objects["Armature"]
 FPS = 24
 
-# výchozí držení: palcát svisle před tělem, levá ruka volně
+# výchozí držení: hůl svisle před tělem, levá ruka volně
 HOLD_R = {"upperarm_r": (0.3, 0.0, 0.55), "lowerarm_r": (1.3, 0.0, 0.0)}
 REST_L = {"upperarm_l": (0.0, 0.0, -0.5), "lowerarm_l": (-0.4, 0.0, 0.0)}
 
@@ -76,7 +77,7 @@ def copy_with_override(src, name, override):
     return make_action(name, keys)
 
 
-# --- klid: palcát svisle, pomalé dýchání (jako rytíř)
+# --- klid: hůl svisle, pomalé dýchání (jako rytíř)
 idle = {}
 for f, k in ((1, 0.0), (31, 1.0), (61, 0.0)):
     idle[f] = merged(HOLD_R, REST_L, {
@@ -85,27 +86,26 @@ for f, k in ((1, 0.0), (31, 1.0), (61, 0.0)):
         "cape_01": (-0.03 * k, 0, 0), "cape_02": (-0.05 * k, 0, 0), "pelvis.loc": (0, -0.01 * k, 0)})
 make_action("A_Cleric_Idle", idle)
 
-# --- chůze: nohy a trup z rytíře, palcát klidně svisle (jen mírný pohyb), levá ruka se kývá
+# --- chůze: nohy a trup z rytíře, hůl klidně svisle (jen mírný pohyb), levá ruka se kývá
 copy_with_override("A_Knight_Walk", "A_Cleric_Walk", lambda f: {
     "upperarm_r": (0.3 + 0.06 * (1 if f in (1, 25) else -1 if f == 13 else 0), 0, 0.55),
     "lowerarm_r": (1.3, 0, 0)})
 
-# --- útok: šikmý úder palcátem (nápřah přes pravé rameno, zásah 9. snímek, dokončení přes tělo)
+# --- útok na dálku (hůl): přitažení, výpad holí k cíli, světlo vyletí v 7. snímku (simulace střílí hned, animace je vzhled)
 make_action("A_Cleric_Attack", {
     1: merged(HOLD_R, REST_L),
-    6: merged(REST_L, {"upperarm_r": (1.2, 0.0, -0.75), "lowerarm_r": (1.7, 0, 0),
-                       "spine_02": (-0.12, 0, -0.35), "spine_03": (0, 0, -0.15)}),
-    9: merged(REST_L, {"upperarm_r": (0.9, 0.0, 0.75), "lowerarm_r": (0.35, 0, 0),
-                       "spine_02": (0.3, 0, 0.35), "spine_03": (0, 0, 0.1),
-                       "thigh_l": (-0.4, 0, 0), "calf_l": (-0.3, 0, 0)}),
-    12: merged(REST_L, {"upperarm_r": (0.45, 0.0, 0.95), "lowerarm_r": (0.45, 0, 0),
-                        "spine_02": (0.25, 0, 0.3), "thigh_l": (-0.4, 0, 0), "calf_l": (-0.3, 0, 0)}),
-    18: merged(HOLD_R, REST_L),
+    4: merged(REST_L, {"upperarm_r": (0.45, 0.0, 0.65), "lowerarm_r": (1.85, 0, 0),
+                       "spine_02": (-0.06, 0, -0.18), "head": (-0.05, 0, 0)}),
+    7: merged(REST_L, {"upperarm_r": (1.35, 0.0, 0.4), "lowerarm_r": (0.55, 0, 0),
+                       "upperarm_l": (0.3, 0, -0.45), "spine_02": (0.14, 0, 0.12), "thigh_l": (-0.25, 0, 0), "calf_l": (-0.15, 0, 0)}),
+    10: merged(REST_L, {"upperarm_r": (1.2, 0.0, 0.45), "lowerarm_r": (0.7, 0, 0),
+                        "spine_02": (0.1, 0, 0.08), "thigh_l": (-0.2, 0, 0), "calf_l": (-0.12, 0, 0)}),
+    16: merged(HOLD_R, REST_L),
 })
 
-# --- Požehnání: levá dlaň vzhůru nad oddíl, palcát k hrudi, hlava vzhůru
+# --- Požehnání: levá dlaň vzhůru nad oddíl, hůl u hrudi, hlava vzhůru
 BLESS = {"upperarm_l": (-2.1, 0, -0.25), "lowerarm_l": (-0.35, 0, 0),
-         "upperarm_r": (0.1, 0, 0.75), "lowerarm_r": (1.35, 0, 0), "head": (-0.25, 0, 0), "spine_02": (-0.12, 0, 0)}
+         "upperarm_r": (0.15, 0, 0.35), "lowerarm_r": (1.3, 0, 0), "head": (-0.25, 0, 0), "spine_02": (-0.12, 0, 0)}
 make_action("A_Cleric_Bless", {
     1: merged(HOLD_R, REST_L),
     7: BLESS,

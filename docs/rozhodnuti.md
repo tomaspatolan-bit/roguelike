@@ -7,6 +7,7 @@ Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, pro�
 - **Barvy:** zbroj, zlato a karmín jako jeden řád; navy řádu na detailech (štóla, znak); **barva hrdiny na plášti a hlavní látce**, protože karty, kruhy a hlavně pohled zezadu podle ní hrdiny rozlišují (zadání chtělo navy pro všechny, Tom zvolil navy základ + barvu hrdiny).
 - **Jen animace, které hra používá** (klid, chůze, útok, schopnost, zásah, smrt; kůň klid, krok, cval, zásah, pád). Úskok, vrhací nože, nabitá a vícenásobná střela, ochranné gesto, plížení, těžký útok, sesednutí a vzepnutí koně až s mechanikou (`napady.md`).
 - Zbraně jsou samostatné modely připnuté na kost ruky; každá postava se staví skriptem v repozitáři, aby šla kdykoli postavit znovu.
+- **Kněz má hůl a útočí na dálku** (Tom: „měl bych hůl a udělal ho ranged, než palcát“): zlaté světlo z hole na 6 m. Styl kněze Tom schválil („skvělý“).
 - Rozšířené zadání (rig, kontrola kvality, prezentace, postup po etapách) platí se stejnými pravidly. Odchylky: herní síť postavy je jedna (díly jsou ve stavěcím skriptu, ne jako samostatné objekty) a formát je GLB; společná sestava všech pěti tříd (lineup) až budou hotové všechny.
 
 ## 30.10.2026 – Výcvik ve hře

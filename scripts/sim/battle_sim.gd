@@ -1352,12 +1352,12 @@ func _settle(u: Unit, p: Vector2, dt: float, stop: float, foes: Array[Unit]) -> 
 	_go(u, p, dt, stop, foes)
 
 
-func _go(u: Unit, p: Vector2, dt: float, stop: float, foes: Array[Unit]) -> void:
+func _go(u: Unit, p: Vector2, dt: float, stop: float, _foes: Array[Unit]) -> void:
 	if u.pos.distance_to(p) <= stop:
 		u.moving = false
 		return
 	if _no_retreat(u):
-		var f := _nearest(foes, u.pos)
+		var f := _nearest(living(SIDE_FOE), u.pos)   # směr k nepříteli počítá i se spícími
 		if f != null and p.distance_to(f.pos) > u.pos.distance_to(f.pos) + 0.3:
 			u.moving = false
 			return
@@ -1366,9 +1366,14 @@ func _go(u: Unit, p: Vector2, dt: float, stop: float, foes: Array[Unit]) -> void
 
 func _knight_think(u: Unit, dt: float) -> void:
 	_priest_heal(u, dt)
-	var foes := living(SIDE_FOE)
+	# Spící skupinky hrdina sám nenapadá (ani střelec z dálky); budí je přiblížení nebo rozkaz na skupinu.
+	var all_foes := living(SIDE_FOE)
+	var foes: Array[Unit] = []
+	for f in all_foes:
+		if not f.asleep:
+			foes.append(f)
 	if u.dashing:
-		_dash(u, dt, foes)
+		_dash(u, dt, all_foes)   # nájezd zasáhne každého v cestě
 		return
 	if has_oath(u.id):
 		var nf := _nearest(foes, u.pos)
@@ -1398,7 +1403,7 @@ func _knight_think(u: Unit, dt: float) -> void:
 		"point":
 			_order_point(u, dt, foes)
 		"group":
-			_order_group(u, dt, foes)
+			_order_group(u, dt, all_foes)
 		"ally":
 			_order_ally(u, dt, foes)
 		_:

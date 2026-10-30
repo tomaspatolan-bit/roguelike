@@ -40,6 +40,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 - Kontrola: exe se spustí (`--quit-after 600 --log-file …`) bez chyb, v souboru jsou JSONy. Pro testera ZIP s exe a návodem „Jak hrát.txt“ (ovládání, SmartScreen: Další informace → Přesto spustit).
 
 ## Historie významných změn
+- 30.10.2026: test „bez rozkazu bojuje s tím, kdo přijde blízko“ má nepřátele bdělé a nehybné (spící hrdina sám nenapadá).
 - 30.10.2026: `ragdoll_sheet.gd` bere posledního nepřítele scénáře (po přeladění nebyl `e11` a test hlásil chybu skriptu); `anim_sheet.gd` bere animace zásahu a smrti z dat třídy.
 - 30.10.2026: druhý build pro testera (`Rytiri_test_2026-10-30.zip`, větev `testovaci-buildy`).
 - 30.10.2026: `vycvik.gd` (výcvik krok po kroku jako hráč, zastavení bitvy, přišpendlení karty); `screenshot_battle.gd` pokračuje, když výcvik bitvu zastaví.

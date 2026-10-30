@@ -1098,10 +1098,24 @@ func _sync_projectiles() -> void:
 		var mi: MeshInstance3D = projectile_views.get(p.id)
 		if mi == null:
 			mi = MeshInstance3D.new()
-			var m := BoxMesh.new()
-			m.size = Vector3(0.05, 0.05, 0.7)
-			mi.mesh = m
-			mi.material_override = Field.mat(Color("#5a3d22"))
+			var shooter := sim.by_id(p.from_id)
+			if shooter != null and String(shooter.base.get("projectile", "")) == "svetlo":
+				# kněz: zlaté světlo z hole
+				var sm := SphereMesh.new()
+				sm.radius = 0.13
+				sm.height = 0.26
+				mi.mesh = sm
+				var lm := StandardMaterial3D.new()
+				lm.albedo_color = Color("#ffe9a8")
+				lm.emission_enabled = true
+				lm.emission = Color("#ffd36a")
+				lm.emission_energy_multiplier = 2.5
+				mi.material_override = lm
+			else:
+				var m := BoxMesh.new()
+				m.size = Vector3(0.05, 0.05, 0.7)
+				mi.mesh = m
+				mi.material_override = Field.mat(Color("#5a3d22"))
 			add_child(mi)
 			projectile_views[p.id] = mi
 		var pos := Field.to_world(p.pos, 1.3)

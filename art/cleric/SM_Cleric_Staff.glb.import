@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bm7mlmod04yxu"
-path="res://.godot/imported/SM_Cleric_Mace.glb-a42efaa795826ff4f7780452eadcde3d.scn"
+uid="uid://ovq6it7rgwg"
+path="res://.godot/imported/SM_Cleric_Staff.glb-76ae6a33c83269915dcbb368d1bcc0b6.scn"
 
 [deps]
 
-source_file="res://art/cleric/SM_Cleric_Mace.glb"
-dest_files=["res://.godot/imported/SM_Cleric_Mace.glb-a42efaa795826ff4f7780452eadcde3d.scn"]
+source_file="res://art/cleric/SM_Cleric_Staff.glb"
+dest_files=["res://.godot/imported/SM_Cleric_Staff.glb-76ae6a33c83269915dcbb368d1bcc0b6.scn"]
 
 [params]
 
