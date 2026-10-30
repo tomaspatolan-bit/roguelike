@@ -14,8 +14,8 @@ Engine: Godot 4.7. Prototyp obsahuje jednu bitvu, **Most přes řeku**.
 | Akce | Ovládání |
 | --- | --- |
 | Rozestavit rytíře (jen obrana) | přetáhnout myší v modré zóně; puštění na jiného rytíře je prohodí |
-| Výběr hrdiny | klik na hrdinu nebo jeho kartu (vybere jen jeho), **tažení obdélníku** levým tlačítkem přes víc hrdinů, **Ctrl+A** všichni; **Shift** přidá nebo ubere; klik na zem nebo **Esc** výběr zruší; druhý klik na kartu vybraného natočí kameru |
-| Rozkaz (kdykoli, i v bitvě) | **pravé tlačítko**: na zem = jdi tam (bez boje, tak hrdinu stáhneš z boje) a drž místo, na nepřítele = na celou jeho skupinu, na hrdinu = drž se ho; nebo **Poslat** na kartě a klik |
+| Výběr hrdiny | klik na hrdinu nebo jeho kartu (vybere jen jeho), **tažení obdélníku** levým tlačítkem přes víc hrdinů, **Ctrl+A** všichni; **Shift** přidá nebo ubere; klik na zem nebo **Esc** výběr zruší; druhý klik na kartu vybraného na něj posune výřez |
+| Rozkaz (kdykoli, i v bitvě) | **pravé tlačítko** (jen na rozkazy): na zem = jdi tam (bez boje, tak hrdinu stáhneš z boje) a drž místo, na nepřítele = na celou jeho skupinu, na hrdinu = drž se ho; nebo **Poslat** na kartě a klik |
 | Co udělá pravé tlačítko | kruh pod kurzorem: červený = skupina nepřátel, modrý = ke spojenci, bílý = na místo |
 | Cíl rozkazu | kruh v barvě hrdiny (v pauze u všech, v bitvě u vybraných) |
 | Ohlášená schopnost velitele | červený kruh, který sílí; uhni, nebo velitele omrač (Nájezd) |
@@ -23,9 +23,9 @@ Engine: Godot 4.7. Prototyp obsahuje jednu bitvu, **Most přes řeku**.
 | Schopnost hrdiny | tlačítko na kartě hrdiny nebo **1–5**; cílená schopnost pak klik na bojiště (**Esc** zruší) |
 | Do boje! (po zlomení morálky nepřítele, jednou) | tlačítko nebo **F** |
 | Pauza (čas stojí, rozkazy a schopnosti jdou dál) | tlačítko nebo **mezerník**, pokračovat **mezerník** nebo **Enter** |
-| Posun kamery | **WASD**, šipky, nebo tažení **pravým tlačítkem** (klik pravým = rozkaz) |
-| Otáčení kamery | tažení **prostředním tlačítkem**, nebo **Q/E** |
-| Přiblížení | kolečko myši |
+| Posun kamery | **WASD**, šipky, nebo myš u okraje obrazovky (jen v hranicích mapy) |
+| Úhel kamery | pevný podle mapy, otáčet nejde |
+| Přiblížení | kolečko myši (v malém rozsahu) |
 
 ## Struktura
 

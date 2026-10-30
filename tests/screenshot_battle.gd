@@ -13,7 +13,10 @@ var started_at := -1
 var broken_shot := false
 
 
+const TacticalCamera := preload("res://scripts/battle/orbit_camera.gd")
+
 func _init() -> void:
+	TacticalCamera.edge_scroll_all = false   # posun myší u okraje by měnil snímky
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
 		out_dir = args[0]
@@ -43,6 +46,7 @@ func _process(_delta: float) -> bool:
 			var sim0: Variant = scene.get("sim")
 			print("Bitva začíná v pauze: %s" % ("OK" if int(scene.get("phase")) == 2 and float(sim0.get("t")) == 0.0 else "CHYBA"))
 		_test_orders_by_click()
+		_test_camera()
 	if frame == 45:
 		_shot("02_vyber.png")
 		if int(scene.get("phase")) == 0:
@@ -219,6 +223,24 @@ func _test_realtime_orders() -> void:
 	print("Náhled rozkazu nad nepřítelem: %s" % ("OK" if not hc.is_empty() and hc[0] == "group" else "CHYBA (%s)" % [hc]))
 	scene.call("_toggle_pause")
 	scene.call("_clear_selection")
+
+
+## Kamera má pevný úhel podle mapy a výřez neujede za hranice mapy.
+func _test_camera() -> void:
+	var cam: Variant = scene.get("cam")
+	var data: Dictionary = scene.get("data")
+	var sc: Dictionary = data["scenario"].get("camera", {})
+	var yaw0: float = cam.get("yaw")
+	var t0: Vector3 = cam.get("target")
+	cam.set("target", Vector3(500, 0, -500))
+	cam.call("_apply")
+	var b: Rect2 = cam.get("bounds")
+	var t: Vector3 = cam.get("target")
+	var inside := t.x <= b.end.x + 0.01 and -t.z <= b.end.y + 0.01
+	var yaw_ok := is_equal_approx(yaw0, deg_to_rad(float(sc.get("yaw", data["units"]["camera"]["yaw"]))))
+	cam.set("target", t0)
+	cam.call("_apply")
+	print("Kamera s pevným úhlem a hranicemi: %s" % ("OK" if inside and yaw_ok else "CHYBA (%s, %s)" % [t, b]))
 
 
 func _prefix() -> String:

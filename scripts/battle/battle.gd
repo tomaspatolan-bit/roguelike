@@ -66,9 +66,6 @@ var _drag_press := Vector2.ZERO
 var _drag_origin := Vector2.ZERO
 var _drag_target := Vector2.ZERO
 var _drag_target_raw := Vector2.ZERO
-var _rpress := Vector2.ZERO          # kde se stisklo pravé tlačítko (klik = rozkaz, táhnutí = kamera)
-var _rdown := false
-const CLICK_PX := 12.0   # pravé tlačítko: do tolika px pohybu je to klik (rozkaz), dál posun kamery
 var _sel_rings: Array = []           # kroužky pod vybranými hrdiny
 var _box_pending := false            # levé tlačítko stisknuté na zemi: klik, nebo tažení obdélníku výběru
 var _box_active := false
@@ -92,6 +89,7 @@ func _ready() -> void:
 	cam = OrbitCamera.new()
 	add_child(cam)
 	cam.make_current()
+	_configure_camera()
 
 	zone = MeshInstance3D.new()
 	zone.material_override = Field.transparent_mat(Color(0.31, 0.47, 0.78, 0.28))
@@ -165,6 +163,11 @@ func _build_zone() -> void:
 	zone.position = Field.to_world(Vector2((float(z["x0"]) + float(z["x1"])) / 2.0, (float(z["y0"]) + float(z["y1"])) / 2.0), 0.03)
 
 
+## Kamera podle mapy: pevný úhel, výchozí výřez a hranice posunu (units.json `camera` + scénář `camera`).
+func _configure_camera() -> void:
+	(cam as OrbitCamera).configure(data["units"].get("camera", {}), data["scenario"].get("camera", {}))
+
+
 ## Výběr bitvy (volná bitva, před začátkem): načte scénář a postaví bojiště znovu.
 func _load_scenario(id: String) -> void:
 	if id == scenario_id or not (phase == Phase.DEPLOY or (phase == Phase.PAUSE and sim.t == 0.0)):
@@ -177,6 +180,7 @@ func _load_scenario(id: String) -> void:
 	add_child(field_root)
 	Field.build(field_root, data["scenario"])
 	_build_zone()
+	_configure_camera()
 	_order_id = ""
 	_fresh_deploy()
 
@@ -309,7 +313,7 @@ func _refresh_panel() -> void:
 # ================================================================ příkazy
 
 ## Klik na kartu: vybere jen tohoto hrdinu (Shift přidá nebo ubere), druhý klik na vybraného
-## na něj natočí kameru. Výběr ruší Esc nebo klik na zem.
+## na něj posune výřez kamery. Výběr ruší Esc nebo klik na zem.
 func _select(id: String) -> void:
 	var u := sim.by_id(id)
 	if u == null or not u.alive() or phase == Phase.OVER:
@@ -557,8 +561,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			_pointer_down(mb.position)
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
-			_rpress = mb.position
-			_rdown = true
+			_command_click(mb.position)   # pravé tlačítko = rozkaz (kamera se jím nehýbe)
 
 
 func _input(event: InputEvent) -> void:
@@ -570,10 +573,6 @@ func _input(event: InputEvent) -> void:
 		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed and (_drag_id != "" or _box_pending):
 			_pointer_up(mb.position)
 			get_viewport().set_input_as_handled()
-		elif mb.button_index == MOUSE_BUTTON_RIGHT and not mb.pressed and _rdown:
-			_rdown = false
-			if mb.position.distance_to(_rpress) <= CLICK_PX:
-				_command_click(mb.position)   # klik pravým = rozkaz; táhnutí pravým posouvá kameru
 
 
 func _can_command() -> bool:

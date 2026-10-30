@@ -8,6 +8,7 @@
   "stage_label": "Akt 1",
   "win_title": "Vítězství u mostu",
   "river": {"y0": 4.0, "y1": 8.0, "crossings": [{"x0": -1.25, "x1": 1.25, "kind": "most", "speed": 1.0}]},
+  "camera": {"target": [0, -1], "bounds": [-5, 5, -1, 12]},
   "deploy_zone": {"x0": -6, "x1": 6, "y0": -8.5, "y1": -3.5},
   "deploy": {
     "tank": {"pos": [0, -4.3]},

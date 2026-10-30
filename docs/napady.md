@@ -26,3 +26,4 @@ podporuje aspoň jeden pilíř? kolik stojí? řeší problém, který jsme vid�
 | 29.10.2026 | Mířené Požehnání (kruh jako Salva), větší dosah léčení kněze; přísahy a pasivky se synergií (podle třídy, mezi hrdiny, s úkolem); kněz bez „Nikdy neustoupí“ | Přísaha má cenu | Tom souhlasí, po úkolech |
 | 30.10.2026 | Mapy proti prolínání (Tom): most je úzký a jednotky se na něm tlačí; širší most, víc přechodů, nebo stráž až za mostem | Velíš rodu | k zvážení při úpravě map |
 | 30.10.2026 | Hrdinové na klávesách: F1–F5 vybere hrdinu (jako ve Shadow Tactics), případně ovládání jen z karet (Tom) | Velíš rodu | až po hraní s ovládáním podle RTS |
+| 30.10.2026 | Hotové balíky assetů pro mapy, kdyby vlastní kit nestačil: Kenney a Quaternius (zdarma, CC0, low-poly), Synty POLYGON (placené); hlídat styl s rytířem a licenci | – | záloha, nejdřív vlastní kit (Tom) |

@@ -117,6 +117,7 @@
       60
     ]
   ],
+  "camera": {"target": [0, 4], "bounds": [0, 0, 4, 4]},
   "deploy_zone": {
     "x0": -8,
     "x1": 8,

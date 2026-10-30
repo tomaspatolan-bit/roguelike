@@ -17,7 +17,10 @@ var map_pending := false
 const Run := preload("res://scripts/run/run_state.gd")
 
 
+const TacticalCamera := preload("res://scripts/battle/orbit_camera.gd")
+
 func _init() -> void:
+	TacticalCamera.edge_scroll_all = false   # posun myší u okraje by měnil snímky
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
 		out_dir = args[0]

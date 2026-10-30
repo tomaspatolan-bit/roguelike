@@ -69,6 +69,8 @@ Cíl: celý krátký run od výběru rodu po bosse.
 - [x] 2.2b První obranná mapa (vlny): Obrana Lesní vsi
 - [x] 2.2c Rozkazy pro hrdiny (29.10.2026): na místo, na skupinu nepřátel, ke spojenci, bez rozkazu drží místo; rozkazy kdykoli (od 29.10.2026 reálný čas s pauzou, výběr hrdinů a pravé tlačítko); pojmenované skupiny nepřátel; trasy a výchozí chování zrušeny. Hotovo, když: Tom odehraje bitvu každého typu jen s rozkazy a nikdo nestojí bez práce.
 - [x] 2.2d Bitva ve fázích (29.10.2026): skupinky nepřátel se probouzejí postupně, polovina nepřátel, velitel v každé bitvě s ohlášenou schopností, nejvýš 3 pěší na hrdinu, schopnosti s pevným počtem a nabíjením, kněz léčí jen v boji. Hotovo, když: Tom odehraje bitvu a nevidí shluky ani prolínání; balanc všech scénářů prošel.
+- [x] 2.2e Kamera s pevným úhlem podle mapy (30.10.2026): posun v hranicích mapy, malé přiblížení, bez otáčení; pravé tlačítko jen rozkazy. Hotovo, když: Tom odehraje bitvu na každé mapě a nic důležitého není mimo výřez nebo pod kartami.
+- [ ] 2.2f Mapy z modulárních assetů: kit (Claude, Blender), kostra mapy z dat a vygenerovaná scéna (Claude), nástroj na překážky do dat, vzhled map v editoru (Tom). Hotovo, když: Tom sám oblékne jednu mapu a testy na ní projdou.
 - [ ] 2.2 Karta stage a volitelné úkoly z dat
 - [ ] 2.3 Odměny po stagi: pasivky, přísahy, nové schopnosti (2. a 3. slot u hrdiny)
 - [ ] 2.4 Více pasivek, přísah a schopností (obsah)

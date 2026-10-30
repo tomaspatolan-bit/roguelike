@@ -29,11 +29,14 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 15. **Nepřátelé ve scénáři:** řádek `[typ, x, y, (vlastnosti), (rozkazy)]`, rozkazy `{"pod": n, "arrive": s}` (`pod` = číslo skupinky z `pods`, `arrive` = nepřítel z pozdější vlny dorazí v daný čas). Skupinky: `pods` [{`name`, `wake` (m, kdy ji hrdina probudí), `alarm` (m, volitelně), `awake` (bdí od začátku)}], výchozí `wake_radius` a `alarm_radius` ve scénáři. Obtížnost: `foe_hp`, `foe_dmg` (násobky pro všechny nepřátele scénáře). Cíl: běžná bitva 7–8 nepřátel, elita 9, boss 9, obrana 12 ve 3 vlnách; v každé bitvě jeden velitel. `returnees` může mít `pod` (do které skupinky se uprchlíci vrátí). Scénář může mít `houses` [x, y, šířka, hloubka, otočení°] (zástupné chalupy).
 20. **Vzhled hrdiny** (`knights.<klíč>`): `anim_attack`, `anim_ability` (názvy animací z GLB), `weapon` (`sword`, `dagger`, `mace`, `bow`; zástupná zbraň v ruce).
 
+22. **Kamera** (`camera` v `units.json` výchozí, ve scénáři přepíše jednotlivé klíče): `target` [x, y] výchozí střed výřezu, `yaw`, `pitch` (°), `distance`, `zoom` [min, max], `bounds` [x0, x1, y0, y1] (kam smí střed výřezu; stejné hodnoty = tím směrem se nehýbe), `pan_speed`. Výchozí výřez má ukázat hrdiny nad kartami.
+
 ## Úskalí
 - JSON nemá komentáře: popis patří do klíče `_info`.
 - Při exportu hry musí být `*.json` ve filtru exportovaných souborů (`include_filter` v `export_presets.cfg`, viz `testy.md`, Export).
 
 ## Historie významných změn
+- 30.10.2026: `camera` (výchozí v `units.json`, ve scénářích Most, Brod a les, Lesní ves s pevným výřezem, Tábor na Vraní skále).
 - 30.10.2026: každá schopnost má 3 použití za bitvu (Tom: bitvy moc těžké), Požehnání a Nájezd nabíjení 20 s, Druhý nájezd = 4 použití.
 - 29.10.2026: bitva ve fázích: `pods` a `{"pod": n}` ve scénářích místo `hold`/`engage`/`hold_time`, `foe_hp`/`foe_dmg`, polovina nepřátel (7–9, obrana 12), noví velitelé `palic`, `ostrostrelec`, `setnik` a `foe_skills` (Hejtman má Rozmach); schopnosti: Výzva 3×/15 s, Salva 3×/12 s, Úder 2×/15 s, Nájezd 1×, Požehnání 1×; `glory.extra_use_cost`/`extra_uses_max` pryč; Slib chudoby → Slib odříkání (+1 použití, kněz ho neléčí), Druhý nájezd = 2 použití; kněz `heal_combat` 10; `orders.melee_slots` 3, `wait_gap`, `body_gap`.
 - 29.10.2026: `orders.focus_leash`, `focus_time`, `avoid_look`, `avoid_strength`, `hint_support`; Most +1 lapka, Lapkovská garda +1 lapka a +1 střelec, Brod a les +1 lapka u levého brodu (bez schopností vyhrával 40/40).

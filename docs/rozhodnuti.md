@@ -2,6 +2,10 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 30.10.2026 – Kamera s pevným úhlem a tvorba map
+- **Kamera má pevný úhel podle mapy, bez otáčení.** Úhel, výchozí výřez a hranice posunu jsou v datech scénáře (`camera`). Hráč výřez jen posouvá (WASD, šipky, myš u okraje obrazovky) v hranicích mapy a trochu přibližuje kolečkem. Malé mapy mají výřez úplně pevný (Obrana Lesní vsi). Pravé tlačítko je jen na rozkazy. Tom: s pevnou kamerou víme, kde se hrdinové budou prolínat a co bude vidět; mapy, grafika i testy se dělají pro jeden pohled. Úplně pevný výřez všude ne: bitvy ve fázích jsou dlouhé a hrdinové by byli moc malí.
+- **Mapy se skládají z modulárních assetů.** Claude dělá kit assetů (from scratch v Blenderu, ve stylu rytíře), kostru mapy (řeka, přechody, lesy, skupinky nepřátel, kamera v datech; z ní vygenerovaná scéna) a nástroj, který zapíše blokující assety (skupina Překážky) do dat scénáře. Tom rozmísťuje assety a dělá vzhled mapy v editoru Godotu. Dekorace jednotky neblokují. Hotové balíky (Kenney, Quaternius, Synty) jsou záloha, kdyby vlastní kit nestačil (napady.md).
+
 ## 30.10.2026 – Schopnosti 3× a ovládání podle zvyklostí RTS
 - **Každá schopnost má 3 použití za bitvu** (Požehnání a Nájezd se nabíjejí 20 s, Výzva 15 s, Salva 12 s, Úder 15 s). Tom: bitva ve fázích byla moc těžká, nepřešel ani první bitvu. Automatický velitel vyhrával, protože schopnosti používá dokonale, takže balanc „se schopnostmi“ je pro člověka horní mez.
 - **Ovládání podle zvyklostí RTS:** klik na hrdinu vybere jen jeho, v bitvě se hrdinové netahají, Ctrl+A vybere všechny, druhý klik na kartu natočí kameru, pod kurzorem náhled, co udělá pravé tlačítko, rozkaz ke spojenci jen při kliku přímo na něj. Tom: nešlo odznačit celý oddíl a často misclickoval. Ovládání jen z karet zatím ne: výběr na bojišti je zvyklost žánru; rozhodne se po dalším hraní.
