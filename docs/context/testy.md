@@ -36,9 +36,11 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 - Šablony exportu Godot 4.7.2 jsou na Tomově PC v `%APPDATA%\Godot\export_templates\4.7.2.stable` (stačí `windows_*_x86_64*.exe` a `version.txt` z oficiálního `.tpz`).
 - `export_presets.cfg` (v `.gitignore`, leží jen na Tomově PC): preset „Windows Desktop“, `include_filter="*.json"`, `exclude_filter="tests/*, docs/*"`, `binary_format/embed_pck=true` (jeden soubor), `application/modify_resources=false`.
 - Příkaz: `Godot_v4.7.2-stable_win64_console.exe --headless --path <repo> --export-release "Windows Desktop" <repo>\builds\Rytiri.exe` (`builds/` je v `.gitignore`).
+- **Kam s buildem:** ZIP do větve `testovaci-buildy` (osiřelá větev jen s buildy a README s tabulkou verzí; kód tam není). GitHub Release ze sezení Clauda vytvořit nejde (zakázáno), Tom ho může udělat ručně na webu. Repo je soukromé: tester potřebuje přístup (collaborator s právem čtení), nebo mu Tom ZIP pošle přímo.
 - Kontrola: exe se spustí (`--quit-after 600 --log-file …`) bez chyb, v souboru jsou JSONy. Pro testera ZIP s exe a návodem „Jak hrát.txt“ (ovládání, SmartScreen: Další informace → Přesto spustit).
 
 ## Historie významných změn
+- 30.10.2026: druhý build pro testera (`Rytiri_test_2026-10-30.zip`, větev `testovaci-buildy`).
 - 30.10.2026: `vycvik.gd` (výcvik krok po kroku jako hráč, zastavení bitvy, přišpendlení karty); `screenshot_battle.gd` pokračuje, když výcvik bitvu zastaví.
 - 30.10.2026: `screenshot_battle.gd` prochází výcvik akcemi testu a zavře ho Rozumím; `passives_ingame.gd` a `screenshot_run.gd` mají výcvik vypnutý.
 - 30.10.2026: `screenshot_battle.gd` testuje kameru (pevný úhel, hranice); testy se snímky vypínají posun myší u okraje (`TacticalCamera.edge_scroll_all = false`).

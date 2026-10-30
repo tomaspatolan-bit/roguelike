@@ -43,7 +43,7 @@ Aktualizováno: 30.10.2026
 
 ## Čeká na Toma
 - **Vyzkoušet kameru** na každé mapě: je vidět, co potřebuješ? Nejsou hrdinové pod kartami? Sedí úhel (dá se změnit v datech scénáře)?
-- **Poslat testerovi** `Rytiri_test_2026-10-29.zip` (ve složce Blender\Roguelike) a jeho dojmy zapsat do `playtesty.md` (krok 1.8).
+- **Poslat testerovi** build `Rytiri_test_2026-10-30.zip` (větev `testovaci-buildy` na GitHubu, nebo ve složce Blender\Roguelike). Repo je soukromé: testera přidej jako collaboratora s právem čtení (Settings → Collaborators), nebo mu ZIP pošli. Jeho dojmy zapiš do `playtesty.md` (krok 1.8).
 - **Vyzkoušet bitvu ve fázích** (Most, Brod, Lesní ves, boss): nejsou shluky a prolínání? Čtou se probuzení skupinek a ohlášené schopnosti velitelů (stihneš uhnout)? Nejsou schopnosti moc skoupé, nebo bitvy moc lehké s plnou kontrolou? Nový exe pro testera na požádání.
 - **Zahrát běh na mapě** (Nový běh): dávají volby cesty smysl? Je vidět, co tě v uzlu čeká? Jsou události zajímavé? Mapa a obrazovky jsou zástupné, UI převezmeš.
 - Podívat se na animace (snímky `sheet_*.png`, nebo rovnou ve hře) a na obranu vsi: čtou se? Jsou zbraně v ruce v pořádku jako zástupné?
