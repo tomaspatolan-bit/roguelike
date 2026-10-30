@@ -40,6 +40,7 @@ Modely, textury a shadery hry a cesta z Blenderu do Godotu.
 | `SK_Archer.glb`, `SM_Archer_Bow.glb`, `SM_Archer_Arrow.glb`, animace `A_Archer_*` | Claude, skriptem v Blenderu (`art/archer/`) | lučištník: model, dlouhý luk, šíp, klid, chůze, výstřel, Salva; tětiva v kódu |
 
 ## Historie významných změn
+- 30.10.2026: útok jezdce je píchnutí (Tom): kopí míří stále dopředu dolů a posune se po své ose, předtím se sklápělo jako sek.
 - 30.10.2026: jezdec na koni: kůň `SK_Horse` s vlastní kostrou (čabraka v barvě jezdce, navy lem a kosočtverec řádu, ocelová maska, sedlo), jezdec `SK_Cavalier` (těžší nárameníky, štít na levém předloktí, plášť na zádi), kopí s praporcem `SM_Cavalier_Lance`; paleta má sloupce 11 a 12 (srst, hříva). Kontrolní bod `Knight_kontrola_jezdec.blend`.
 - 30.10.2026: lučištník (`SK_Archer`: bez pláště, toulec na zádech, přilba s krempou a otevřenou tváří, těžší levé rameno, kožený chránič předloktí, zelená tunika s navy lemem, dýka), dlouhý luk v levé ruce s tětivou v kódu, šíp jako model, animace `A_Archer_*`. Kontrolní bod `Knight_kontrola_lucistnik.blend`.
 - 30.10.2026: kněz má místo palcátu hůl (`SM_Cleric_Staff`, Tom) a útok holí na dálku; palcát z repozitáře pryč.
