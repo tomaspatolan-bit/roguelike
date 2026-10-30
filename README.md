@@ -23,7 +23,7 @@ Engine: Godot 4.7. Prototyp obsahuje jednu bitvu, **Most přes řeku**.
 | Výběr bitvy | nahoře vlevo v úvodní pauze (obrana: v rozestavení) |
 | Schopnost hrdiny | tlačítko na kartě hrdiny nebo klávesa v rámečku na tlačítku (**1–5**); cílená schopnost pak **pravé** (nebo levé) tlačítko na bojiště (**Esc** zruší) |
 | Do boje! (po zlomení morálky nepřítele, jednou) | tlačítko nebo **F** |
-| Pauza (čas stojí, rozkazy a schopnosti jdou dál) | tlačítko nebo **mezerník**, pokračovat **mezerník** nebo **Enter** |
+| Pauza (čas stojí, rozkazy a schopnosti jdou dál) | tlačítko nebo **mezerník**, pokračovat **mezerník** nebo **Enter**; v rozestavení obrany mezerník spustí bitvu |
 | Posun kamery | **WASD**, šipky, nebo myš u okraje obrazovky (jen v hranicích mapy) |
 | Úhel kamery | pevný podle mapy, otáčet nejde |
 | Přiblížení | kolečko myši (v malém rozsahu) |

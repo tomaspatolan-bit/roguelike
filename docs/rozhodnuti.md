@@ -4,6 +4,7 @@ Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, pro�
 
 ## 30.10.2026 – Výcvik ve hře
 - **Výcvik je interaktivní, ne demo:** v první bitvě panel krok po kroku řekne, co udělat (výběr, rozkaz pravým, pauza, útok na skupinu, schopnost, H, velitelé), a krok skončí, až to hráč udělá. Nic neblokuje, jde přeskočit, po dokončení se už neukáže (na úvodní obrazovce „Výcvik znovu“). Kroky jsou v datech (`vycvik.json`). Důvod: pasivní demo hráči přeskakují a naučí se z něj málo; učení akcí je levnější a funguje v každé bitvě. Tom: onboarding bude součástí hry.
+- **Výcvik zastaví bitvu, když se něco děje** (nepřátelé jdou na oddíl, začne boj, velitel chystá schopnost), posune kameru na to místo a poradí, jak zareagovat; karta výcviku je přišpendlená šipkou k tomu, čeho se krok týká. Tom: hráč má vždy vidět, co se děje, a podle výcviku zareagovat.
 
 ## 30.10.2026 – Karta hrdiny bez rozkazů; směr odměn
 - **Z karty hrdiny pryč text rozkazu, Poslat a ✕**; tlačítko schopnosti ukazuje klávesu. Rozkaz zrušíš klávesou H. Tom: ovládání má v ruce, karta má být přehledná.

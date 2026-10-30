@@ -22,7 +22,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 
 13. **Režim běhu** (`run_mode`): bez výběru bitvy, menu Pasivky jen ukazuje, co hrdina má, nad názvem bitvy `run_label` („Zkušební běh · bitva 2 ze 3“), výsledek má jediné tlačítko „Pokračovat v běhu“ / „Kronika rodu“.
 14. **Dialog před bitvou** je zrušený (bitva začíná v pauze, hrdina bez rozkazu drží místo).
-16. **Výcvik** (`show_tutorial`, `hide_tutorial`, signály `tutorial_skip_pressed`, `tutorial_ok_pressed`): panel vpravo pod deníkem bitvy (`_place_tutorial`, i v `update_dynamic`) s krokem („VÝCVIK · krok 2 z 7“), textem z dat, Přeskočit výcvik a u posledního kroku Rozumím. Nezakrývá hrdiny ani nepřátele u mostu.
+16. **Výcvik** (`show_tutorial`, `hide_tutorial`, signály `tutorial_skip_pressed`, `tutorial_ok_pressed`): karta přišpendlená šipkou a kroužkem k cíli kroku (`point_tutorial(bod)`: nad cílem, nebo pod ním v horní polovině obrazovky; bez cíle vpravo pod deníkem) s krokem („VÝCVIK · krok 2 z 7“), textem z dat, Přeskočit výcvik a u posledního kroku Rozumím. Nezakrývá hrdiny ani nepřátele u mostu.
 15. **Obdélník výběru** (`select_box`, `show_box`, `hide_box`): při tažení levým tlačítkem na zemi.
 
 ## Úskalí

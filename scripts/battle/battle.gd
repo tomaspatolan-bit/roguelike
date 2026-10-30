@@ -16,6 +16,10 @@ static var tutorial_mode := 0
 var _tut_steps: Array = []
 var _tut_i := -1                     # krok výcviku (-1 = výcvik neběží)
 var _tut_flags: Dictionary = {}      # co už hráč udělal (klíče done z dat)
+var _tut_data: Dictionary = {}
+var _tut_fired: Dictionary = {}      # kroky, jejichž situace (trigger) už nastala
+var _tut_shown := ""                 # co panel právě ukazuje (krok:wait/go), ať se nepřestavuje každý snímek
+var _tut_paused := false             # bitvu zastavil výcvik (test podle toho pokračuje)
 
 enum Phase { DEPLOY, BATTLE, PAUSE, OVER }
 
@@ -183,19 +187,123 @@ static func set_tutorial_done(done: bool) -> void:
 func _tut_init() -> void:
 	if tutorial_mode < 0 or (tutorial_mode == 0 and tutorial_done()):
 		return
-	var d := Sim._read_json("res://data/vycvik.json")
-	_tut_steps = d.get("steps", [])
+	_tut_data = Sim._read_json("res://data/vycvik.json")
+	_tut_steps = _tut_data.get("steps", [])
 	if _tut_steps.is_empty():
 		return
 	_tut_i = 0
 	_tut_flags = {}
-	_tut_show()
+	_tut_shown = ""
+	_tut_update()
 
 
-func _tut_show() -> void:
-	var st: Dictionary = _tut_steps[_tut_i]
-	var d := Sim._read_json("res://data/vycvik.json")
-	ui.show_tutorial(String(d.get("title", "Výcvik")), _tut_i + 1, _tut_steps.size(), String(st["text"]), String(st["done"]) == "ok")
+func _tut_step() -> Dictionary:
+	return _tut_steps[_tut_i]
+
+
+## Každý snímek: čeká krok na situaci (trigger)? Když nastane, bitva se zastaví a krok se ukáže.
+## Karta výcviku se přišpendlí k tomu, čeho se krok týká (anchor).
+func _tut_update() -> void:
+	if _tut_i < 0:
+		return
+	var st := _tut_step()
+	var trig := String(st.get("trigger", ""))
+	var waiting := trig != "" and not _tut_fired.has(_tut_i)
+	if waiting and _tut_trigger(trig):
+		waiting = false
+		_tut_fired[_tut_i] = true
+		if phase == Phase.BATTLE:
+			phase = Phase.PAUSE   # ať hráč stihne zareagovat
+			_tut_paused = true
+			_refresh_panel()
+		var wp: Variant = _tut_world(String(st.get("anchor", "")))
+		if wp != null:
+			_focus_camera(wp)   # ať je vidět, co se děje
+	var key := "%d:%s" % [_tut_i, "wait" if waiting else "go"]
+	if key != _tut_shown:
+		_tut_shown = key
+		var text := String(st.get("wait_text", "")) if waiting else String(st["text"])
+		ui.show_tutorial(String(_tut_data.get("title", "Výcvik")), _tut_i + 1, _tut_steps.size(), text, not waiting and String(st["done"]) == "ok")
+	ui.point_tutorial(null if waiting else _tut_anchor(String(st.get("anchor", ""))))
+
+
+## Nastala situace, na kterou krok čeká?
+func _tut_trigger(trig: String) -> bool:
+	match trig:
+		"contact":
+			for f in sim.living(Sim.SIDE_FOE):
+				if f.asleep or f.fleeing:
+					continue
+				for k in sim.living(Sim.SIDE_KNIGHT):
+					if f.pos.distance_to(k.pos) <= 10.0:
+						return true
+		"combat":
+			for k in sim.living(Sim.SIDE_KNIGHT):
+				if sim.t - k.combat_t <= 0.3:
+					return true
+		"warn":
+			return not sim.warnings().is_empty()
+	return false
+
+
+## Místo na bojišti, kterého se krok týká (hrdinové, místo před nimi, nepřítel, kruh velitele), nebo null.
+func _tut_world(anchor: String) -> Variant:
+	var ks := sim.living(Sim.SIDE_KNIGHT)
+	var c := Vector2.ZERO
+	for k in ks:
+		c += k.pos
+	if not ks.is_empty():
+		c /= ks.size()
+	match anchor:
+		"heroes":
+			return c
+		"ahead":
+			var front := -INF
+			for k in ks:
+				front = maxf(front, k.pos.y)
+			return Vector2(c.x, front + 3.0)   # před nejpřednějším hrdinou, ať klik nepadne na spojence
+		"foe":
+			var best: Sim.Unit = null
+			for f in sim.living(Sim.SIDE_FOE):
+				if f.asleep or f.fleeing:
+					continue
+				if best == null or f.pos.distance_to(c) < best.pos.distance_to(c):
+					best = f
+			return best.pos if best != null else null
+		"warn":
+			var w := sim.warnings()
+			if not w.is_empty():
+				return (w[0] as Dictionary)["pos"]
+	return null
+
+
+## Bod na obrazovce, ke kterému patří karta výcviku (nebo null = výchozí místo pod deníkem).
+func _tut_anchor(anchor: String) -> Variant:
+	var ks := sim.living(Sim.SIDE_KNIGHT)
+	match anchor:
+		"heroes", "foe":
+			var wp: Variant = _tut_world(anchor)
+			return _tut_screen(wp, 1.1) if wp != null else null
+		"ahead", "warn":
+			var gp: Variant = _tut_world(anchor)
+			return _tut_screen(gp, 0.0) if gp != null else null
+		"pause":
+			var r := ui.top_bar.get_global_rect()
+			return Vector2(r.get_center().x, r.end.y)
+		"cards":
+			for k in ks:
+				var b: Variant = ui._ability_buttons.get(k.id)
+				if b != null and is_instance_valid(b) and sim.can_use_ability(k.id):
+					var r := (b as Control).get_global_rect()
+					return Vector2(r.get_center().x, r.position.y)
+	return null
+
+
+func _tut_screen(p: Vector2, h: float) -> Variant:
+	var w := Field.to_world(p, h)
+	if cam.is_position_behind(w):
+		return null
+	return cam.unproject_position(w)
 
 
 ## Hráč udělal něco, co výcvik hlídá; když to je cíl kroku, jde se dál (a přes kroky, které už splnil).
@@ -203,14 +311,14 @@ func _tut_mark(key: String) -> void:
 	if _tut_i < 0 or _tut_flags.has(key):
 		return
 	_tut_flags[key] = true
-	var moved := false
-	while _tut_i < _tut_steps.size() and _tut_flags.has(String((_tut_steps[_tut_i] as Dictionary)["done"])):
+	while _tut_i < _tut_steps.size() and _tut_flags.has(String(_tut_step()["done"])):
 		_tut_i += 1
-		moved = true
+		if _tut_i >= _tut_steps.size():
+			break
 	if _tut_i >= _tut_steps.size():
 		_tut_finish()
-	elif moved:
-		_tut_show()
+	else:
+		_tut_update()
 
 
 func _tut_finish() -> void:
@@ -368,6 +476,8 @@ func _start_battle() -> void:
 		setup["pos"][u.id] = u.pos
 	_new_sim()
 	phase = Phase.BATTLE if _needs_deploy() else Phase.PAUSE
+	if phase == Phase.BATTLE:
+		_tut_mark("running")
 	_clear_selection()
 	_refresh_panel()
 
@@ -576,10 +686,15 @@ func _charge() -> void:
 func _toggle_pause() -> void:
 	if paused:
 		return
+	_tut_paused = false
+	if phase == Phase.DEPLOY:
+		_try_start()   # mezerník v rozestavení (obrana) spustí bitvu
+		return
 	if phase == Phase.BATTLE:
 		phase = Phase.PAUSE
 	elif phase == Phase.PAUSE:
 		phase = Phase.BATTLE
+		_tut_mark("running")
 	else:
 		return
 	_refresh_panel()
@@ -920,6 +1035,8 @@ func _process(delta: float) -> void:
 		if phase == Phase.OVER:
 			_tut_i = -1   # bitva skončila dřív: výcvik se ukáže znovu v další bitvě
 			ui.hide_tutorial()
+		else:
+			_tut_update()
 
 	_ui_t += delta
 	if _ui_t > 0.1:

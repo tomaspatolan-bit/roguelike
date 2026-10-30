@@ -23,6 +23,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 | `screenshot_run.gd` | běh přes obrazovky: start → mapa → bitvy (auto), elita, událost, tábor, dědictví, odměna → boss → kronika; s oknem: `--script res://tests/screenshot_run.gd -- <složka>` | „VÝSLEDEK: OK“, snímky `beh_*.png` |
 | `anim_sheet.gd` | řada pěti hrdinů se zbraněmi, jejich útok v několika okamžicích, schopnost, zásah a smrt (kontrola vzhledu animací bez bitvy); s oknem: `--script res://tests/anim_sheet.gd -- <složka>` | „VÝSLEDEK: OK“, žádné „CHYBÍ animace“, snímky `sheet_*.png` |
 | `ragdoll_sheet.gd` | pět hrdinů a dva nepřátelé padnou: vznikne ragdoll, těla nepropadnou zemí a po 3 s leží (nikdo nestojí, neletí); s oknem: `--script res://tests/ragdoll_sheet.gd -- <složka>` | „VÝSLEDEK: OK“, snímky `ragdoll_*.png` |
+| `vycvik.gd` | výcvik jako hráč: kroky jdou po sobě, karta je přišpendlená, bitva se zastaví u nepřátel, u boje a u velitele, Rozumím výcvik ukončí; s oknem: `--script res://tests/vycvik.gd -- <složka> [scénář]` | „VÝSLEDEK: OK“, snímky `vycvik_*.png` |
 | `screenshot_battle.gd` | scéna se načte, bitva začíná v pauze (drag & drop jen v rozestavení obrany), po zlomení morálky jde dát povel Do boje!, bitva doběhne bez chyb | „Výcvik se ukázal: OK“, „Výcvik prošel kroky: OK“ (výcvik zapnutý, `tutorial_mode = 1`; ostatní testy se snímky ho vypínají), „Bitva začíná v pauze: OK“, „povel Do boje!: OK“, „Rozkazy klikem: OK“, „Start: OK“, „Pauza: OK“, „Rozkaz pravým tlačítkem v pauze: OK (čas stál: OK)“, „Rozkaz pravým tlačítkem na spojence: OK“, „Výběr tažením: OK“, „Klik na hrdinu vybere jen jeho: OK“, „Karta a Ctrl+A: OK“, „Kamera s pevným úhlem a hranicemi: OK“, „H drží místo, karta bez Poslat, schopnost s klávesou: OK“, „Náhled rozkazu nad nepřítelem: OK“, schopnosti jako v testu simulace, cílené přes klik („Cílená schopnost pravým tlačítkem: OK“, „Cílená schopnost přes klik: OK“), u mostu „Bitva skončila: win“ (u jiných scénářů jen doběhne), žádné ERROR v logu |
 
 ## Invarianty
@@ -38,6 +39,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 - Kontrola: exe se spustí (`--quit-after 600 --log-file …`) bez chyb, v souboru jsou JSONy. Pro testera ZIP s exe a návodem „Jak hrát.txt“ (ovládání, SmartScreen: Další informace → Přesto spustit).
 
 ## Historie významných změn
+- 30.10.2026: `vycvik.gd` (výcvik krok po kroku jako hráč, zastavení bitvy, přišpendlení karty); `screenshot_battle.gd` pokračuje, když výcvik bitvu zastaví.
 - 30.10.2026: `screenshot_battle.gd` prochází výcvik akcemi testu a zavře ho Rozumím; `passives_ingame.gd` a `screenshot_run.gd` mají výcvik vypnutý.
 - 30.10.2026: `screenshot_battle.gd` testuje kameru (pevný úhel, hranice); testy se snímky vypínají posun myší u okraje (`TacticalCamera.edge_scroll_all = false`).
 - 30.10.2026: `passives_ingame.gd` sada B požehná tanka, kterého test sám zraní (jinak se Požehnaná zbroj nemusela projevit); cílená schopnost na nepřítele, kterého by klik netrefil (překryv), se použije přímo. `screenshot_battle.gd` testuje výběr podle zvyklostí RTS (klik vybere jen hrdinu a nepohne s ním, Ctrl+A, karta) a náhled pravého tlačítka.

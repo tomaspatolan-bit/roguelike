@@ -13,6 +13,10 @@ Nejnovější nahoře. Každý záznam: datum, kdo hrál, build (větev nebo com
 - Z toho plyne (úkol v plan.md / nápad v napady.md / rozhodnutí):
 ```
 
+## 30.10.2026 – Tom, build `faze2-mapa` (f09e932), výcvik
+- Nebavilo / nečitelné: po kroku s mezerníkem nepřátelé vyrazí a hráč nemá čas zareagovat podle výcviku; mezerník nefungoval v obraně Lesní vsi (rozestavení); karta výcviku je daleko od toho, čeho se týká.
+- Z toho plyne: výcvik zastaví bitvu u nepřátel, u boje a u velitele a posune kameru; karta přišpendlená šipkou k cíli; mezerník v rozestavení spustí bitvu.
+
 ## 30.10.2026 – Tom, build `faze2-mapa` (27074b9), pravé tlačítko provádí akci
 - Bavilo: „feeluje o dost lépe“, ovládání dostal do ruky rychle. Slib odříkání je přesně směr odměn: interakce mezi hrdiny, odměna i riziko.
 - Nebavilo / nečitelné: na kartě zbytečný text rozkazu a Poslat; u schopnosti chybí klávesa.

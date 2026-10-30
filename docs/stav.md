@@ -6,7 +6,7 @@ Aktualizováno: 30.10.2026
 **Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotové všechny tři typy bitev (útok, střet, obrana s Lesní vsí) a animace boje hrdinů. Hotové rozkazy pro hrdiny (2.2c). Další: karta stage a volitelné úkoly (2.2). Otevřené: playtest s hráčem mimo nás (1.8).
 
 ## Hotovo
-- Výcvik ve hře: v první bitvě panel pod lištou provede hráče sedmi kroky (výběr, rozkaz, pauza, útok, schopnost, H, velitelé); krok skončí akcí hráče, jde přeskočit, po dokončení se neukáže (úvodní obrazovka: „Výcvik znovu“).
+- Výcvik ve hře: v první bitvě karta přišpendlená šipkou k cíli provede hráče sedmi kroky (výběr, rozkaz, pauza, útok, schopnost, H, velitelé); u nepřátel, boje a velitele se bitva sama zastaví a kamera se tam posune; krok skončí akcí hráče, jde přeskočit, po dokončení se neukáže (úvodní obrazovka: „Výcvik znovu“). Mezerník v rozestavení obrany spustí bitvu.
 - Karta hrdiny bez textu rozkazu, Poslat a ✕; tlačítko schopnosti ukazuje klávesu (1–5). Klávesa H: vybraní hrdinové zruší rozkaz a drží místo.
 - Pravé tlačítko vždy provede akci: rozkaz, cílenou schopnost (po tlačítku nebo klávese 1–5) i rozkaz z tlačítka Poslat; levé vybírá.
 - Kamera s pevným úhlem podle mapy: výřez se posouvá WASD, šipkami nebo myší u okraje obrazovky jen v hranicích mapy, kolečko trochu přiblíží, otáčet nejde, pravé tlačítko je jen na rozkazy. Obrana Lesní vsi má výřez úplně pevný. Rozhodnuto, jak budeme dělat mapy: kit assetů (Claude) a vzhled map v editoru (Tom).

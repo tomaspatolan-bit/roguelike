@@ -62,6 +62,13 @@ func _process(_delta: float) -> bool:
 		started_at = frame
 	if started_at > 0:
 		var sim: Variant = scene.get("sim")
+		if bool(scene.get("_tut_paused")):
+			# výcvik zastavil bitvu, ať hráč zareaguje: snímek a pokračovat (reakci obstará auto-hraní níž)
+			_tut_pauses += 1
+			if _tut_pauses <= 3:
+				_shot("06_vycvik_pauza_%d.png" % _tut_pauses)
+			print("Výcvik zastavil bitvu v %.0f s (krok %d)" % [float(sim.get("t")), int(scene.get("_tut_i")) + 1])
+			scene.call("_toggle_pause")
 		if sim != null and scene.get("phase") == 1:
 			# stejná zásada jako test simulace: velitel vede oddíl skupinku po skupince, schopnost, když ji rada
 			# doporučí; cílené přes klik na bojiště
@@ -276,6 +283,7 @@ func _prefix() -> String:
 
 
 var _aimed := 0
+var _tut_pauses := 0
 
 
 ## Použije schopnosti jako hráč: bez cíle tlačítkem, s cílem přes cílení a klik na bojiště.

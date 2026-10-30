@@ -49,6 +49,8 @@ var tutorial: PanelContainer        # panel výcviku (show_tutorial / hide_tutor
 var _tut_title: Label
 var _tut_text: Label
 var _tut_ok: Button
+var _tut_arrow: Line2D               # šipka od karty výcviku k cíli
+var _tut_mark: Line2D                # kroužek na cíli
 var top_bar: PanelContainer
 var top_row: HBoxContainer
 var info_card: PanelContainer
@@ -179,13 +181,21 @@ func _ready() -> void:
 	toast.visible = false
 	root.add_child(toast)
 
-	# výcvik: krok vpravo pod deníkem (show_tutorial, _place_tutorial)
+	# výcvik: karta s krokem, přišpendlená šipkou k tomu, čeho se krok týká (point_tutorial)
+	_tut_arrow = Line2D.new()
+	_tut_arrow.width = 3.0
+	_tut_arrow.default_color = GLORY
+	_tut_arrow.visible = false
+	root.add_child(_tut_arrow)
+	_tut_mark = Line2D.new()
+	_tut_mark.width = 3.0
+	_tut_mark.default_color = GLORY
+	_tut_mark.closed = true
+	for i in 24:
+		_tut_mark.add_point(Vector2.from_angle(TAU * i / 24.0) * 18.0)
+	_tut_mark.visible = false
+	root.add_child(_tut_mark)
 	tutorial = PanelContainer.new()
-	tutorial.anchor_left = 1.0
-	tutorial.anchor_right = 1.0
-	tutorial.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	tutorial.offset_right = -12
-	tutorial.offset_top = 120
 	tutorial.add_theme_stylebox_override("panel", _box(Color(0.10, 0.11, 0.14, 0.95), 10, 14, GLORY, 2))
 	var tv := VBoxContainer.new()
 	tv.add_theme_constant_override("separation", 8)
@@ -623,16 +633,48 @@ func show_tutorial(title: String, step: int, total: int, text: String, ok: bool)
 	_tut_text.text = text
 	_tut_ok.visible = ok
 	tutorial.visible = true
-	_place_tutorial()
+	tutorial.reset_size()
 
 
 func hide_tutorial() -> void:
 	tutorial.visible = false
+	_tut_arrow.visible = false
+	_tut_mark.visible = false
 
 
-## Panel výcviku leží pod deníkem bitvy (deník mění výšku, proto se volá i z update_dynamic).
-func _place_tutorial() -> void:
-	tutorial.offset_top = log_panel.position.y + log_panel.size.y + 10.0
+## Umístí kartu výcviku k bodu na obrazovce (nad něj, nebo pod něj, když je v horní polovině)
+## a natáhne k němu šipku s kroužkem. Bez bodu (null) leží karta vpravo pod deníkem bitvy.
+func point_tutorial(target: Variant) -> void:
+	if not tutorial.visible:
+		return
+	var vp := root.get_viewport_rect().size
+	var sz := tutorial.size
+	var margin := 12.0
+	if target == null:
+		tutorial.position = Vector2(vp.x - sz.x - margin, log_panel.position.y + log_panel.size.y + 10.0)
+		_tut_arrow.visible = false
+		_tut_mark.visible = false
+		return
+	var t: Vector2 = target
+	var gap := 56.0
+	var below := t.y < vp.y * 0.45
+	var pos := Vector2(t.x - sz.x / 2.0, t.y + gap if below else t.y - gap - sz.y)
+	pos.x = clampf(pos.x, margin, vp.x - sz.x - margin)
+	pos.y = clampf(pos.y, margin, vp.y - sz.y - margin)
+	tutorial.position = pos
+	var edge_y := pos.y if below else pos.y + sz.y
+	var from := Vector2(clampf(t.x, pos.x + 24.0, pos.x + sz.x - 24.0), edge_y)
+	var dir := (t - from).normalized() if t.distance_to(from) > 1.0 else Vector2.DOWN
+	var tip := t - dir * 20.0
+	_tut_arrow.clear_points()
+	_tut_arrow.add_point(from)
+	_tut_arrow.add_point(tip)
+	_tut_arrow.add_point(tip + dir.rotated(2.6) * 12.0)
+	_tut_arrow.add_point(tip)
+	_tut_arrow.add_point(tip + dir.rotated(-2.6) * 12.0)
+	_tut_arrow.visible = from.distance_to(t) > 30.0
+	_tut_mark.position = t
+	_tut_mark.visible = true
 
 
 func set_log(lines: Array) -> void:
@@ -654,8 +696,6 @@ func set_log(lines: Array) -> void:
 
 ## Části, které se mění každý zlomek sekundy (bez přestavby panelů).
 func update_dynamic(sim: Sim, _pause_phase: bool, paused: bool) -> void:
-	if tutorial.visible:
-		_place_tutorial()
 	if _time_label != null:
 		_time_label.text = "%d:%02d" % [int(sim.t) / 60, int(sim.t) % 60]
 		var nw := sim.next_wave_t()

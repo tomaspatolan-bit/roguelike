@@ -31,7 +31,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 
 22. **Kamera** (`camera` v `units.json` výchozí, ve scénáři přepíše jednotlivé klíče): `target` [x, y] výchozí střed výřezu, `yaw`, `pitch` (°), `distance`, `zoom` [min, max], `bounds` [x0, x1, y0, y1] (kam smí střed výřezu; stejné hodnoty = tím směrem se nehýbe), `pan_speed`. Výchozí výřez má ukázat hrdiny nad kartami.
 
-23. **Výcvik** (`vycvik.json`): `title`, `steps` [{`done`, `text`}]; klíče `done` viz `scena-bitvy.md` (invariant 16). Nový krok s existujícím klíčem = jen data, nový klíč = kód v `battle.gd`.
+23. **Výcvik** (`vycvik.json`): `title`, `steps` [{`done`, `text`, volitelně `trigger`, `wait_text`, `anchor`}]; klíče `done` viz `scena-bitvy.md` (invariant 16). Nový krok s existujícím klíčem = jen data, nový klíč = kód v `battle.gd`.
 
 ## Úskalí
 - JSON nemá komentáře: popis patří do klíče `_info`.
