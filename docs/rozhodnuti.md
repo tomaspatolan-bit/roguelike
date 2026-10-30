@@ -2,6 +2,9 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 30.10.2026 – Pravé tlačítko provádí akci
+- **Pravé tlačítko vždy provede akci:** rozkaz vybraným hrdinům, cílenou schopnost i rozkaz z tlačítka Poslat. Levé vybírá (a cílení schopnosti potvrzuje taky, pro zvyk z jiných her). Tom: rozkaz pravým a schopnost levým bylo obrácené ovládání, „ux fail“.
+
 ## 30.10.2026 – Kamera s pevným úhlem a tvorba map
 - **Kamera má pevný úhel podle mapy, bez otáčení.** Úhel, výchozí výřez a hranice posunu jsou v datech scénáře (`camera`). Hráč výřez jen posouvá (WASD, šipky, myš u okraje obrazovky) v hranicích mapy a trochu přibližuje kolečkem. Malé mapy mají výřez úplně pevný (Obrana Lesní vsi). Pravé tlačítko je jen na rozkazy. Tom: s pevnou kamerou víme, kde se hrdinové budou prolínat a co bude vidět; mapy, grafika i testy se dělají pro jeden pohled. Úplně pevný výřez všude ne: bitvy ve fázích jsou dlouhé a hrdinové by byli moc malí.
 - **Mapy se skládají z modulárních assetů.** Claude dělá kit assetů (from scratch v Blenderu, ve stylu rytíře), kostru mapy (řeka, přechody, lesy, skupinky nepřátel, kamera v datech; z ní vygenerovaná scéna) a nástroj, který zapíše blokující assety (skupina Překážky) do dat scénáře. Tom rozmísťuje assety a dělá vzhled mapy v editoru Godotu. Dekorace jednotky neblokují. Hotové balíky (Kenney, Quaternius, Synty) jsou záloha, kdyby vlastní kit nestačil (napady.md).

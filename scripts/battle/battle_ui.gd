@@ -532,7 +532,7 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 		orow.add_theme_constant_override("separation", 4)
 		var picking := order_id == u.id
 		var ob := _icon_button("route", "Vyber cíl…" if picking else "Poslat", ORDER_COL)
-		ob.tooltip_text = "Klikni na místo, na nepřítele (skupina) nebo na spojence. Esc zruší." if picking else "Poslat hrdinu: na místo, na skupinu nepřátel, nebo ke spojenci."
+		ob.tooltip_text = "Klikni (levým nebo pravým) na místo, na nepřítele (skupina) nebo na spojence. Esc zruší." if picking else "Poslat hrdinu: na místo, na skupinu nepřátel, nebo ke spojenci."
 		ob.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if picking:
 			ob.add_theme_stylebox_override("normal", _box(Color("#3a3220"), 7, 8, GLORY, 1))
@@ -553,7 +553,7 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 			ab.tooltip_text = String(a["desc"])
 			if aim_id == u.id:
 				ab.add_theme_stylebox_override("normal", _box(Color("#3a3220"), 7, 8, GLORY, 2))
-				ab.tooltip_text += "\nKlikni na bojiště, Esc zruší."
+				ab.tooltip_text += "\nKlikni na bojiště (levým nebo pravým), Esc zruší."
 			ab.pressed.connect(func() -> void: ability_pressed.emit(id))
 			v.add_child(ab)
 			_ability_buttons[u.id] = ab

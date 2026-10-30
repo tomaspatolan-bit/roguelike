@@ -273,10 +273,16 @@ func _auto_abilities(sim: Variant) -> void:
 			var p: Vector2 = h[1]
 			screen = cam.unproject_position(Vector3(p.x, 0.0, -p.y))
 		scene.call("_pointer_move", screen)
-		scene.call("_aim_click", screen)
+		var right := _aimed % 2 == 0   # střídavě pravým tlačítkem (provést akci) a levým
+		if right:
+			scene.call("_command_click", screen)
+		else:
+			scene.call("_aim_click", screen)
 		if String(scene.get("_aim_id")) == "":
 			_aimed += 1
 			if _aimed == 1:
+				print("Cílená schopnost pravým tlačítkem: OK (%s)" % id)
+			elif _aimed == 2:
 				print("Cílená schopnost přes klik: OK (%s)" % id)
 		else:
 			scene.set("_aim_id", "")

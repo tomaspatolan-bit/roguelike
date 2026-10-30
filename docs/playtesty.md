@@ -13,6 +13,10 @@ Nejnovější nahoře. Každý záznam: datum, kdo hrál, build (větev nebo com
 - Z toho plyne (úkol v plan.md / nápad v napady.md / rozhodnutí):
 ```
 
+## 30.10.2026 – Tom, build `faze2-mapa` (48553b2), kamera s pevným úhlem
+- Nebavilo / nečitelné: rozkaz se dává pravým, ale cílená schopnost levým tlačítkem („ux fail“).
+- Z toho plyne: pravé tlačítko provede i schopnost a rozkaz z tlačítka Poslat.
+
 ## 30.10.2026 – Tom, build `faze2-mapa` (3d1ac35), bitva ve fázích
 - Bavilo: shluky jsou v pohodě.
 - Nebavilo / nečitelné: „mega těžký“, nepřešel ani první bitvu. Nešel odznačit celý oddíl, často misclick. Trochu prolínání pořád je, hlavně na mostě (spíš design mapy).

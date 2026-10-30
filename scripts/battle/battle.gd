@@ -581,8 +581,16 @@ func _can_command() -> bool:
 
 ## Pravé tlačítko s vybranými hrdiny: na nepřítele = jeho skupina, na hrdinu = ke spojenci,
 ## na zem = na místo (víc hrdinů se rozestaví do řady napříč směrem pohybu).
+## Pravé tlačítko vždy provede akci: cílí-li se schopnost, použije ji; vybírá-li se cíl tlačítkem
+## Poslat, dá rozkaz; jinak pošle vybrané hrdiny (rozhodnutí 30.10.2026: jedno tlačítko pro akci).
 func _command_click(screen_pos: Vector2) -> void:
-	if not _can_command() or _aim_id != "":
+	if not _can_command():
+		return
+	if _aim_id != "":
+		_aim_click(screen_pos)
+		return
+	if _order_id != "":
+		_order_click(screen_pos)
 		return
 	var ids := _selection_alive()
 	if ids.is_empty():
