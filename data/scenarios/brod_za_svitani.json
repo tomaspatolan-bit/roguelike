@@ -1,0 +1,32 @@
+{
+  "_info": "Varianta brodu: terén a rozestavení z base. Hlídka u lávky, lapkové u pravého brodu, tábor s páličem za lesem.",
+  "base": "brod_a_les",
+  "alarm_radius": 6,
+  "mode": "utok",
+  "foe_hp": 2.0, "foe_dmg": 2.0,
+  "auto_plan": "attack",
+  "name": "Brod za svítání",
+  "subtitle": "Lapkové a kopiníci u Černého brodu, tentokrát obráceně · 6 pěšáků, 1 kopiník, 1 střelec",
+  "win_title": "Brod je náš",
+  "optional_task": {
+    "text": "Otec Jan nesmí padnout.",
+    "reward": "vzácné znamení",
+    "protect": "knez"
+  },
+  "pods": [
+    {"name": "Hlídka u lávky", "wake": 7.0},
+    {"name": "Lapkové u pravého brodu", "wake": 7.0},
+    {"name": "Tábor za lesem", "wake": 8.0}
+  ],
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
+  "enemies": [
+    ["lapka", -0.8, 10.4, {"pod": 0}],
+    ["strelec", 1.2, 11.2, {"pod": 0}],
+    ["lapka", 7.2, 10.4, {"pod": 1}],
+    ["lapka", 8.6, 10.0, {"pod": 1}],
+    ["lapka", 10.0, 10.4, {"pod": 1}],
+    ["palic", 0.0, 19.5, {"pod": 2}],
+    ["lapka", -1.6, 20.5, {"pod": 2}],
+    ["lapka", 1.6, 20.5, {"pod": 2}]
+  ]
+}

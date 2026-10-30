@@ -6,8 +6,9 @@ extends RefCounted
 ## Scéna to převádí na 3D jako Vector3(x, výška, -y).
 ## Data (statistiky, schopnosti, rod, scénář) přicházejí z JSON souborů ve složce data/.
 ##
-## Hráč velí hrdinům: každý má pevné výchozí chování podle třídy (behavior) a jednu schopnost
-## s počtem použití za bitvu. Sláva je společná rezerva rodu, platí se z ní použití navíc.
+## Hráč velí hrdinům rozkazy: na místo, na skupinu nepřátel, ke spojenci; bez rozkazu hrdina drží místo.
+## Rozkazy se dávají kdykoli (bitva běží v reálném čase, hráč ji může pozastavit). Každý hrdina má
+## jednu schopnost s počtem použití za bitvu. Sláva je společná rezerva rodu, platí se z ní použití navíc.
 
 const SIDE_KNIGHT := "k"
 const SIDE_FOE := "e"
@@ -38,10 +39,17 @@ class Unit:
 	var color: Color = Color.WHITE
 	var pos: Vector2
 	var home: Vector2
-	var behavior: String = ""     # výchozí chování třídy (hrdinové)
 	var ability: String = ""      # klíč schopnosti (hrdinové)
 	var uses: int = 0             # zbývající použití schopnosti v této bitvě
-	var holding: bool = false     # rozkaz přesunu: drží místo `home` místo výchozího chování
+	var order: String = ""        # rozkaz hrdiny: "" (žádný: drží místo), "point", "group", "ally"
+	var order_pos: Vector2        # point: kam jít
+	var order_group: int = -1     # group: na kterou skupinu nepřátel
+	var order_ally: String = ""   # ally: s kým zůstat
+	var order_done: bool = false  # rozkaz splněn (došel, skupina padla, spojenec padl): drží místo `home`
+	var regroup: bool = false     # vrací se ke spojenci (zatoulal se), dokud k němu nedojde
+	var focus_id: String = ""     # po Úderu ze stínu a Nájezdu dobojuje s cílem, než se vrátí k rozkazu
+	var focus_t: float = 0.0      # jak dlouho ještě (s)
+	var group: int = -1           # nepřítel: skupina (pro rozkaz na skupinu)
 	var t: float = 0.0
 	var heal_t: float = 0.0
 	var atk: float = 0.0
@@ -54,6 +62,7 @@ class Unit:
 	var dashing: bool = false     # Nájezd: jede k dash_to a srazí, koho potká
 	var dash_to: Vector2
 	var dash_hit: Array = []
+	var dash_t: float = 0.0       # Nájezd skončí nejpozději po tolika s (cíl může zabírat nepřítel)
 	var glory_earned: float = 0.0
 	var passives: Array = []      # klíče pasivek a přísah (units.json "passives")
 	var base: Dictionary = {}     # data třídy, ze kterých se přepočítávají statistiky
@@ -68,23 +77,27 @@ class Unit:
 	var avenger: bool = false     # Mstitel: padl spojenec
 	var target_id: String = ""    # nepřítel: na koho právě útočí
 	var leader: bool = false      # vůdce nepřátel: když padne, zlomí se morálka
-	var extra_used: int = 0       # kolikrát hrdina v bitvě použil schopnost navíc za slávu
 	var ability_cd: float = 0.0   # nabíjení schopnosti (s), než jde použít znovu
-	var kiting: bool = false      # lučištník právě couvá (couvá, dokud nemá odstup)
-	var assisting: bool = false   # kněz pomáhá v boji (léčí dál, z dosahu léčení nemusí)
 	var mounted: bool = false
 	var vs_mounted: float = 1.0   # násobek poškození proti jízdě
 	var ignores: Array = []       # druhy terénu, které jednotku nezpomalují ("les")
 	var traits: Array = []        # vlastnosti (nepřátelé): klíče z units.json "traits"
-	var route: Array[Vector2] = []
-	var route_i: int = 0
-	var hold: bool = false        # nepřítel drží pozici (rozkaz ze scénáře)
-	var hold_engage: float = 4.0  # jak daleko od svého místa vyrazí na rytíře
-	var hold_until: float = INF   # do kdy drží (pak postupuje jako ostatní)
+	var asleep: bool = false      # nepřítel ve spící skupince (fáze bitvy): stojí, dokud se skupinka neprobudí
+	var pod: int = -1             # skupinka ze scénáře (scenario.pods), -1 = žádná
+	var heal_combat: float = 0.0  # kněz: samočinně léčí, jen když je nepřítel do tolika m (v boji)
+	var skill: String = ""        # velitel: schopnost (units.json foe_skills)
+	var skill_t: float = 0.0      # do další schopnosti (s)
+	var casting: bool = false     # velitel se napřahuje (ohlášená schopnost, omráčení ji přeruší)
+	var cast_t: float = 0.0
+	var cast_pos: Vector2
+	var cast_target: String = ""
+	var rally_t: float = 0.0      # povzbuzený velitelem: silnější útok
+	var rally_mult: float = 1.0
 	var on_break: String = ""     # jak reaguje na zlomenou morálku (nepřátelé)
 	var desperate: bool = false
 	var fleeing: bool = false
 	var fled: bool = false        # utekl z bojiště (počítá se jako ztráta, ne jako padlý)
+	var arrive_t: float = 0.0     # nepřítel z pozdější vlny: kdy dorazí na bojiště
 
 	func alive() -> bool:
 		return hp > 0.0
@@ -115,21 +128,26 @@ var units: Array[Unit] = []
 var projectiles: Array[Projectile] = []
 var events: Array[Dictionary] = []
 var glory: float = 0.0
-var signals: int = 0
-var signals_used: int = 0
 var abilities_used: int = 0
 var zones: Array = []          # hořící zem: [{pos, r, t, dps, from}]
 var grudges: Dictionary = {}    # nepřátelé, kteří zranili hrdinu (Přísaha pomsty)
 var task_ok: bool = true
+var mode: String = "stret"         # typ bitvy: utok (nepřítel drží pozice, oddíl postupuje), obrana, stret
+var pending: Array[Unit] = []      # nepřátelé z dalších vln, ještě nedorazili (nejsou v units)
+var waves_left: int = 0            # kolik vln ještě přijde
+var groups: Array = []             # skupiny nepřátel: [{"name", "members": [id]}], index = Unit.group
+var pods: Array = []               # skupinky (fáze bitvy) ze scénáře: [{"name", "wake", "alarm", "awake"}]
+var pod_awake: Dictionary = {}     # číslo skupinky -> true, když se probudila
 var over: String = ""
 var foes_broken: bool = false
+var broken_t: float = -1.0         # kdy se zlomila morálka nepřítele
 var decided: String = ""        # "k" / "e": strana, která má bitvu rozhodnutou ve svůj prospěch
 var charging: bool = false      # hráč vydal povel Do boje! (jednorázový)
 var _next_id: int = 0
 var _rng := RandomNumberGenerator.new()
 
 
-## setup = {"signals": int, "pos": {key: Vector2}, "routes": {key: Array[Vector2]} (nepovinné),
+## setup = {"pos": {key: Vector2}, "orders": {key: [druh, cíl]} (nepovinné, viz set_order),
 ##          "passives": {key: [klíče pasivek]} (nepovinné, jinak výchozí pasivky rodu),
 ##          "glory": počáteční sláva (běh ji přenáší), "names": {key: jméno} (nástupci),
 ##          "extra_enemies": [řádky nepřátel navíc] (uprchlíci, kteří se vrátili)}
@@ -147,8 +165,8 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	crossings = river["crossings"]
 	forests = scenario.get("forests", [])
 	glory = float(setup.get("glory", house["glory"]["start"]))
-	signals = setup.get("signals", 1)
 	task_ok = not scenario["optional_task"].has("kill")
+	mode = String(scenario.get("mode", "stret"))
 
 	var knights_data: Dictionary = units_data["knights"]
 	for key: String in knights_data:
@@ -158,23 +176,31 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		u.home = p
 		u.face = Vector2(0, 1)
 		units.append(u)
-		var routes: Dictionary = setup.get("routes", {})
-		if routes.has(key):
-			_apply_route(u, routes[key])
 		var pas: Dictionary = setup.get("passives", house.get("start_passives", {}))
 		u.passives = (pas.get(key, []) as Array).duplicate()
 		_apply_passives(u)
 		var names: Dictionary = setup.get("names", {})
 		if names.has(key):
 			u.name = names[key]
+		var hp_frac: Dictionary = setup.get("hp", {})
+		if hp_frac.has(key):
+			u.hp = u.maxhp * clampf(float(hp_frac[key]), 0.05, 1.0)   # zranění z minulé bitvy běhu
 
 	var foes_data: Dictionary = units_data["foes"]
+	pods = (scenario.get("pods", []) as Array).duplicate(true)
+	for pi in pods.size():
+		if bool((pods[pi] as Dictionary).get("awake", false)):
+			pod_awake[pi] = true
 	var i := 0
 	var rows: Array = (scenario["enemies"] as Array).duplicate()
 	rows.append_array(setup.get("extra_enemies", []))
 	for row: Array in rows:
 		var fkey: String = row[0]
-		var u := _make_unit(fkey, SIDE_FOE, foes_data[fkey])
+		var fd: Dictionary = (foes_data[fkey] as Dictionary).duplicate()
+		# obtížnost bitvy: násobky zdraví a poškození nepřátel ze scénáře
+		fd["hp"] = float(fd["hp"]) * float(scenario.get("foe_hp", 1.0))
+		fd["dmg"] = float(fd["dmg"]) * float(scenario.get("foe_dmg", 1.0))
+		var u := _make_unit(fkey, SIDE_FOE, fd)
 		u.id = "e%d" % i
 		for extra: Variant in row.slice(3):
 			if extra is Array:
@@ -183,15 +209,30 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 						u.traits.append(tr)
 			elif extra is Dictionary:
 				var orders: Dictionary = extra
-				u.hold = bool(orders.get("hold", false))
-				u.hold_engage = float(orders.get("engage", u.hold_engage))
-				u.hold_until = float(orders.get("hold_time", INF))
+				u.pod = int(orders.get("pod", -1))
+				u.arrive_t = float(orders.get("arrive", 0.0))
+				if orders.has("leader"):
+					u.leader = bool(orders["leader"])
 		u.pos = Vector2(row[1], row[2])
 		u.home = u.pos
 		u.face = Vector2(0, -1)
+		u.asleep = u.pod >= 0 and u.pod < pods.size() and not pod_awake.has(u.pod)
 		u.t = _rng.randf() * 0.6
-		units.append(u)
+		u.skill_t = float(units_data.get("foe_skills", {}).get(u.skill, {}).get("first", 3.0))
+		if u.arrive_t > 0.0:
+			pending.append(u)   # další vlna: přijde později
+		else:
+			units.append(u)
 		i += 1
+	var wave_times := {}
+	for p in pending:
+		wave_times[p.arrive_t] = true
+	waves_left = wave_times.size()
+	_make_groups()
+	var orders: Dictionary = setup.get("orders", {})
+	for key: String in orders:
+		var o: Array = orders[key]
+		set_order(key, String(o[0]), o[1] if o.size() > 1 else null)
 
 
 ## scenario = klíč scénáře (soubor data/scenarios/<klíč>.json), nebo celá cesta k souboru.
@@ -200,8 +241,20 @@ static func load_data(scenario: String = DEFAULT_SCENARIO) -> Dictionary:
 	return {
 		"units": _read_json("res://data/units.json"),
 		"house": _read_json("res://data/rod_vlka.json"),
-		"scenario": _read_json(path),
+		"scenario": read_scenario(path),
 	}
+
+
+## Scénář; varianta s "base" převezme vše ze základního scénáře a přepíše jen svá pole.
+static func read_scenario(path_or_key: String) -> Dictionary:
+	var path := path_or_key if path_or_key.begins_with("res://") else "res://data/scenarios/%s.json" % path_or_key
+	var sc := _read_json(path)
+	if sc.has("base"):
+		var base := read_scenario(String(sc["base"]))
+		base.merge(sc, true)
+		base.erase("base")
+		return base
+	return sc
 
 
 ## Seznam scénářů v pořadí pro výběr bitvy.
@@ -210,23 +263,17 @@ static func scenario_list() -> Array:
 
 
 ## Výchozí rozestavení ze scénáře.
-static func default_setup(data: Dictionary, signal_count: int = 1) -> Dictionary:
+static func default_setup(data: Dictionary) -> Dictionary:
 	var pos := {}
-	var routes := {}
 	var deploy: Dictionary = data["scenario"]["deploy"]
 	for key: String in deploy:
 		var p: Array = deploy[key]["pos"]
 		pos[key] = Vector2(p[0], p[1])
-		if deploy[key].has("route"):
-			var pts: Array[Vector2] = []
-			for q: Array in deploy[key]["route"]:
-				pts.append(Vector2(q[0], q[1]))
-			routes[key] = pts
 	var passives := {}
 	var start: Dictionary = data["house"].get("start_passives", {})
 	for key: String in start:
 		passives[key] = (start[key] as Array).duplicate()
-	return {"signals": signal_count, "pos": pos, "routes": routes, "passives": passives}
+	return {"pos": pos, "orders": {}, "passives": passives}
 
 
 static func _read_json(path: String) -> Dictionary:
@@ -245,6 +292,7 @@ func _make_unit(key: String, side: String, d: Dictionary) -> Unit:
 	var u := Unit.new()
 	u.id = key
 	u.leader = d.get("leader", false)
+	u.skill = String(d.get("skill", ""))
 	u.side = side
 	u.key = key
 	u.name = d["name"]
@@ -261,9 +309,9 @@ func _make_unit(key: String, side: String, d: Dictionary) -> Unit:
 	u.heal = d.get("heal", 0.0)
 	u.heal_cd = d.get("heal_cd", 0.0)
 	u.heal_range = d.get("heal_range", 0.0)
+	u.heal_combat = d.get("heal_combat", 0.0)
 	u.palette_row = int(d.get("palette_row", 0))
 	u.target_priority = d.get("target_priority", "")
-	u.behavior = d.get("behavior", "")
 	u.ability = d.get("ability", "")
 	if u.ability != "":
 		u.uses = int(units_data["abilities"][u.ability]["uses"])
@@ -300,10 +348,6 @@ func by_id(id: String) -> Unit:
 		if u.id == id:
 			return u
 	return null
-
-
-func can_signal() -> bool:
-	return over == "" and signals > 0
 
 
 ## Pasivka hrdiny (data), nebo prázdný slovník, když ji nemá. Zlomená přísaha neplatí.
@@ -410,34 +454,122 @@ func oaths_broken() -> int:
 	return n
 
 
+## Přísaha, která hrdinovi nedovolí léčení od kněze.
+func _no_heal(u: Unit) -> bool:
+	return bool(oath_of(u.id).get("no_heal", false))
+
+
 func _no_retreat(u: Unit) -> bool:
 	return bool(oath_of(u.id).get("no_retreat", false))
 
 
-## Název výchozího chování pro hráče.
-func behavior_name(id: String) -> String:
+func _ord(field: String, default: float) -> float:
+	return float(units_data.get("orders", {}).get(field, default))
+
+
+# =============================================================== skupiny nepřátel
+
+## Rozdělí nepřátele do skupin (cíl rozkazu na skupinu): kdo přijde ve stejné vlně, je stejného druhu
+## boje (střelec / pěší) a stojí do `orders.group_link` m od někoho ze skupiny.
+func _make_groups() -> void:
+	var all: Array[Unit] = []
+	for u in units:
+		if u.side == SIDE_FOE:
+			all.append(u)
+	all.append_array(pending)
+	var link := _ord("group_link", 3.0)
+	groups.clear()
+	# skupinky ze scénáře jsou skupiny pro rozkazy (i se svým názvem)
+	for pi in pods.size():
+		var pm: Array = []
+		for u in all:
+			if u.pod == pi:
+				u.group = groups.size()
+				pm.append(u.id)
+		if not pm.is_empty():
+			var pname := String((pods[pi] as Dictionary).get("name", ""))
+			groups.append({"members": pm, "name": pname if pname != "" else _group_title(pm)})
+	for u in all:
+		if u.group >= 0:
+			continue
+		var g := groups.size()
+		var members: Array = []
+		var queue: Array[Unit] = [u]
+		u.group = g
+		while not queue.is_empty():
+			var a: Unit = queue.pop_back()
+			members.append(a.id)
+			for b in all:
+				if b.group < 0 and b.arrive_t == a.arrive_t and b.ranged == a.ranged and b.home.distance_to(a.home) <= link:
+					b.group = g
+					queue.append(b)
+		groups.append({"members": members, "name": _group_title(members)})
+
+
+func _group_title(members: Array) -> String:
+	var foes: Dictionary = units_data["foes"]
+	var counts := {}
+	var leader := ""
+	for id: String in members:
+		var u := by_id(id)
+		if u == null:
+			for p in pending:
+				if p.id == id:
+					u = p
+		if u.leader:
+			leader = u.name
+			continue
+		counts[u.key] = int(counts.get(u.key, 0)) + 1
+	var keys := counts.keys()
+	keys.sort_custom(func(a: String, b: String) -> bool: return counts[a] > counts[b])
+	var parts: Array = []
+	if leader != "":
+		parts.append(leader)
+	for k: String in keys:
+		var pl := String(foes[k].get("plural", foes[k]["name"]))
+		parts.append(pl if parts.is_empty() else pl.to_lower())
+	return " a ".join(parts)
+
+
+## Skupina nepřítele (-1 = neznámý).
+func group_of(id: String) -> int:
 	var u := by_id(id)
-	if u == null:
+	return u.group if u != null and u.side == SIDE_FOE else -1
+
+
+## Živí nepřátelé skupiny, kteří už jsou na bojišti.
+func group_members(g: int) -> Array[Unit]:
+	var out: Array[Unit] = []
+	for u in units:
+		if u.side == SIDE_FOE and u.group == g and u.alive() and not u.fleeing:
+			out.append(u)
+	return out
+
+
+## Název skupiny pro hráče, s počtem živých („Lapkové (5)“).
+func group_name(g: int) -> String:
+	if g < 0 or g >= groups.size():
 		return ""
-	return units_data["behaviors"].get(u.behavior, {}).get("name", "")
+	return "%s (%d)" % [groups[g]["name"], group_members(g).size()]
 
 
-func behavior_desc(id: String) -> String:
-	var u := by_id(id)
-	if u == null:
-		return ""
-	return units_data["behaviors"].get(u.behavior, {}).get("desc", "")
-
-
-func _bparam(u: Unit, field: String, default: float) -> float:
-	return float(units_data["behaviors"].get(u.behavior, {}).get(field, default))
+## Střed skupiny (jen živí na bojišti).
+func group_center(g: int) -> Vector2:
+	var m := group_members(g)
+	var sum := Vector2.ZERO
+	for u in m:
+		sum += u.pos
+	return sum / maxi(m.size(), 1)
 
 
 func _dmg_mult(u: Unit, tg: Unit = null) -> float:
 	if u.side != SIDE_KNIGHT:
-		if not u.desperate:
-			return 1.0
-		return 1.0 + float(units_data["morale"]["desperate_dmg_bonus"]) + float(_trait_value(u, "desperate_dmg_bonus", 0.0))
+		var fm := 1.0
+		if u.desperate:
+			fm += float(units_data["morale"]["desperate_dmg_bonus"]) + float(_trait_value(u, "desperate_dmg_bonus", 0.0))
+		if u.rally_t > 0.0:
+			fm *= u.rally_mult
+		return fm
 	var m := 1.0
 	m += float(oath_of(u.id).get("dmg_bonus", 0.0))
 	if u.avenger:
@@ -498,39 +630,6 @@ func _nearest(list: Array[Unit], from: Vector2) -> Unit:
 	return best
 
 
-## Střed oddílu (průměr pozic živých hrdinů, volitelně bez jednoho).
-func _group_center(exclude: Unit = null) -> Vector2:
-	var sum := Vector2.ZERO
-	var n := 0
-	var roamers := Vector2.ZERO
-	var nr := 0
-	for k in living(SIDE_KNIGHT):
-		if k == exclude:
-			continue
-		if _bparam(k, "roams", 0.0) > 0.0:
-			roamers += k.pos   # kdo se toulá (asasín), netáhne oddíl za sebou
-			nr += 1
-			continue
-		sum += k.pos
-		n += 1
-	if n > 0:
-		return sum / n
-	if nr > 0:
-		return roamers / nr
-	return exclude.pos if exclude != null else Vector2.ZERO
-
-
-## Nejbližší jiný hrdina, který v posledních chvílích bojoval (útočil nebo dostal zásah).
-func _engaged_ally(u: Unit) -> Unit:
-	var window := float(units_data["behaviors"]["_common"]["help_window"])
-	var list: Array[Unit] = []
-	for k in living(SIDE_KNIGHT):
-		# za tím, kdo se toulá sám (asasín), oddíl nechodí: táhl by ho přes řeku do přesily
-		if k != u and t - k.combat_t <= window and _bparam(k, "roams", 0.0) <= 0.0:
-			list.append(k)
-	return _nearest(list, u.pos)
-
-
 # =============================================================== schopnosti
 
 ## Schopnost hrdiny včetně úprav z pasivek (ability_mod).
@@ -544,35 +643,15 @@ func ability_of(id: String) -> Dictionary:
 	return a
 
 
-## Kolik slávy stojí použití teď (0 = má vlastní použití).
-func ability_cost(id: String) -> float:
-	var u := by_id(id)
-	if u == null or u.uses > 0:
-		return 0.0
-	return float(house["glory"]["extra_use_cost"])
-
-
-## Kolik použití navíc za slávu hrdinovi v této bitvě zbývá.
-func extra_uses_left(id: String) -> int:
-	var u := by_id(id)
-	if u == null:
-		return 0
-	return maxi(0, int(house["glory"].get("extra_uses_max", 1)) - u.extra_used)
-
-
 ## Proč schopnost teď nejde použít ("" = jde). Pro nápovědu v UI.
 func ability_problem(id: String) -> String:
 	var u := by_id(id)
 	if u == null or not u.alive() or u.ability == "":
 		return "Hrdina nemá schopnost."
+	if u.uses <= 0:
+		return "Schopnost je pro tuto bitvu vyčerpaná."
 	if u.ability_cd > 0.0:
 		return "Schopnost se nabíjí (%d s)." % ceili(u.ability_cd)
-	if u.uses > 0:
-		return ""
-	if extra_uses_left(id) <= 0:
-		return "Schopnost je pro tuto bitvu vyčerpaná."
-	if glory < ability_cost(id):
-		return "Chybí sláva (%d)." % int(ability_cost(id))
 	return ""
 
 
@@ -581,9 +660,7 @@ func can_use_ability(id: String) -> bool:
 	var u := by_id(id)
 	if u == null or u.side != SIDE_KNIGHT or not u.alive() or u.ability == "" or over != "" or u.dashing:
 		return false
-	if u.ability_cd > 0.0:
-		return false
-	return u.uses > 0 or (extra_uses_left(id) > 0 and glory >= ability_cost(id))
+	return u.uses > 0 and u.ability_cd <= 0.0
 
 
 ## Druh cíle schopnosti: "none", "point" (místo na zemi), "enemy" (nepřítel).
@@ -621,6 +698,8 @@ func ability_hint(id: String) -> Array:
 		return [false, null]
 	var a := ability_of(id)
 	var foes := living(SIDE_FOE)
+	if (u.ability == "najezd" or u.ability == "uder") and u.hp < u.maxhp * _ord("hint_dive_hp", 0.6):
+		return [false, null]   # rada: zraněný hrdina se znovu nevrhá mezi nepřátele
 	match u.ability:
 		"vyzva":
 			var n := 0
@@ -629,17 +708,37 @@ func ability_hint(id: String) -> Array:
 					n += 1
 			return [n >= 2, null]
 		"pozehnani":
-			var hurt := 0
-			for k in living(SIDE_KNIGHT):
-				if k.pos.distance_to(u.pos) <= float(a["radius"]) and k.hp < k.maxhp * 0.6:
-					hurt += 1
-			return [hurt >= 2, null]
+			# nejlepší místo: střed hrdiny, kolem kterého je nejvíc zraněných
+			var best_p := Vector2.ZERO
+			var best_hurt := 0
+			for c in living(SIDE_KNIGHT):
+				if c.pos.distance_to(u.pos) > float(a["range"]):
+					continue
+				var hurt := 0
+				for k in living(SIDE_KNIGHT):
+					if k.pos.distance_to(c.pos) <= float(a["radius"]) and k.hp < k.maxhp * 0.6:
+						hurt += 1
+				if hurt > best_hurt:
+					best_hurt = hurt
+					best_p = c.pos
+			return [best_hurt >= 2, best_p if best_hurt >= 2 else null]
 		"salva", "najezd":
 			var best: Unit = null
 			var best_n := 0
+			if u.ability == "najezd":
+				# rada: omráčit velitele, který se napřahuje
+				for f in foes:
+					if f.casting and f.pos.distance_to(u.pos) <= float(a["range"]) and not (a.get("land", false) and _in_water(f.pos)):
+						return [true, f.pos]
+				if mode == "obrana":
+					return [false, null]   # rada: v obraně se nevybíhá, nájezd jen proti veliteli
 			for f in foes:
 				if f.pos.distance_to(u.pos) > float(a["range"]) or (a.get("land", false) and _in_water(f.pos)):
 					continue
+				if f.asleep or _near_sleeper(f.pos):
+					continue   # rada: spící skupinku nebudit schopností
+				if u.ability == "najezd" and (not _near_other_knight(u, f.pos) or _outnumbered(u, f.pos)):
+					continue   # rada: nájezd jen tam, kde už bojuje někdo z oddílu (ne sám do přesily)
 				var n := 0
 				for g in foes:
 					if g.pos.distance_to(f.pos) <= 2.0:
@@ -650,26 +749,64 @@ func ability_hint(id: String) -> Array:
 			var need := 3 if u.ability == "salva" else 2
 			return [best != null and best_n >= need, best.pos if best != null else null]
 		"uder":
+			if mode == "obrana":
+				return [false, null]   # rada: v obraně se nevybíhá
 			var pick: Unit = null
 			for f in foes:
-				if f.pos.distance_to(u.pos) <= float(a["range"]) and (f.ranged or f.hp < f.maxhp * 0.4):
+				if f.pos.distance_to(u.pos) <= float(a["range"]) and (f.ranged or f.hp < f.maxhp * 0.4) and not f.asleep and not _near_sleeper(f.pos) and _near_other_knight(u, f.pos) and not _outnumbered(u, f.pos):
 					pick = f
 					break
 			return [pick != null, pick.id if pick != null else null]
 	return [false, null]
 
 
-## Použije schopnost hrdiny. Bez vlastních použití zaplatí slávou. Vrací false, když to nejde.
+## Rada: je u místa spící skupinka? (schopnost by ji probudila; do jejího `wake` + 2 m)
+func _near_sleeper(p: Vector2) -> bool:
+	for f in living(SIDE_FOE):
+		if f.asleep and f.pod >= 0 and f.pod < pods.size():
+			var wake := float((pods[f.pod] as Dictionary).get("wake", scenario.get("wake_radius", 7.0)))
+			if f.pos.distance_to(p) <= wake + 2.0:
+				return true
+	return false
+
+
+## Rada: je u místa víc nepřátel než hrdinů (bez toho, kdo by tam skočil)? Do přesily se neskáče.
+func _outnumbered(u: Unit, p: Vector2) -> bool:
+	var r := _ord("hint_support", 5.0)
+	var foes := 0
+	for f in living(SIDE_FOE):
+		if not f.asleep and f.pos.distance_to(p) <= r:
+			foes += 1
+	var mates := 0
+	for k in living(SIDE_KNIGHT):
+		if k != u and k.pos.distance_to(p) <= r:
+			mates += 1
+	return foes > mates + 1
+
+
+## Rada: stojí u místa (do `hint_support` m) jiný hrdina? Skok a nájezd nemají vést samotného hrdinu do přesily.
+func _near_other_knight(u: Unit, p: Vector2) -> bool:
+	for k in living(SIDE_KNIGHT):
+		if k != u and k.pos.distance_to(p) <= _ord("hint_support", 5.0):
+			return true
+	return false
+
+
+## Kdy přijde další vlna (INF = žádná).
+func next_wave_t() -> float:
+	var best := INF
+	for p in pending:
+		best = minf(best, p.arrive_t)
+	return best
+
+
+## Použije schopnost hrdiny (ubere použití, spustí nabíjení). Vrací false, když to nejde.
 func use_ability(id: String, target: Variant = null) -> bool:
 	if not can_use_ability(id) or ability_target_problem(id, target) != "":
 		return false
 	var u := by_id(id)
 	var a := ability_of(id)
-	if u.uses > 0:
-		u.uses -= 1
-	else:
-		glory -= ability_cost(id)
-		u.extra_used += 1
+	u.uses -= 1
 	u.ability_cd = float(a.get("cooldown", 0.0))
 	abilities_used += 1
 	var where: Vector2 = u.pos
@@ -677,8 +814,9 @@ func use_ability(id: String, target: Variant = null) -> bool:
 		"vyzva":
 			u.taunt_t = float(a["duration"])
 		"pozehnani":
+			where = target
 			for k in living(SIDE_KNIGHT):
-				if k.pos.distance_to(u.pos) <= float(a["radius"]):
+				if k.pos.distance_to(where) <= float(a["radius"]) and not _no_heal(k):
 					k.hp = minf(k.maxhp, k.hp + k.maxhp * float(a["heal_frac"]))
 					if a.has("shield_t"):
 						k.shield_t = float(a["shield_t"])
@@ -704,7 +842,7 @@ func use_ability(id: String, target: Variant = null) -> bool:
 			u.dashing = true
 			u.dash_to = target
 			u.dash_hit.clear()
-			u.route_i = u.route.size()
+			u.dash_t = u.pos.distance_to(target) / maxf(u.speed * float(a["speed_mult"]), 0.1) + 0.3
 		"uder":
 			var e := by_id(String(target))
 			var dir := (e.pos - u.pos).normalized()
@@ -713,6 +851,8 @@ func use_ability(id: String, target: Variant = null) -> bool:
 				u.pos = behind
 			where = e.pos
 			_face_to(u, e)
+			u.focus_id = e.id
+			u.focus_t = _ord("focus_time", 3.0)
 			u.atk = 0.25
 			u.combat_t = t
 			_hurt(u, e, u.dmg * float(a["mult"]) * _dmg_mult(u, e))
@@ -724,103 +864,6 @@ func use_ability(id: String, target: Variant = null) -> bool:
 
 
 # =============================================================== příkazy hráče
-
-func use_signal() -> bool:
-	if not can_signal():
-		return false
-	signals -= 1
-	signals_used += 1
-	_log("Signál: čas stojí", true)
-	return true
-
-
-# --------------------------------------------------------------- trasy
-
-## Zjednoduší nakreslenou čáru na nejvýš max_pts bodů (Ramer–Douglas–Peucker, zvětšuje toleranci).
-static func simplify_route(points: Array, max_pts: int = 4) -> Array[Vector2]:
-	var pts: Array[Vector2] = []
-	for p: Vector2 in points:
-		if pts.is_empty() or pts[-1].distance_to(p) > 0.05:
-			pts.append(p)
-	if pts.size() <= max_pts:
-		return pts
-	var eps := 0.25
-	var out: Array[Vector2] = pts
-	while out.size() > max_pts:
-		out = _rdp(pts, eps)
-		eps *= 1.5
-	return out
-
-
-static func _rdp(pts: Array[Vector2], eps: float) -> Array[Vector2]:
-	if pts.size() < 3:
-		return pts.duplicate()
-	var a := pts[0]
-	var b := pts[-1]
-	var best := -1.0
-	var idx := 0
-	for i in range(1, pts.size() - 1):
-		var d := _seg_dist(pts[i], a, b)
-		if d > best:
-			best = d
-			idx = i
-	var res: Array[Vector2] = []
-	if best <= eps:
-		res.append(a)
-		res.append(b)
-		return res
-	var left := _rdp(pts.slice(0, idx + 1), eps)
-	var right := _rdp(pts.slice(idx), eps)
-	res.append_array(left)
-	res.pop_back()
-	res.append_array(right)
-	return res
-
-
-static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
-	var ab := b - a
-	var l2 := ab.length_squared()
-	if l2 < 0.0001:
-		return p.distance_to(a)
-	var t := clampf((p - a).dot(ab) / l2, 0.0, 1.0)
-	return p.distance_to(a + ab * t)
-
-
-## Proč trasu nejde nastavit ("" = jde). Body ve vodě se zahazují, ne zamítají.
-func route_problem(id: String, points: Array) -> String:
-	var u := by_id(id)
-	if u == null or u.side != SIDE_KNIGHT or not u.alive():
-		return "Neznámý rytíř."
-	if t > 0.0:
-		return "Trasa se určuje před bitvou."
-	if _no_retreat(u):
-		var front := u.pos.y
-		for p: Vector2 in points:
-			if p.y < front - 1.0:
-				return "Trasa vede zpět a %s složil přísahu „%s“." % [u.name, oath_of(id).get("name", "")]
-			front = maxf(front, p.y)
-	return ""
-
-
-## Nastaví trasu rytíře (jen v rozestavení). Prázdný seznam trasu smaže. Vrací false, když to nejde.
-func set_route(id: String, points: Array) -> bool:
-	if route_problem(id, points) != "":
-		return false
-	_apply_route(by_id(id), points)
-	return true
-
-
-func _apply_route(u: Unit, points: Array) -> void:
-	u.route.clear()
-	u.route_i = 0
-	for p: Vector2 in points:
-		if not _in_water(p) and u.route.size() < 4:
-			u.route.append(p)
-
-
-func on_route(u: Unit) -> bool:
-	return u.route_i < u.route.size() and decided == "" and not charging
-
 
 func has_trait(u: Unit, key: String) -> bool:
 	return u.traits.has(key)
@@ -848,35 +891,173 @@ func charge_all() -> bool:
 	return true
 
 
-## Rozkaz přesunu (při signálu): hrdina dojde na místo a drží ho, dokud nepřijde Do boje! nebo jiný rozkaz.
-func order_move(id: String, target: Vector2) -> bool:
-	var u := by_id(id)
-	if u == null or not u.alive():
-		return false
-	if order_problem(id) != "":
-		return false
-	u.home = target
-	u.holding = true
-	u.route_i = u.route.size()   # rozkaz přesunu ruší zbytek trasy
-	_log("%s: nová pozice" % u.name, false)
-	return true
+# --------------------------------------------------------------- rozkazy hrdinům
 
-
-## Proč hrdina neposlechne rozkaz přesunu ("" = poslechne). Přísaha pomsty: dokud žije, kdo zranil spojence.
-func order_problem(id: String) -> String:
+## Proč rozkaz nejde dát ("" = jde). kind: "point" (cíl Vector2), "group" (číslo skupiny nebo id nepřítele),
+## "ally" (id hrdiny), "" (zrušit: hrdina drží, kde stojí). Rozkazy jdou dávat kdykoli.
+func order_problem(id: String, kind: String = "", target: Variant = null) -> String:
 	var u := by_id(id)
-	if bool(oath_of(id).get("ignores_orders", false)):
-		for f in living(SIDE_FOE):
-			if grudges.has(f.id):
-				return "%s drží přísahu pomsty a rozkaz neposlechne." % u.name
+	if u == null or u.side != SIDE_KNIGHT or not u.alive():
+		return "Neznámý hrdina."
+	if bool(oath_of(id).get("ignores_orders", false)) and _grudge_target(u) != null:
+		return "%s drží přísahu pomsty a rozkaz neposlechne." % u.name
+	match kind:
+		"point":
+			if not target is Vector2:
+				return "Vyber místo."
+			if _in_water(target):
+				return "Do vody to nejde."
+		"group":
+			var g := _group_arg(target)
+			if g < 0 or group_members(g).is_empty():
+				return "Vyber nepřítele."
+		"ally":
+			var a := by_id(String(target)) if target is String else null
+			if a == null or a == u or a.side != SIDE_KNIGHT or not a.alive():
+				return "Vyber jiného hrdinu."
 	return ""
 
 
-## Zruší rozkaz přesunu: hrdina se vrátí k výchozímu chování své třídy.
-func release(id: String) -> void:
+func _group_arg(target: Variant) -> int:
+	if target is int:
+		return target
+	if target is float:
+		return int(target)
+	if target is String:
+		return group_of(target)
+	return -1
+
+
+## Dá hrdinovi rozkaz. Vrací false, když to nejde (order_problem).
+func set_order(id: String, kind: String, target: Variant = null) -> bool:
+	if order_problem(id, kind, target) != "":
+		return false
 	var u := by_id(id)
-	if u != null:
-		u.holding = false
+	u.order = kind
+	u.order_done = false
+	u.focus_id = ""
+	u.regroup = false
+	match kind:
+		"point":
+			u.order_pos = target
+		"group":
+			u.order_group = _group_arg(target)
+		"ally":
+			u.order_ally = target
+		_:
+			u.order = ""
+			u.home = u.pos
+	return true
+
+
+## Rozkaz přesunu (přetažení hrdiny): totéž co rozkaz na místo.
+func order_move(id: String, target: Vector2) -> bool:
+	return set_order(id, "point", target)
+
+
+## Rozkaz hrdiny pro hráče („Na místo“, „Na skupinu: Lapkové (5)“…).
+func order_text(id: String) -> String:
+	var u := by_id(id)
+	if u == null:
+		return ""
+	var names: Dictionary = units_data.get("orders", {}).get("names", {})
+	match u.order:
+		"point":
+			return String(names.get("point_done" if u.order_done else "point", "Na místo"))
+		"group":
+			if u.order_done:
+				return String(names.get("group_done", "Skupina padla, drží místo"))
+			return "%s: %s" % [names.get("group", "Na skupinu"), group_name(u.order_group)]
+		"ally":
+			var a := by_id(u.order_ally)
+			if u.order_done or a == null:
+				return String(names.get("ally_done", "Spojenec padl, drží místo"))
+			return "%s: %s" % [names.get("ally", "Se spojencem"), a.name]
+	return String(names.get("none", "Bez rozkazu: drží místo"))
+
+
+## Hrdinové bez rozkazu (jména). Scéna před bitvou varuje.
+func unordered() -> Array:
+	var out: Array = []
+	for k in living(SIDE_KNIGHT):
+		if k.order == "":
+			out.append(k.name)
+	return out
+
+
+## Vůdce oddílu pro automatického velitele: nejodolnější bojovník (ne léčitel, ne střelec).
+func _auto_lead() -> Unit:
+	var lead: Unit = null
+	for k in living(SIDE_KNIGHT):
+		if k.heal <= 0.0 and not k.ranged and (lead == null or k.maxhp > lead.maxhp):
+			lead = k
+	return lead
+
+
+## Jednoduchý velitel pro testy a automatické hraní: vůdce jde na nejbližší skupinu,
+## ostatní se drží u něj. V obraně (a dokud bojují bdělí nepřátelé, když scénář radí `auto_plan: "hold"`)
+## vůdce drží místo. Vrací {id: [druh, cíl]}.
+func suggest_orders() -> Dictionary:
+	var out := {}
+	var ks := living(SIDE_KNIGHT)
+	var lead := _auto_lead()
+	if lead == null:
+		for k in ks:
+			out[k.id] = [""]
+		return out
+	var awake_left := false
+	for f in living(SIDE_FOE):
+		awake_left = awake_left or (not f.asleep and not f.fleeing)
+	var main := -1
+	var main_melee := false
+	for g in groups.size():
+		var mem := group_members(g)
+		if mem.is_empty():
+			continue
+		var melee := false
+		for f in mem:
+			melee = melee or not f.ranged
+		var d := group_center(g).distance_to(lead.pos)
+		var md := group_center(main).distance_to(lead.pos) if main >= 0 else INF
+		# nejbližší skupina; pěší přednost jen při podobné vzdálenosti (osamělý střelec za řekou počká)
+		if main < 0 or d < md - 2.0 or (absf(d - md) <= 2.0 and melee and not main_melee):
+			main = g
+			main_melee = melee
+	var hold := mode == "obrana" or (String(scenario.get("auto_plan", "attack")) == "hold" and awake_left)
+	for k in ks:
+		if k == lead:
+			out[k.id] = [""] if hold or main < 0 else ["group", main]
+		else:
+			out[k.id] = ["ally", lead.id]
+	return out
+
+
+## Automatický velitel (testy, auto-hraní): když se plán vůdce změní (skupina padla, probudila se jiná…),
+## dá oddílu nové rozkazy. Hráč tohle dělá sám.
+func auto_command() -> void:
+	var lead := _auto_lead()
+	if lead == null:
+		return
+	var plan := suggest_orders()
+	var o: Array = plan.get(lead.id, [""])
+	var same := lead.order == String(o[0]) and not lead.order_done
+	if same and lead.order == "group":
+		same = lead.order_group == int(o[1])
+	if same or (lead.order == "" and String(o[0]) == ""):
+		var fine := true
+		for k in living(SIDE_KNIGHT):
+			if k != lead and (k.order != "ally" or k.order_ally != lead.id):
+				fine = false
+		if fine:
+			return
+	apply_orders(plan)
+
+
+## Dá všem hrdinům rozkazy ze slovníku {id: [druh, cíl]} (třeba ze suggest_orders).
+func apply_orders(orders: Dictionary) -> void:
+	for id: String in orders:
+		var o: Array = orders[id]
+		set_order(id, String(o[0]), o[1] if o.size() > 1 else null)
 
 
 ## Je rozkaz pro hrdinu ústupem? (vzdálí ho od nejbližšího nepřítele o víc než 1 m)
@@ -969,6 +1150,14 @@ func _band(y: float) -> int:
 	return 1
 
 
+## Krok v pásu u břehu nevede hlouběji do řeky.
+func _not_deeper(old: Vector2, p: Vector2) -> bool:
+	var mid := (river_lo + river_hi) / 2.0
+	if old.y >= mid:
+		return p.y >= old.y - 0.001
+	return p.y <= old.y + 0.001
+
+
 func _in_water(p: Vector2) -> bool:
 	return p.y > river_lo - 0.3 and p.y < river_hi + 0.3 and _crossing_at(p.x).is_empty()
 
@@ -978,11 +1167,20 @@ func _nav(u: Unit, target: Vector2) -> Vector2:
 	var us := _band(u.pos.y)
 	var ts := _band(target.y)
 	var here := _crossing_at(u.pos.x)
+	if us == 1 and ts == 1 and not here.is_empty():
+		var there := _crossing_at(target.x)
+		if there.is_empty() or float(there["x0"]) != float(here["x0"]):
+			# oba v pásu řeky, ale na různých přechodech (lávka a brod): nejdřív ven na břeh blíž cíli
+			var mid := (river_lo + river_hi) / 2.0
+			var exit_y := river_lo - 0.5 if target.y < mid else river_hi + 0.5
+			return Vector2(clampf(u.pos.x, float(here["x0"]) + 0.35, float(here["x1"]) - 0.35), exit_y)
 	if us == ts or (us == 1 and not here.is_empty()):
 		if us == 1 and ts != 1:
 			return Vector2(clampf(u.pos.x, float(here["x0"]) + 0.35, float(here["x1"]) - 0.35), river_lo - 0.5 if ts == 0 else river_hi + 0.5)
 		return target
 	var c := _best_crossing(u.pos.x, target.x)
+	if ts == 1 and not _crossing_at(target.x).is_empty():
+		c = _crossing_at(target.x)   # cíl stojí v přechodu: jde se tím přechodem
 	var x0 := float(c["x0"]) + 0.35
 	var x1 := float(c["x1"]) - 0.35
 	if u.pos.x >= x0 - 0.1 and u.pos.x <= x1 + 0.1 and u.pos.y >= river_lo - 0.7 and u.pos.y <= river_hi + 0.7:
@@ -999,10 +1197,13 @@ func _walk(u: Unit, target: Vector2, dt: float, stop: float = 0.0) -> void:
 		return
 	var st := minf(d, _speed(u) * terrain_speed(u, u.pos) * dt)
 	var old := u.pos
-	var step_v := dv / d * st
+	var dir := _avoid(u, dv / d, target, d)
+	var step_v := dir * st
 	u.pos += step_v
-	u.face = dv / d
+	u.face = dir
 	u.moving = true
+	if _in_water(u.pos) and _in_water(old) and _not_deeper(old, u.pos):
+		return   # už stojí v pásu u břehu (odtlačení): smí se hýbat podél břehu nebo ven, ne hlouběji
 	if _in_water(u.pos):
 		# u břehu se nezasekne: zkusí sklouznout podél břehu (jen po x, nebo jen po y)
 		u.pos = old + Vector2(step_v.x, 0.0)
@@ -1012,6 +1213,36 @@ func _walk(u: Unit, target: Vector2, dt: float, stop: float = 0.0) -> void:
 				u.pos = old + Vector2(0.0, -absf(step_v.x) if old.y < river_lo else absf(step_v.x))
 				if _in_water(u.pos):
 					u.pos = old
+
+
+## Uhnutí: když v cestě (do `avoid_look` m před jednotkou) stojí jednotka stejné strany, směr se stočí do strany,
+## aby se spojenci obcházeli, místo aby šli skrz sebe. Nepřítel se neobchází (do něj se jde bojovat).
+func _avoid(u: Unit, dir: Vector2, target: Vector2, dist: float) -> Vector2:
+	var look := _ord("avoid_look", 1.6)
+	var steer := Vector2.ZERO
+	for o in units:
+		if o == u or o.side != u.side or not o.alive() or o.fled:
+			continue
+		var rel := o.pos - u.pos
+		var d := rel.length()
+		if d > look or d < 0.001 or o.pos.distance_to(target) <= o.radius + 0.3:
+			continue
+		var ahead := rel.dot(dir)
+		if ahead <= 0.0 or ahead > dist:
+			continue
+		var lateral := rel - dir * ahead
+		var need := u.radius + o.radius + 0.1
+		var lat := lateral.length()
+		if lat >= need:
+			continue
+		var side := -lateral / lat if lat > 0.01 else Vector2(-dir.y, dir.x)
+		steer += side * (1.0 - d / look) * (1.0 - lat / need)
+	if steer == Vector2.ZERO:
+		return dir
+	var out := dir + steer * _ord("avoid_strength", 1.5)
+	if out.dot(dir) < 0.1:
+		out = dir * 0.1 + steer.normalized()   # nikdy necouvá, jen uhne
+	return out.normalized()
 
 
 func _face_to(u: Unit, tg: Unit) -> void:
@@ -1116,7 +1347,7 @@ func _engage(u: Unit, tg: Unit, dt: float) -> void:
 ## Rozejde se, až se místo vzdálí o víc než `settle` m. Bez toho hrdinové kmitají
 ## (krok, stop, krok), protože se jejich místa počítají jeden od druhého.
 func _settle(u: Unit, p: Vector2, dt: float, stop: float, foes: Array[Unit]) -> void:
-	if not u.moving and u.pos.distance_to(p) <= stop + _bparam(u, "settle", 1.2):
+	if not u.moving and u.pos.distance_to(p) <= stop + _ord("settle", 1.0):
 		return
 	_go(u, p, dt, stop, foes)
 
@@ -1134,18 +1365,222 @@ func _go(u: Unit, p: Vector2, dt: float, stop: float, foes: Array[Unit]) -> void
 
 
 func _knight_think(u: Unit, dt: float) -> void:
+	_priest_heal(u, dt)
 	var foes := living(SIDE_FOE)
-	if foes.is_empty():
-		u.moving = false
+	if u.dashing:
+		_dash(u, dt, foes)
 		return
+	if has_oath(u.id):
+		var nf := _nearest(foes, u.pos)
+		if nf != null and u.pos.distance_to(nf.pos) <= u.reach + 0.3:
+			_gain_glory(float(house["glory"]["oath_per_second"]) * dt, u)
+	# Do boje! nebo rozhodnutá bitva: všichni útočí.
+	if (charging or decided != "") and not foes.is_empty():
+		_engage(u, _choose_target(u, foes), dt)
+		return
+	# Po Úderu ze stínu a Nájezdu dobojuje s cílem (nejvýš `focus_time` s, dokud žije a je u něj), pak se vrátí k rozkazu.
+	if u.focus_id != "":
+		var fo := by_id(u.focus_id)
+		u.focus_t -= dt
+		if fo == null or not fo.alive() or fo.fleeing or u.focus_t <= 0.0 or fo.pos.distance_to(u.pos) > u.reach + _ord("focus_leash", 4.0):
+			u.focus_id = ""
+		else:
+			u.regroup = false
+			_engage(u, fo, dt)
+			return
+	# Přísaha pomsty: dokud žije, kdo zranil spojence, jde po něm a rozkaz neplatí.
+	if bool(oath_of(u.id).get("ignores_orders", false)):
+		var gt := _grudge_target(u)
+		if gt != null:
+			_engage(u, gt, dt)
+			return
+	match u.order:
+		"point":
+			_order_point(u, dt, foes)
+		"group":
+			_order_group(u, dt, foes)
+		"ally":
+			_order_ally(u, dt, foes)
+		_:
+			_hold_place(u, dt, foes)
 
-	# kněz léčí nejzraněnějšího hrdinu v dosahu
+
+## Nejbližší živý nepřítel, který zranil spojence (Přísaha pomsty).
+func _grudge_target(u: Unit) -> Unit:
+	var list: Array[Unit] = []
+	for f in living(SIDE_FOE):
+		if grudges.has(f.id) and not f.fleeing:
+			list.append(f)
+	return _nearest(list, u.pos)
+
+
+## Rozkaz splněn: hrdina drží místo, kde stojí.
+func _done(u: Unit) -> void:
+	u.order_done = true
+	u.home = u.pos
+
+
+## Bojuje s tím z `foes`, kdo je u něj (pěší do reach + `on_way`, střelec do `on_way_ranged`).
+## Vrací true, když bojuje.
+func _fight_close(u: Unit, dt: float, foes: Array[Unit]) -> bool:
+	var close: Array[Unit] = []
+	var r := _ord("on_way_ranged", 2.5) if u.ranged else u.reach + _ord("on_way", 1.0)
+	for f in foes:
+		if f.pos.distance_to(u.pos) <= r:
+			close.append(f)
+	var tg := _choose_target(u, close)
+	if tg == null:
+		return false
+	if u.ranged:
+		u.moving = false
+		_attack(u, tg)
+	else:
+		_engage(u, tg, dt)
+	return true
+
+
+## Na místo: dojde bez boje (tak hráč hrdinu stáhne z boje), pak místo drží.
+func _order_point(u: Unit, dt: float, foes: Array[Unit]) -> void:
+	if u.order_done:
+		_hold_place(u, dt, foes)
+		return
+	var d := u.pos.distance_to(u.order_pos)
+	var taken := false   # na místě už stojí jiný hrdina: stačí dojít k němu
+	for k in living(SIDE_KNIGHT):
+		if k != u and k.pos.distance_to(u.order_pos) <= 1.0:
+			taken = true
+	if d <= 0.4 or (taken and d <= 2.0):
+		u.moving = false
+		_done(u)
+		return
+	_go(u, u.order_pos, dt, 0.3, foes)
+	if not u.moving:
+		_done(u)   # došel, nebo dál nesmí (přísaha Nikdy neustoupí): drží, kde stojí
+
+
+## Na skupinu: jde po skupině (i když se hýbe) a bojuje s jejími členy (a brání se tomu, kdo ho cestou napadne);
+## když skupina padne, drží místo.
+func _order_group(u: Unit, dt: float, foes: Array[Unit]) -> void:
+	if u.order_done:
+		_hold_place(u, dt, foes)
+		return
+	var mem := group_members(u.order_group)
+	if mem.is_empty():
+		_done(u)
+		_hold_place(u, dt, foes)
+		return
+	if _fight_close(u, dt, mem):
+		return
+	# kdo na něj cestou útočí, tomu se brání (stáhnout z boje jde rozkazem na místo)
+	var attackers: Array[Unit] = []
+	for f in foes:
+		if f.target_id == u.id and not f.asleep:
+			attackers.append(f)
+	if _fight_close(u, dt, attackers):
+		return
+	var tg := _choose_target(u, mem)
+	if u.ranged:
+		if u.pos.distance_to(tg.pos) <= u.reach:
+			u.moving = false
+			_attack(u, tg)
+		else:
+			_walk(u, tg.pos, dt, u.reach * 0.9)
+		return
+	_engage(u, tg, dt)
+
+
+## Ke spojenci: drží se u něj (střelec a léčitel kus za ním) a bojuje s tím, kdo spojence ohrožuje.
+## Léčitel se zapojí, jen když nikdo v dosahu léčení nepotřebuje léčit, jinak se jen brání.
+func _order_ally(u: Unit, dt: float, foes: Array[Unit]) -> void:
+	var a := by_id(u.order_ally)
+	if u.order_done or a == null or not a.alive():
+		if not u.order_done:
+			_done(u)
+		_hold_place(u, dt, foes)
+		return
+	var cand: Array[Unit] = []
+	var guard := _ord("ally_guard", 3.0)
+	var own := u.reach + _ord("on_way", 1.0)
+	var helps := u.heal <= 0.0 or not _needs_heal(u)
+	var dist := _ord("ally_dist_back", 4.0) if (u.ranged or u.heal > 0.0) else _ord("ally_dist", 2.0)
+	var gap := u.pos.distance_to(a.pos)
+	if not u.ranged and gap > dist + guard + _ord("ally_leash", 0.5):
+		u.regroup = true
+	if u.regroup and gap <= dist + 0.5:
+		u.regroup = false
+	if u.regroup:
+		# zatoulal se (třeba po Nájezdu): vrací se až ke spojenci a cestou se nezdržuje
+		_walk(u, a.pos, dt, dist)
+		return
+	for f in foes:
+		if u.ranged:
+			if f.pos.distance_to(u.pos) <= u.reach:
+				cand.append(f)
+		elif f.pos.distance_to(u.pos) <= own or (helps and f.pos.distance_to(a.pos) <= guard):
+			cand.append(f)
+	var tg := _choose_target(u, cand)
+	if tg != null:
+		if u.ranged:
+			u.moving = false
+			_attack(u, tg)
+		else:
+			_engage(u, tg, dt)
+		return
+	var spot := a.pos
+	var nf := _nearest(foes, a.pos)
+	if nf != null and nf.pos.distance_to(a.pos) > 0.1:
+		spot = a.pos + (a.pos - nf.pos).normalized() * dist
+		if _in_water(spot):
+			spot = a.pos
+	_settle(u, spot, dt, 0.6 if spot != a.pos else dist, foes)
+
+
+## Potřebuje někdo v dosahu léčitele léčení?
+func _needs_heal(u: Unit) -> bool:
+	for k in living(SIDE_KNIGHT):
+		if k.hp < k.maxhp * 0.85 and k.pos.distance_to(u.pos) <= u.heal_range:
+			return true
+	return false
+
+
+## Drží místo `home`: bojuje s tím, kdo přijde do `hold_radius` m od místa, a brání se tomu,
+## kdo na něj útočí do dvojnásobku; střelec střílí na dostřel. Pak se vrátí na místo.
+func _hold_place(u: Unit, dt: float, foes: Array[Unit]) -> void:
+	var hr := _ord("hold_radius", 4.0)
+	var cand: Array[Unit] = []
+	for f in foes:
+		if u.ranged:
+			if f.pos.distance_to(u.pos) <= u.reach:
+				cand.append(f)
+		elif f.pos.distance_to(u.home) <= hr or (f.target_id == u.id and f.pos.distance_to(u.home) <= hr * 2.0):
+			cand.append(f)
+	var tg := _choose_target(u, cand)
+	if tg != null:
+		if u.ranged:
+			u.moving = false
+			_attack(u, tg)
+		else:
+			_engage(u, tg, dt)
+		return
+	_settle(u, u.home, dt, 0.3, foes)
+
+
+## Je kněz v boji? (bdělý nepřítel do `heal_combat` m). Mezi skupinkami se samo neléčí.
+func _in_combat(u: Unit) -> bool:
+	for f in living(SIDE_FOE):
+		if not f.asleep and not f.fleeing and f.pos.distance_to(u.pos) <= u.heal_combat:
+			return true
+	return false
+
+
+## Kněz léčí nejzraněnějšího hrdinu v dosahu, jen v boji.
+func _priest_heal(u: Unit, dt: float) -> void:
 	if u.heal > 0.0:
 		u.heal_t -= dt
-		if u.heal_t <= 0.0:
+		if u.heal_t <= 0.0 and _in_combat(u):
 			var best: Unit = null
 			for k in living(SIDE_KNIGHT):
-				if k.hp < k.maxhp * 0.85 and k.pos.distance_to(u.pos) <= u.heal_range:
+				if k.hp < k.maxhp * 0.85 and k.pos.distance_to(u.pos) <= u.heal_range and not _no_heal(k):
 					if best == null or k.hp / k.maxhp < best.hp / best.maxhp:
 						best = k
 			if best != null:
@@ -1153,228 +1588,28 @@ func _knight_think(u: Unit, dt: float) -> void:
 				u.heal_t = u.heal_cd
 				events.append({"type": "heal", "id": best.id})
 
-	if u.dashing:
-		_dash(u, dt, foes)
-		return
-
-	# Trasa: hrdina jde po bodech trasy, cestou bojuje jen s tím, kdo je těsně u něj.
-	if on_route(u):
-		var close: Array[Unit] = []
-		var close_r := u.reach if u.ranged else u.reach + 1.0
-		for f in foes:
-			if f.pos.distance_to(u.pos) <= close_r:
-				close.append(f)
-		var ct := _choose_target(u, close)
-		if ct != null:
-			_engage(u, ct, dt)
-			return
-		var wp := u.route[u.route_i]
-		if u.pos.distance_to(wp) > 0.5:
-			_walk(u, wp, dt, 0.3)
-			if u.moving:
-				return
-		u.route_i += 1
-		u.home = u.pos
-		if u.route_i < u.route.size():
-			return
-
-	if has_oath(u.id):
-		var nf := _nearest(foes, u.pos)
-		if nf != null and u.pos.distance_to(nf.pos) <= u.reach + 0.3:
-			_gain_glory(float(house["glory"]["oath_per_second"]) * dt, u)
-
-	# Do boje! nebo rozhodnutá bitva: všichni útočí na nejbližšího.
-	if charging or decided != "":
-		_engage(u, _choose_target(u, foes), dt)
-		return
-
-	if u.holding:
-		_hold_place(u, dt, foes)
-		return
-
-	match u.behavior:
-		"frontline":
-			_think_frontline(u, dt, foes)
-		"healer":
-			_think_healer(u, dt, foes)
-		"archer":
-			_think_archer(u, dt, foes)
-		"rider":
-			_think_rider(u, dt, foes)
-		"assassin":
-			_engage(u, _choose_target(u, foes), dt)
-		_:
-			_engage(u, _nearest(foes, u.pos), dt)
-
-
-## Rozkaz přesunu: drží místo, bojuje s tím, kdo přijde blízko (střelec střílí na dostřel).
-func _hold_place(u: Unit, dt: float, foes: Array[Unit]) -> void:
-	var cand: Array[Unit] = []
-	for f in foes:
-		if (u.ranged and f.pos.distance_to(u.pos) <= u.reach) or (not u.ranged and f.pos.distance_to(u.home) <= u.reach + 3.0):
-			cand.append(f)
-	var tg := _choose_target(u, cand)
-	if tg != null:
-		if u.ranged or u.pos.distance_to(tg.pos) <= u.reach + tg.radius * 0.5:
-			if u.pos.distance_to(tg.pos) <= u.reach + tg.radius * 0.5:
-				u.moving = false
-				_attack(u, tg)
-				return
-		var dv := tg.pos - u.home
-		var d := maxf(dv.length(), 0.0001)
-		_walk(u, u.home + dv / d * minf(d, 1.5), dt, 0.1)
-		return
-	_go(u, u.home, dt, 0.25, foes)
-
-
-## Tank: drží přední linii. Napadne nepřítele u sebe nebo u spojence, jinak stojí kus před oddílem.
-func _think_frontline(u: Unit, dt: float, foes: Array[Unit]) -> void:
-	var engage := _bparam(u, "engage", 4.5)
-	var guard := _bparam(u, "guard", 3.0)
-	var cand: Array[Unit] = []
-	for f in foes:
-		var near_ally := false
-		for k in living(SIDE_KNIGHT):
-			if k != u and f.pos.distance_to(k.pos) <= guard:
-				near_ally = true
-				break
-		if f.pos.distance_to(u.pos) <= engage or near_ally:
-			cand.append(f)
-	var tg := _nearest(cand, u.pos)
-	if tg != null:
-		if _no_retreat(u) and u.pos.distance_to(tg.pos) > u.reach + 1.0 and tg.pos.y < u.pos.y - 1.0:
-			u.moving = false   # přísaha: za nepřítelem dozadu nejde
-			return
-		_engage(u, tg, dt)
-		return
-	var nf := _nearest(foes, u.pos)
-	var c := _group_center(u)
-	var spot := c + (nf.pos - c).normalized() * _bparam(u, "ahead", 1.5)
-	if _no_retreat(u):
-		u.moving = false   # Stát pevně: bez nepřítele stojí, kde je
-		return
-	_settle(u, spot, dt, 0.6, foes)
-
-
-## Kněz: drží se kousek za tím, kdo bojuje (léčí ho), jinak za středem oddílu.
-func _think_healer(u: Unit, dt: float, foes: Array[Unit]) -> void:
-	var behind := _bparam(u, "behind", 2.0)
-	var close := _nearest(foes, u.pos)
-	if close != null and u.pos.distance_to(close.pos) <= maxf(u.reach + 0.5, _bparam(u, "defend", 0.0)):
-		_engage(u, close, dt)   # nepřítel u kněze: brání se (a pomáhá tomu, koho léčí)
-		return
-	var mate := _engaged_ally(u)
-	var anchor: Vector2
-	var alone := living(SIDE_KNIGHT).size() == 1
-	if close != null and (alone or (u.pos.distance_to(close.pos) <= 3.0 and (mate == null or mate.ranged))):
-		_engage(u, close, dt)   # nemá se za kým schovat (nebo zbyl sám): brání se
-		return
-	if mate != null:
-		var fn := _nearest(foes, mate.pos)
-		# nikdo v dosahu léčení nepotřebuje: kněz nestojí, pomůže tomu, kdo bojuje.
-		# Léčí dál (léčení je v dosahu i z boje); couvne, až je sám zraněný pod polovinu.
-		if u.hp < u.maxhp * 0.5:
-			u.assisting = false
-		elif _bparam(u, "assist", 0.0) > 0.0 and not _needs_heal(u):
-			u.assisting = true
-		if u.assisting and fn.pos.distance_to(mate.pos) <= mate.reach + 1.5:
-			_engage(u, fn, dt)
-			return
-		anchor = mate.pos + (mate.pos - fn.pos).normalized() * behind
-		if _in_water(anchor):
-			# za bojujícím je voda (boj na mostě, u brodu): jde k němu přes přechod
-			_go(u, mate.pos, dt, behind, foes)
-			return
-		_settle(u, anchor, dt, 0.5, foes)
-		return
-	var c := _group_center(u)
-	anchor = c + (c - close.pos).normalized() * behind
-	if _in_water(anchor):
-		anchor = u.pos
-	_settle(u, anchor, dt, 0.8, foes)
-
-
-## Potřebuje někdo v dosahu kněze léčení?
-func _needs_heal(u: Unit) -> bool:
-	for k in living(SIDE_KNIGHT):
-		if k.hp < k.maxhp * 0.85 and k.pos.distance_to(u.pos) <= u.heal_range + 2.0:
-			return true
-	return false
-
-
-## Lučištník: střílí na dostřel; když se nepřítel přiblíží, couvne; jinak se drží za oddílem
-## a když nemá na koho střílet, přiblíží se k tomu, kdo bojuje.
-func _think_archer(u: Unit, dt: float, foes: Array[Unit]) -> void:
-	var close := _nearest(foes, u.pos)
-	var kite := _bparam(u, "kite", 3.0)
-	# couvá jen tehdy, když má za kým se schovat (spojenec, který bojuje zblízka, do 6 m)
-	var cover := false
-	for k in living(SIDE_KNIGHT):
-		if k != u and not k.ranged and k.behavior != "healer" and k.pos.distance_to(u.pos) <= 6.0:
-			cover = true
-			break
-	# couvá, dokud nemá odstup kite + kite_gap (jinak by kmital: krok, výstřel, krok)
-	if close == null or not cover or u.pos.distance_to(close.pos) >= kite + _bparam(u, "kite_gap", 1.5):
-		u.kiting = false
-	elif u.pos.distance_to(close.pos) < kite:
-		u.kiting = true
-	if u.kiting and not _no_retreat(u):
-		var away := u.pos + (u.pos - close.pos).normalized() * _bparam(u, "kite_step", 4.0)
-		# necouvá donekonečna: nejdál pár metrů za místo, kde začínal
-		if not _in_water(away) and away.y >= u.home.y - _bparam(u, "kite_limit", 6.0):
-			_walk(u, away, dt, 0.2)
-			if u.moving:
-				return
-		u.kiting = false
-	var cand: Array[Unit] = []
-	for f in foes:
-		if f.pos.distance_to(u.pos) <= u.reach:
-			cand.append(f)
-	var tg := _choose_target(u, cand)
-	if tg != null:
-		u.moving = false
-		_attack(u, tg)
-		return
-	var mate := _engaged_ally(u)
-	if mate != null:
-		_settle(u, mate.pos, dt, u.reach * 0.8, foes)
-		return
-	var c := _group_center(u)
-	var spot := c + (c - close.pos).normalized() * _bparam(u, "behind", 2.0)
-	if _in_water(spot):
-		spot = u.pos
-	_settle(u, spot, dt, 0.8, foes)
-
-
-## Jezdec: na nepřítele do `engage` m od oddílu vyrazí, udeří a vrátí se k oddílu.
-func _think_rider(u: Unit, dt: float, foes: Array[Unit]) -> void:
-	var c := _group_center(u)
-	var cand: Array[Unit] = []
-	for f in foes:
-		if f.pos.distance_to(c) <= _bparam(u, "engage", 7.0):
-			cand.append(f)
-	var tg := _nearest(cand, u.pos)
-	if tg != null:
-		_engage(u, tg, dt)
-		return
-	var nf := _nearest(foes, c)
-	var side := 1.0 if u.home.x >= c.x else -1.0
-	var spot := c + Vector2(side * 2.0, 0.0) + (nf.pos - c).normalized() * 0.5
-	if _in_water(spot):
-		spot = u.pos
-	_settle(u, spot, dt, 1.0, foes)
-
 
 ## Nájezd: jede rychle k cíli, každého nepřítele v cestě zasáhne a omráčí.
 func _dash(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	var a := ability_of(u.id)
+	u.dash_t -= dt
 	var dv := u.dash_to - u.pos
 	var d := dv.length()
 	var st := minf(d, u.speed * float(a["speed_mult"]) * dt)
 	var next := u.pos + (dv / maxf(d, 0.0001)) * st
-	if d < 0.2 or _in_water(next):
+	if d < 0.2 or u.dash_t <= 0.0 or _in_water(next):
 		u.dashing = false
 		u.moving = false
+		# po Nájezdu dobojuje s nejbližším, koho srazil
+		var hit: Array[Unit] = []
+		for id: String in u.dash_hit:
+			var hf := by_id(id)
+			if hf != null and hf.alive():
+				hit.append(hf)
+		var near := _nearest(hit, u.pos)
+		if near != null:
+			u.focus_id = near.id
+			u.focus_t = _ord("focus_time", 3.0)
 		return
 	u.pos = next
 	u.face = dv / d
@@ -1398,38 +1633,198 @@ func _foe_think(u: Unit, dt: float) -> void:
 		return
 	if u.stun_t > 0.0:
 		u.moving = false
+		if u.casting:
+			_skill_cancel(u)
+		return
+	if u.asleep:
+		# spící skupinka: stojí na svém místě, dokud se neprobudí (_check_pods)
+		if u.pos.distance_to(u.home) > 0.4:
+			_walk(u, u.home, dt, 0.2)
+		else:
+			u.moving = false
 		return
 	var ks := _visible_knights()
 	if ks.is_empty():
 		u.moving = false
 		return
-	# Výzva: kdo je v dosahu tanka s výzvou, útočí na něj
-	var taunter := _taunter_for(u, ks)
-	if taunter != null:
-		u.hold = false
-		if u.ranged:
-			_foe_shoot_or_walk(u, taunter, dt)
-		else:
-			_engage(u, taunter, dt)
-		return
-	if u.hold:
-		# Pěšák, kterého něco zasáhlo, opustí pozici a s ním celá jeho skupina (do 5 m);
-		# vypršení času nebo zlomení morálky uvolní všechny.
-		if t >= u.hold_until or u.desperate:
-			u.hold = false
-		elif not u.ranged and u.hp < u.maxhp:
-			for f in living(SIDE_FOE):
-				if f.hold and not f.ranged and f.home.distance_to(u.home) <= 5.0:
-					f.hold = false
-		if u.hold:
-			_foe_hold(u, ks, dt)
+	if u.skill != "":
+		if u.casting:
+			u.moving = false
+			u.cast_t -= dt
+			var aim := by_id(u.cast_target)
+			var look: Vector2 = aim.pos if aim != null else u.cast_pos
+			if look.distance_to(u.pos) > 0.01:
+				u.face = (look - u.pos).normalized()
+			if u.cast_t <= 0.0:
+				_skill_fire(u)
 			return
-	var tg := _nearest(ks, u.pos)
+		u.skill_t -= dt
+		if u.skill_t <= 0.0 and _skill_start(u, ks):
+			return
+	# Výzva: kdo je v dosahu tanka s výzvou, útočí na něj
+	var tg := _taunter_for(u, ks)
+	if tg == null:
+		tg = _foe_pick(u, ks)
 	u.target_id = tg.id
 	if u.ranged:
 		_foe_shoot_or_walk(u, tg, dt)
 		return
+	if not _has_slot(u, tg):
+		# u hrdiny už je plno: počká kousek stranou, nestrká se do chumlu
+		var away := u.pos - tg.pos
+		var spot := tg.pos + (away / maxf(away.length(), 0.01)) * (u.reach + tg.radius + _ord("wait_gap", 1.6))
+		if u.pos.distance_to(spot) > 0.4:
+			_walk(u, spot, dt, 0.3)
+		else:
+			u.moving = false
+			_face_to(u, tg)
+		return
 	_engage(u, tg, dt)
+
+
+# --------------------------------------------------------------- velitelé
+
+func _skill_def(u: Unit) -> Dictionary:
+	return units_data.get("foe_skills", {}).get(u.skill, {})
+
+
+## Velitel začne schopnost, když má smysl (cíl v dosahu). Ohlásí ji: napřahuje se `windup` s
+## (rozhraní kreslí varování z warnings()). Vrací true, když začal.
+func _skill_start(u: Unit, ks: Array[Unit]) -> bool:
+	var sd := _skill_def(u)
+	if sd.is_empty():
+		return false
+	var kind := String(sd["kind"])
+	var rng := float(sd.get("range", 0.0))
+	var r := float(sd.get("radius", 0.0))
+	var target: Unit = null
+	var where := u.pos
+	match kind:
+		"zone":
+			# hodí na místo, kde stojí nejvíc hrdinů
+			var best_n := 0
+			for k in ks:
+				if k.pos.distance_to(u.pos) > rng:
+					continue
+				var n := 0
+				for o in ks:
+					if o.pos.distance_to(k.pos) <= r:
+						n += 1
+				if n > best_n:
+					best_n = n
+					where = k.pos
+			if best_n == 0:
+				return false
+		"shot":
+			for k in ks:
+				if k.pos.distance_to(u.pos) <= rng and (target == null or k.hp / k.maxhp < target.hp / target.maxhp):
+					target = k
+			if target == null:
+				return false
+			where = target.pos
+		"smash":
+			var any := false
+			for k in ks:
+				any = any or k.pos.distance_to(u.pos) <= r * 0.8
+			if not any:
+				return false
+		"rally":
+			var near := false
+			for k in ks:
+				near = near or k.pos.distance_to(u.pos) <= 6.0
+			if not near:
+				return false
+	u.casting = true
+	u.cast_t = float(sd.get("windup", 1.5))
+	u.cast_pos = where
+	u.cast_target = target.id if target != null else ""
+	u.moving = false
+	var warn := String(sd.get("warn", "%s se napřahuje!"))
+	var text := warn % (target.name if target != null else u.name) if warn.contains("%s") else warn
+	events.append({"type": "warn", "id": u.id, "text": text})
+	_log(text, true)
+	return true
+
+
+## Ohlášená schopnost velitele dopadne.
+func _skill_fire(u: Unit) -> void:
+	var sd := _skill_def(u)
+	u.casting = false
+	u.skill_t = float(sd.get("cd", 10.0))
+	u.combat_t = t
+	var r := float(sd.get("radius", 0.0))
+	var where := u.cast_pos
+	match String(sd["kind"]):
+		"zone":
+			for k in living(SIDE_KNIGHT):
+				if k.pos.distance_to(where) <= r:
+					_hurt(u, k, float(sd.get("dmg", 0.0)) * _dmg_mult(u, k))
+			if sd.has("burn_t"):
+				zones.append({"pos": where, "r": r, "t": float(sd["burn_t"]), "dps": float(sd["burn_dps"]), "from": u.id, "hurts": SIDE_KNIGHT})
+		"shot":
+			var k := by_id(u.cast_target)
+			if k != null and k.alive() and k.hidden_t <= 0.0 and k.pos.distance_to(u.pos) <= float(sd.get("range", 0.0)) + 2.0:
+				_hurt(u, k, float(sd.get("dmg", 0.0)) * _dmg_mult(u, k))
+				where = k.pos
+		"smash":
+			where = u.pos
+			for k in living(SIDE_KNIGHT):
+				if k.pos.distance_to(u.pos) <= r:
+					_hurt(u, k, float(sd.get("dmg", 0.0)) * _dmg_mult(u, k))
+		"rally":
+			where = u.pos
+			for f in living(SIDE_FOE):
+				if f.pos.distance_to(u.pos) <= r and not f.asleep:
+					f.rally_t = float(sd.get("duration", 5.0))
+					f.rally_mult = float(sd.get("dmg_mult", 1.3))
+	events.append({"type": "skill", "id": u.id, "key": u.skill, "pos": where, "radius": r})
+
+
+## Omráčení přeruší napřahování (hráč může schopnost velitele zastavit Nájezdem).
+func _skill_cancel(u: Unit) -> void:
+	u.casting = false
+	u.skill_t = float(_skill_def(u).get("cd", 10.0)) * 0.5
+	_log("%s: přerušeno!" % u.name, true)
+
+
+## Ohlášené schopnosti velitelů pro rozhraní: [{"pos", "radius", "t", "kind", "target"}].
+func warnings() -> Array:
+	var out: Array = []
+	for f in living(SIDE_FOE):
+		if f.casting:
+			var sd := _skill_def(f)
+			var k := by_id(f.cast_target)
+			var pos: Vector2 = k.pos if k != null else (f.pos if String(sd["kind"]) in ["smash", "rally"] else f.cast_pos)
+			out.append({"pos": pos, "radius": float(sd.get("radius", 0.9)) if String(sd["kind"]) != "shot" else 0.9, "t": f.cast_t, "kind": String(sd["kind"]), "target": f.cast_target, "id": f.id})
+	return out
+
+
+## Kolik pěších nepřátel teď bojuje s hrdinou zblízka.
+func _attackers_on(k: Unit, except: Unit = null) -> int:
+	var n := 0
+	for f in living(SIDE_FOE):
+		if f != except and not f.ranged and not f.asleep and f.target_id == k.id and f.pos.distance_to(k.pos) <= f.reach + k.radius + 0.6:
+			n += 1
+	return n
+
+
+## Má nepřítel u hrdiny místo? (nejvýš `melee_slots` pěších najednou; kdo už bojuje, místo má)
+func _has_slot(u: Unit, k: Unit) -> bool:
+	if u.target_id == k.id and u.pos.distance_to(k.pos) <= u.reach + k.radius + 0.6:
+		return true
+	return _attackers_on(k, u) < int(_ord("melee_slots", 3.0))
+
+
+## Cíl nepřítele: nejbližší hrdina s volným místem (střelec prostě nejbližší); když je všude plno, nejbližší.
+func _foe_pick(u: Unit, ks: Array[Unit]) -> Unit:
+	if u.ranged:
+		return _nearest(ks, u.pos)
+	var free: Array[Unit] = []
+	for k in ks:
+		if _has_slot(u, k):
+			free.append(k)
+	var best := _nearest(free, u.pos)
+	return best if best != null else _nearest(ks, u.pos)
 
 
 ## Střelec: střílí z dostřelu, ale postupuje na 60 % dostřelu, aby nevznikl pat.
@@ -1465,34 +1860,6 @@ func _taunter_for(u: Unit, ks: Array[Unit]) -> Unit:
 	return best
 
 
-## Nepřítel drží pozici: střelec střílí, co má na dostřel, pěšák vyrazí jen na rytíře blízko svého místa.
-func _foe_hold(u: Unit, ks: Array[Unit], dt: float) -> void:
-	if u.ranged:
-		var tg := _nearest(ks, u.pos)
-		if tg != null and u.pos.distance_to(tg.pos) <= u.reach:
-			u.moving = false
-			_attack(u, tg)
-			return
-	else:
-		var near: Array[Unit] = []
-		for k in ks:
-			if k.pos.distance_to(u.home) <= u.hold_engage:
-				near.append(k)
-		var mt := _nearest(near, u.pos)
-		if mt != null:
-			if u.pos.distance_to(mt.pos) <= u.reach + mt.radius * 0.5:
-				u.moving = false
-				_attack(u, mt)
-			else:
-				_walk(u, mt.pos, dt, u.reach * 0.8)
-			return
-	if u.pos.distance_to(u.home) > 0.4:
-		_walk(u, u.home, dt, 0.2)
-	else:
-		u.moving = false
-		u.face = Vector2(0, -1)
-
-
 func _separate() -> void:
 	var al: Array[Unit] = []
 	for u in units:
@@ -1504,7 +1871,7 @@ func _separate() -> void:
 			var b := al[j]
 			var dv := b.pos - a.pos
 			var d := maxf(dv.length(), 0.01)
-			var m := (a.radius + b.radius) * 0.9
+			var m := (a.radius + b.radius) * _ord("body_gap", 1.0)
 			if d < m:
 				var push := (m - d) / 2.0
 				var n := dv / d
@@ -1525,8 +1892,8 @@ func _enemy_morale() -> Dictionary:
 
 ## Zlomí morálku nepřátel, když ztratili dost jednotek.
 func _check_morale() -> void:
-	if foes_broken:
-		return
+	if foes_broken or not pending.is_empty():
+		return   # dokud přicházejí další vlny, nepřítel se nezlomí
 	var total := 0
 	var lost := 0
 	for u in units:
@@ -1543,6 +1910,10 @@ func _break_morale() -> void:
 	if foes_broken:
 		return
 	foes_broken = true
+	broken_t = t
+	for pi in pods.size():
+		if not pod_awake.has(pi):
+			_wake_pod(pi, "zlom")   # zlomený nepřítel už nikde nečeká
 	for u in living(SIDE_FOE):
 		if bool(_trait_value(u, "never_breaks", false)):
 			continue
@@ -1554,23 +1925,136 @@ func _break_morale() -> void:
 	_log("Nepřítel je zlomený: střelci prchají, pěšáci se zoufale vrhají do boje. Můžeš dát povel Do boje!", true)
 
 
-## Síla strany: zdraví × poškození za sekundu (hrubý odhad, bez bonusů).
+## Síla strany: zdraví × poškození za sekundu (hrubý odhad, bez bonusů). Spící skupinky se nepočítají
+## (ještě nebojují), další vlny ano.
 func power(side: String) -> float:
 	var p := 0.0
 	for u in living(side):
-		if not u.fleeing:
+		if not u.fleeing and not u.asleep:
+			p += u.hp * u.dmg / maxf(u.cd, 0.1)
+	if side == SIDE_FOE:
+		for u in pending:
 			p += u.hp * u.dmg / maxf(u.cd, 0.1)
 	return p
 
 
+## Další vlna: nepřátelé, jejichž čas přišel, vstoupí na bojiště (událost arrive pro scénu).
+func _arrivals() -> void:
+	if pending.is_empty():
+		return
+	var keep: Array[Unit] = []
+	var came := 0
+	for u in pending:
+		if t >= u.arrive_t:
+			units.append(u)
+			if foes_broken:
+				u.desperate = u.on_break == "desperate"   # přicházejí do prohrané bitvy
+			events.append({"type": "arrive", "id": u.id})
+			came += 1
+		else:
+			keep.append(u)
+	pending = keep
+	if came > 0:
+		var wave_times := {}
+		for p in pending:
+			wave_times[p.arrive_t] = true
+		waves_left = wave_times.size()
+		_log("Přichází další vlna: %d nepřátel" % came, true)
+
+
+## Probouzení skupinek (fáze bitvy): spící skupinka se probudí, když se k některému jejímu členovi
+## přiblíží hrdina na `wake` m, když ji někdo zraní, když bdělý nepřítel bojuje do `alarm` m od jejího
+## místa (hluk boje) nebo když se nepříteli zlomí morálka.
+func _check_pods() -> void:
+	for pi in pods.size():
+		if pod_awake.has(pi):
+			continue
+		var pd: Dictionary = pods[pi]
+		var wake := float(pd.get("wake", scenario.get("wake_radius", 7.0)))
+		var alarm := float(pd.get("alarm", scenario.get("alarm_radius", 0.0)))
+		var members: Array[Unit] = []
+		for f in living(SIDE_FOE):
+			if f.pod == pi:
+				members.append(f)
+		if members.is_empty():
+			continue
+		var why := ""
+		if foes_broken:
+			why = "zlom"
+		for f in members:
+			if why != "":
+				break
+			if f.hp < f.maxhp:
+				why = "zasah"
+				break
+			for k in living(SIDE_KNIGHT):
+				if k.pos.distance_to(f.pos) <= wake:
+					why = "blizko"
+					break
+		if why == "" and alarm > 0.0:
+			# hluk boje: bdělý nepřítel bojuje do `alarm` m od místa skupinky
+			var c := _pod_center(pi)
+			for f in living(SIDE_FOE):
+				if f.pod != pi and not f.asleep and t - f.combat_t <= 1.0 and f.pos.distance_to(c) <= alarm:
+					why = "poplach"
+					break
+		if why != "":
+			_wake_pod(pi, why)
+
+
+func _pod_center(pi: int) -> Vector2:
+	var sum := Vector2.ZERO
+	var n := 0
+	for f in living(SIDE_FOE):
+		if f.pod == pi:
+			sum += f.home
+			n += 1
+	return sum / maxi(n, 1)
+
+
+func _wake_pod(pi: int, why: String) -> void:
+	pod_awake[pi] = true
+	for f in living(SIDE_FOE):
+		if f.pod == pi:
+			f.asleep = false
+	var pname := String((pods[pi] as Dictionary).get("name", "Nepřátelé"))
+	var msg := ("%s: poplach! Přidávají se do boje" if why == "poplach" else "%s se dávají do boje") % pname
+	events.append({"type": "wake", "pod": pi, "why": why, "text": msg})
+	_log(msg, true)
+
+
+func _any_asleep() -> bool:
+	for f in living(SIDE_FOE):
+		if f.asleep:
+			return true
+	return false
+
+
+## Spící skupinky, které ještě zbývají (pro rozhraní: „čekají další nepřátelé“).
+func sleeping_pods() -> int:
+	var n := 0
+	for pi in pods.size():
+		if pod_awake.has(pi):
+			continue
+		for f in living(SIDE_FOE):
+			if f.pod == pi:
+				n += 1
+				break
+	return n
+
+
 func _check_decided() -> void:
+	# pojistka proti patu: když hráč po zlomení morálky dlouho nedá Do boje!, hrdinové dobojují sami
+	if foes_broken and not charging and broken_t >= 0.0 and t - broken_t > float(units_data["morale"].get("auto_charge_after", 25.0)):
+		charging = true
+		_log("Hrdinové sami dobíjejí zbytek nepřátel", true)
 	if decided != "":
 		return
-	var r := float(units_data["behaviors"]["_common"]["decided_ratio"])
+	var r := float(units_data["morale"]["decided_ratio"])
 	var pk := power(SIDE_KNIGHT)
 	var pe := power(SIDE_FOE)
 	# Po zlomení morálky rozhoduje hráč povelem Do boje!, pojistka se nespouští.
-	if pe < pk * r and not foes_broken:
+	if pe < pk * r and not foes_broken and not _any_asleep():
 		decided = SIDE_KNIGHT
 	elif pk < pe * r:
 		decided = SIDE_FOE
@@ -1584,6 +2068,8 @@ func step(dt: float) -> void:
 	if over != "":
 		return
 	t += dt
+	_arrivals()
+	_check_pods()
 	for u in units:
 		if not u.alive():
 			continue
@@ -1595,6 +2081,7 @@ func step(dt: float) -> void:
 		u.stun_t = maxf(0.0, u.stun_t - dt)
 		u.hidden_t = maxf(0.0, u.hidden_t - dt)
 		u.shield_t = maxf(0.0, u.shield_t - dt)
+		u.rally_t = maxf(0.0, u.rally_t - dt)
 		if u.side == SIDE_KNIGHT:
 			_knight_think(u, dt)
 		else:
@@ -1633,7 +2120,7 @@ func step(dt: float) -> void:
 	# hořící zem (Ohnivá salva)
 	for z: Dictionary in zones:
 		z["t"] = float(z["t"]) - dt
-		for f in living(SIDE_FOE):
+		for f in living(String(z.get("hurts", SIDE_FOE))):
 			if f.pos.distance_to(z["pos"]) <= float(z["r"]):
 				_hurt(by_id(z["from"]), f, float(z["dps"]) * dt / maxf(_taken_mult(f), 0.01), false)
 	var keep: Array = []
@@ -1645,7 +2132,7 @@ func step(dt: float) -> void:
 	_check_morale()
 	_check_decided()
 
-	if living(SIDE_FOE).is_empty():
+	if living(SIDE_FOE).is_empty() and pending.is_empty():
 		over = "win"
 		events.append({"type": "end"})
 	elif living(SIDE_KNIGHT).is_empty():
@@ -1659,7 +2146,9 @@ func result() -> Dictionary:
 	var dead: Array = []
 	var glory_by := {}
 	var broken: Array = []
+	var hp := {}
 	for k in knights():
+		hp[k.id] = k.hp / k.maxhp if k.alive() else 0.0
 		if not k.alive():
 			dead.append(k.id)
 		glory_by[k.id] = k.glory_earned
@@ -1669,4 +2158,4 @@ func result() -> Dictionary:
 	for u in units:
 		if u.side == SIDE_FOE and u.fled:
 			fled.append(u.key)
-	return {"over": over, "t": t, "dead": dead, "fled": fled, "glory": glory, "glory_by": glory_by, "oaths_broken": broken, "task_ok": task_ok}
+	return {"over": over, "t": t, "dead": dead, "fled": fled, "glory": glory, "glory_by": glory_by, "oaths_broken": broken, "task_ok": task_ok, "hp": hp}

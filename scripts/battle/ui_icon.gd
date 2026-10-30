@@ -98,6 +98,9 @@ func _draw() -> void:
 		"signal":
 			# roh
 			_poly([Vector2(0.1, 0.42), Vector2(0.3, 0.42), Vector2(0.85, 0.15), Vector2(0.85, 0.85), Vector2(0.3, 0.58), Vector2(0.1, 0.58)])
+		"pause":
+			_poly([Vector2(0.22, 0.15), Vector2(0.42, 0.15), Vector2(0.42, 0.85), Vector2(0.22, 0.85)])
+			_poly([Vector2(0.58, 0.15), Vector2(0.78, 0.15), Vector2(0.78, 0.85), Vector2(0.58, 0.85)])
 		"charge":
 			_poly([Vector2(0.1, 0.2), Vector2(0.45, 0.5), Vector2(0.1, 0.8)])
 			_poly([Vector2(0.5, 0.2), Vector2(0.85, 0.5), Vector2(0.5, 0.8)])

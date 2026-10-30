@@ -1,0 +1,28 @@
+{
+  "_info": "Varianta mostu: terén a rozestavení z base. Lapkové u mostu jdou hned proti vám, za řekou řada střelců s ostrostřelcem, vzadu tábor.",
+  "base": "most_pres_reku",
+  "mode": "stret",
+  "foe_hp": 2.5, "foe_dmg": 2.5,
+  "name": "Most pod palbou",
+  "subtitle": "Lapkové se střelci na druhém břehu · 5 pěšáků, 3 střelci",
+  "auto_plan": "attack",
+  "win_title": "Most je volný",
+  "optional_task": {"text": "Matěj nesmí padnout.", "reward": "vzácné znamení", "protect": "lucistnik"},
+  "pods": [
+    {"name": "Lapkové u mostu", "awake": true},
+    {"name": "Řada střelců", "wake": 10.0},
+    {"name": "Tábor lapků", "wake": 8.0}
+  ],
+  "alarm_radius": 6,
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
+  "enemies": [
+    ["lapka", -1.0, 11.0, {"pod": 0}],
+    ["lapka", 1.0, 11.0, {"pod": 0}],
+    ["strelec", -4.0, 13.5, {"pod": 1}],
+    ["ostrostrelec", 0.0, 14.0, {"pod": 1}],
+    ["strelec", 4.0, 13.5, {"pod": 1}],
+    ["lapka", -2.0, 22.0, {"pod": 2}],
+    ["lapka", 0.0, 23.0, {"pod": 2}],
+    ["lapka", 2.0, 22.0, {"pod": 2}]
+  ]
+}

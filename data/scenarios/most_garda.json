@@ -1,0 +1,30 @@
+{
+  "_info": "Elita: předmostí drží garda kopiníků, za ní střelci a tábor se setníkem. Terén z base.",
+  "base": "most_pres_reku",
+  "elite": true,
+  "alarm_radius": 6,
+  "mode": "utok",
+  "foe_hp": 1.7, "foe_dmg": 1.7,
+  "auto_plan": "attack",
+  "name": "Lapkovská garda",
+  "subtitle": "Elita · garda kopiníků drží most, za ní střelci a tábor · 4 pěšáci, 3 kopiníci, 2 střelci",
+  "win_title": "Garda je rozprášena",
+  "optional_task": {"text": "Nikdo nepadne.", "reward": "vzácné znamení", "protect": "all"},
+  "pods": [
+    {"name": "Garda na mostě", "wake": 6.0},
+    {"name": "Střelci na břehu", "wake": 9.0},
+    {"name": "Tábor lapků", "wake": 8.0}
+  ],
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
+  "enemies": [
+    ["kopinik", -1.0, 9.5, {"pod": 0}],
+    ["kopinik", 1.0, 9.5, {"pod": 0}],
+    ["kopinik", 0.0, 10.6, {"pod": 0}],
+    ["strelec", -3.0, 14.0, {"pod": 1}],
+    ["strelec", 3.0, 14.0, {"pod": 1}],
+    ["lapka", -2.0, 22.0, {"pod": 2}],
+    ["lapka", 0.0, 23.0, {"pod": 2}],
+    ["lapka", 2.0, 22.0, {"pod": 2}],
+    ["setnik", 0.0, 21.0, {"pod": 2}]
+  ]
+}

@@ -1,0 +1,254 @@
+{
+  "_info": "Obrana: rod drží Lesní ves proti třem vlnám lapků (po čtyřech, ve třetí pálič). Nepřítel s rozkazem arrive dorazí v daný čas bitvy (s). Chalupy jsou zástupná grafika (houses: x, y, šířka, hloubka, otočení). Jediná bitva s rozestavením.",
+  "mode": "obrana",
+  "foe_hp": 2.0,
+  "foe_dmg": 2.0,
+  "name": "Obrana Lesní vsi",
+  "subtitle": "Lapkové táhnou na ves ve třech vlnách · 8 pěšáků, 2 kopiníci, 2 střelci",
+  "stage_label": "Akt 1",
+  "win_title": "Ves ubráněna",
+  "river": {
+    "y0": -16.0,
+    "y1": -14.0,
+    "crossings": [
+      {
+        "x0": -1.5,
+        "x1": 1.5,
+        "kind": "most",
+        "speed": 1.0
+      }
+    ]
+  },
+  "houses": [
+    [
+      -5.5,
+      -4.0,
+      3.2,
+      2.6,
+      8
+    ],
+    [
+      5.0,
+      -4.5,
+      3.0,
+      2.4,
+      -6
+    ],
+    [
+      -1.0,
+      -8.0,
+      3.4,
+      2.6,
+      0
+    ],
+    [
+      7.5,
+      -9.0,
+      2.8,
+      2.4,
+      20
+    ],
+    [
+      -8.0,
+      -9.5,
+      2.8,
+      2.2,
+      -15
+    ]
+  ],
+  "trees": [
+    [
+      -16,
+      6,
+      4.4
+    ],
+    [
+      -14,
+      12,
+      4.6
+    ],
+    [
+      -18,
+      16,
+      4.2
+    ],
+    [
+      15,
+      8,
+      4.4
+    ],
+    [
+      17,
+      14,
+      4.6
+    ],
+    [
+      13,
+      18,
+      4.2
+    ],
+    [
+      -6,
+      22,
+      4.4
+    ],
+    [
+      6,
+      23,
+      4.6
+    ],
+    [
+      0,
+      25,
+      4.2
+    ]
+  ],
+  "rocks": [
+    [
+      3,
+      6,
+      0.8,
+      30
+    ],
+    [
+      -4,
+      7,
+      0.7,
+      60
+    ]
+  ],
+  "camera": {"target": [0, 4], "bounds": [0, 0, 4, 4]},
+  "deploy_zone": {
+    "x0": -8,
+    "x1": 8,
+    "y0": -6,
+    "y1": 3
+  },
+  "deploy": {
+    "tank": {
+      "pos": [
+        0,
+        2.0
+      ]
+    },
+    "jezdec": {
+      "pos": [
+        4.0,
+        0.5
+      ]
+    },
+    "asasin": {
+      "pos": [
+        -4.0,
+        0.5
+      ]
+    },
+    "knez": {
+      "pos": [
+        0,
+        -1.5
+      ]
+    },
+    "lucistnik": {
+      "pos": [
+        -1.5,
+        -3.0
+      ]
+    }
+  },
+  "optional_task": {
+    "text": "Otec Jan nesmí padnout.",
+    "reward": "vzácné znamení",
+    "protect": "knez"
+  },
+  "enemy_morale": {
+    "break_losses": 0.7,
+    "flee_y": 34.0
+  },
+  "enemies": [
+    [
+      "lapka",
+      -1.5,
+      16.0
+    ],
+    [
+      "lapka",
+      0.0,
+      16.5
+    ],
+    [
+      "lapka",
+      1.5,
+      16.0
+    ],
+    [
+      "strelec",
+      0.0,
+      19.0
+    ],
+    [
+      "lapka",
+      11.0,
+      15.0,
+      {
+        "arrive": 25
+      }
+    ],
+    [
+      "lapka",
+      12.5,
+      15.5,
+      {
+        "arrive": 25
+      }
+    ],
+    [
+      "lapka",
+      11.5,
+      17.0,
+      {
+        "arrive": 25
+      }
+    ],
+    [
+      "kopinik",
+      12.5,
+      17.5,
+      {
+        "arrive": 25
+      }
+    ],
+    [
+      "lapka",
+      -11.0,
+      15.0,
+      {
+        "arrive": 50
+      }
+    ],
+    [
+      "lapka",
+      -12.5,
+      15.5,
+      {
+        "arrive": 50
+      }
+    ],
+    [
+      "palic",
+      -11.5,
+      17.0,
+      {
+        "arrive": 50
+      }
+    ],
+    [
+      "strelec",
+      -12.0,
+      19.5,
+      {
+        "arrive": 50
+      }
+    ]
+  ]
+}

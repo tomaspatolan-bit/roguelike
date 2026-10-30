@@ -1,4 +1,4 @@
 {
   "_info": "Pořadí bitev ve výběru v rozestavení. Klíč = jméno souboru bez .json.",
-  "order": ["most_pres_reku", "brod_a_les", "zaverecna_bitva"]
+  "order": ["most_pres_reku", "brod_a_les", "most_pod_palbou", "brod_za_svitani", "most_garda", "brod_elita", "lesni_ves", "zaverecna_bitva"]
 }

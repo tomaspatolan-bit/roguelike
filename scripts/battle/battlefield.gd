@@ -52,6 +52,14 @@ static func cylinder(parent: Node3D, r_top: float, r_bottom: float, h: float, po
 
 
 static func build(root: Node3D, scenario: Dictionary) -> void:
+	# --- fyzikální zem (padající těla, ragdoll) ---
+	var floor_body := StaticBody3D.new()
+	floor_body.collision_layer = 1
+	floor_body.collision_mask = 0
+	var gs := CollisionShape3D.new()
+	gs.shape = WorldBoundaryShape3D.new()
+	floor_body.add_child(gs)
+	root.add_child(floor_body)
 	# --- prostředí a světlo ---
 	var env := Environment.new()
 	var sky_mat := ProceduralSkyMaterial.new()
@@ -165,6 +173,21 @@ static func build(root: Node3D, scenario: Dictionary) -> void:
 	for r: Array in rocks:
 		var sz: float = r[2]
 		box(root, Vector3(sz * 1.4, sz, sz * 1.2), to_world(Vector2(r[0], r[1]), sz * 0.35), stone, Vector3(0.2, deg_to_rad(r[3]), 0.1))
+
+	# --- chalupy vsi (zástupné: srub a sedlová střecha) [x, y, šířka, hloubka, otočení°] ---
+	var log_wall := mat(Color("#7a5a3c"))
+	var thatch := mat(Color("#b39352"))
+	for hz: Array in scenario.get("houses", []):
+		var w: float = hz[2]
+		var d: float = hz[3]
+		var rot := Vector3(0.0, deg_to_rad(float(hz[4])), 0.0)
+		var c := Vector2(hz[0], hz[1])
+		box(root, Vector3(w, 2.0, d), to_world(c, 1.0), log_wall, rot)
+		# střecha: dva šikmé hranoly
+		for sgn: float in [-1.0, 1.0]:
+			var roof := box(root, Vector3(w + 0.4, 0.18, d * 0.62), to_world(c, 2.55), thatch, rot)
+			roof.rotate_object_local(Vector3.RIGHT, sgn * deg_to_rad(38.0))
+			roof.translate_object_local(Vector3(0.0, 0.0, sgn * d * 0.24))
 
 
 static func build_banner() -> Node3D:

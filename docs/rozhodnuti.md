@@ -2,6 +2,79 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 30.10.2026 – Výcvik ve hře
+- **Výcvik je interaktivní, ne demo:** v první bitvě panel krok po kroku řekne, co udělat (výběr, rozkaz pravým, pauza, útok na skupinu, schopnost, H, velitelé), a krok skončí, až to hráč udělá. Nic neblokuje, jde přeskočit, po dokončení se už neukáže (na úvodní obrazovce „Výcvik znovu“). Kroky jsou v datech (`vycvik.json`). Důvod: pasivní demo hráči přeskakují a naučí se z něj málo; učení akcí je levnější a funguje v každé bitvě. Tom: onboarding bude součástí hry.
+- **Výcvik zastaví bitvu, když se něco děje** (nepřátelé jdou na oddíl, začne boj, velitel chystá schopnost), posune kameru na to místo a poradí, jak zareagovat; karta výcviku je přišpendlená šipkou k tomu, čeho se krok týká. Tom: hráč má vždy vidět, co se děje, a podle výcviku zareagovat.
+
+## 30.10.2026 – Karta hrdiny bez rozkazů; směr odměn
+- **Z karty hrdiny pryč text rozkazu, Poslat a ✕**; tlačítko schopnosti ukazuje klávesu. Rozkaz zrušíš klávesou H. Tom: ovládání má v ruce, karta má být přehledná.
+- **Směr pasivek a přísah (odměn): interakce mezi hrdiny, která dává smysl, odmění a zároveň je riskantní.** Vzor: Slib odříkání (schopnost má o 1 použití víc, ale kněz hrdinu nesmí léčit). Nové odměny navrhujeme hlavně takto (vazba na jiného hrdinu, síla za omezení, pilíře Velíš rodu a Přísaha má cenu).
+
+## 30.10.2026 – Pravé tlačítko provádí akci
+- **Pravé tlačítko vždy provede akci:** rozkaz vybraným hrdinům, cílenou schopnost i rozkaz z tlačítka Poslat. Levé vybírá (a cílení schopnosti potvrzuje taky, pro zvyk z jiných her). Tom: rozkaz pravým a schopnost levým bylo obrácené ovládání, „ux fail“.
+
+## 30.10.2026 – Kamera s pevným úhlem a tvorba map
+- **Kamera má pevný úhel podle mapy, bez otáčení.** Úhel, výchozí výřez a hranice posunu jsou v datech scénáře (`camera`). Hráč výřez jen posouvá (WASD, šipky, myš u okraje obrazovky) v hranicích mapy a trochu přibližuje kolečkem. Malé mapy mají výřez úplně pevný (Obrana Lesní vsi). Pravé tlačítko je jen na rozkazy. Tom: s pevnou kamerou víme, kde se hrdinové budou prolínat a co bude vidět; mapy, grafika i testy se dělají pro jeden pohled. Úplně pevný výřez všude ne: bitvy ve fázích jsou dlouhé a hrdinové by byli moc malí.
+- **Mapy se skládají z modulárních assetů.** Claude dělá kit assetů (from scratch v Blenderu, ve stylu rytíře), kostru mapy (řeka, přechody, lesy, skupinky nepřátel, kamera v datech; z ní vygenerovaná scéna) a nástroj, který zapíše blokující assety (skupina Překážky) do dat scénáře. Tom rozmísťuje assety a dělá vzhled mapy v editoru Godotu. Dekorace jednotky neblokují. Hotové balíky (Kenney, Quaternius, Synty) jsou záloha, kdyby vlastní kit nestačil (napady.md).
+
+## 30.10.2026 – Schopnosti 3× a ovládání podle zvyklostí RTS
+- **Každá schopnost má 3 použití za bitvu** (Požehnání a Nájezd se nabíjejí 20 s, Výzva 15 s, Salva 12 s, Úder 15 s). Tom: bitva ve fázích byla moc těžká, nepřešel ani první bitvu. Automatický velitel vyhrával, protože schopnosti používá dokonale, takže balanc „se schopnostmi“ je pro člověka horní mez.
+- **Ovládání podle zvyklostí RTS:** klik na hrdinu vybere jen jeho, v bitvě se hrdinové netahají, Ctrl+A vybere všechny, druhý klik na kartu natočí kameru, pod kurzorem náhled, co udělá pravé tlačítko, rozkaz ke spojenci jen při kliku přímo na něj. Tom: nešlo odznačit celý oddíl a často misclickoval. Ovládání jen z karet zatím ne: výběr na bojišti je zvyklost žánru; rozhodne se po dalším hraní.
+- Prolínání na mostě je spíš věc mapy (úzký most), ne pohybu (Tom).
+
+## 29.10.2026 – Bitva ve fázích, méně nepřátel, schopnosti bez slávy
+- **Polovina nepřátel a v každé bitvě velitel:** běžná bitva 7–8 nepřátel, elita 9, boss 9, obrana 12 ve 3 vlnách po 4. Tom: moc nepřátel dělalo shluky na jednom místě a jednotky se do sebe prolínaly; méně, ale významnějších postav.
+- **Bitva ve fázích:** nepřátelé stojí ve skupinkách (u mostu stráž, na břehu střelci, dál tábor) a skupinka se probudí, až se hrdinové přiblíží, až ji někdo zasáhne, nebo když se bojuje kousek od ní. Rozestavení před bitvou zůstává jen v obraně; ostatní bitvy začínají v pauze. Tom: „kdyby to bylo ve fázích, kdy přejdu most, najdu 2 strážce, přijdu do kempu, bude tam zbytek“.
+- **Nejvýš 3 pěší útočí na jednoho hrdinu**, ostatní čekají stranou; těla se odtlačují. Proti shlukům a prolínání.
+- **Schopnosti mají pevný počet použití za bitvu a nabíjení, slávou se nekupují:** Výzva 3× (15 s), Salva 3× (12 s), Úder ze stínu 2× (15 s), Nájezd 1× (omráčí, nadělá paseku), Požehnání 1×. Tom: hrdinové mají v bitvě ve fázích převahu, takže omezené schopnosti dávají rozhodnutím váhu a nejde se po každé skupince znovu doléčit.
+- **Kněz léčí sám jen v boji** (bdělý nepřítel do 10 m), ne mezi skupinkami.
+- **Sláva zůstává pro kroniku, události a porušení přísahy**, v bitvě už není měnou. Přísaha Slib chudoby (dřív za slávu) je teď Slib odříkání: +1 použití schopnosti, ale kněz hrdinu neléčí (pilíř Přísaha má cenu).
+- **Velitelé** (Pálič Vok, Ostrostřelec Jíra, Setník Bořivoj, Hejtman Kuno) mají schopnost, kterou ohlásí textem a červeným kruhem; hráč má čas uhnout, nebo ji přerušit omráčením (Nájezd). Dává smysl reagovat v reálném čase.
+- Obtížnost scénáře se ladí násobky `foe_hp` a `foe_dmg` (méně nepřátel, ale silnějších).
+
+## 29.10.2026 – Bitva v reálném čase s pauzou
+- **Rozkazy jdou dávat kdykoli**, i během bitvy: výběr hrdinů (klik, Shift) a pravé tlačítko na místo, nepřítele nebo spojence. Tom: hráč musí reagovat na to, co dělá nepřítel; má jen jeden pokus a prohra kvůli tomu, že nepřítel udělal něco jiného, než čekal, by ho naštvala.
+- **Pauza na mezerníku** kdykoli (čas stojí, rozkazy a schopnosti jdou dál). Bez pauzy by rozhodovala rychlost klikání, ne úsudek. Zpomalení času nezavádíme.
+- **Signál jako omezený zdroj zrušen** (nahrazuje rozhodnutí o signálu z dnešního dne níž).
+- Další krok: nepřítel musí být čitelný a zajímavý (viditelné úmysly, vůdce, který mění plán), aby reagování mělo smysl; balanc pro hráče s plnou kontrolou podle playtestu.
+
+## 29.10.2026 – Rozkazy místo tras a výchozího chování
+- **Hrdina jedná podle rozkazu hráče:** na místo (dojde a drží ho), na skupinu nepřátel (jde po celé skupině, i když se hýbe) nebo ke spojenci (zůstane s ním). Bez rozkazu a po splnění rozkazu drží místo a brání se tomu, kdo přijde. Před bitvou hra varuje, kdo rozkaz nemá. Tom: „řídil bych se hlavně tím, kam uživatel vyšle svoje hrdiny; předejdeme tím bugům, kdy jednotky nebudou nic dělat“.
+- **Zrušeno:** trasy, výchozí chování tříd (Drží frontu, Léčí frontu…), postup oddílu v útoku a obranný obvod. Typ bitvy mění jen nepřítele (útok: drží pozice, střet: jde proti vám, obrana: vlny).
+- **Signál zůstává a dostal úkol:** zastaví čas a jen při něm jde rozkazy během bitvy měnit. V tutoriálu se to vysvětlí. Tím padá otázka z 29.10., jestli signál vymazat.
+- Zůstává: schopnosti, Do boje!, léčení kněze, přísahy (Nikdy neustoupí: rozkaz k ústupu při signálu přísahu poruší; Přísaha pomsty: dokud žije viník, jde po něm a rozkaz neposlechne).
+
+## 29.10.2026 – Oprava obrany
+- V obraně hrdinové pomáhají každému z oddílu, s kým nepřítel bojuje (i kousek za hranicí obrany), a nepřítele, který se drží stranou, jdou po chvíli dorazit. Mezi vlnami stojí na místech a lišta ukazuje odpočet další vlny. Tom: hrdinové se v obraně nehýbali a v jednu chvíli se zastavili úplně.
+
+## 29.10.2026 – Ragdoll a postoj rytíře
+- **Padlí padají jako ragdoll** (fyzika): hrdinové s fyzikálními kostmi, nepřátelé jako tuhé tělo. Těla zůstávají ležet na bojišti. Tom chtěl, aby smrt vypadala opravdově (pilíř Smrt má váhu).
+- **Rytíř drží paže u těla** ve všech animacích; stál v A-póze kostry jako „Y“.
+
+## 29.10.2026 – Obrana a animace boje
+- **Obrana:** nepřítel přichází ve vlnách, oddíl brání společné místo (do 7 m od něj), nikdo nevybíhá sám. Morálka nepřítele se nezlomí, dokud přicházejí vlny. První obranná mapa: Obrana Lesní vsi (3 vlny).
+- **Animace boje hrdinů** podle třídy: tank a jezdec seknutí mečem, kněz palcátem, asasín bodnutí dýkou, lučištník výstřel z luku; schopnost (Výzva, Požehnání = zvednuté paže), zásah, smrt (hrdina padne a leží). Zbraně v ruce jsou zatím zástupné.
+- Po bitvě se hrdina doléčí o 30 % (bylo 20 %) a tábory jsou na mapě častější; auto-hraní běhu s Lesní vsí bez toho vyhrávalo jen 1 z 20.
+
+## 29.10.2026 – Typ bitvy řídí chování oddílu
+- **Výchozí chování se řídí typem bitvy:** útok (nepřítel drží pozice, oddíl postupuje k cíli a k nepříteli), střet (oba jdou proti sobě, oddíl čeká), obrana (držíte místo; zatím jako střet, první obranná mapa přijde). Důvod: chování „reaguj na toho, kdo přijde“ proti nepříteli na pozici vedlo k patu.
+- **Pak instrukce pro hrdiny** (úkoly), společné pro všechny typy bitev, případně zvlášť pro typ. Až po typech bitev.
+- **Požehnání je mířené** (kruh 4 m do 10 m od kněze), léčení kněze dosáhne na 9 m.
+- **Signál** zůstává do playtestu s hráčem mimo nás; když ho nepoužije, vymažeme ho (Tom ho nepoužil ani jednou).
+- Pasivky a přísahy dostanou synergii (podle třídy, mezi hrdiny, s úkolem); kněz „Nikdy neustoupí“ nepotřebuje.
+
+## 29.10.2026 – Mapa aktu (2.1)
+- **Zranění se nesou mezi bitvami** (po bitvě +20 % zdraví samo, tábor vyléčí vše). Mění pravidlo zkušebního běhu, že se zranění vyléčí; jinak by tábor neměl smysl.
+- **Kovář odložen**, dokud nebude výbava.
+- **Běh končí, až padnou všichni** v jedné bitvě (ústup řešíme v 2.6).
+- Elita: odměna 2 ze 4 nabídek. Události: rozhodnutí s cenou (sláva, zranění, přísaha, uprchlíci, kteří se vrátí u bosse). Tábor jen odpočinek.
+- Hrdinové po zlomení morálky dobojují sami, když hráč 25 s nedá Do boje! (pojistka proti patu).
+
+## 29.10.2026 – Struktura hry
+- **Běh → 3 akty → 7 pater → uzly.** Akt = jedna mapa s bossem nahoře; na každém patře hráč navštíví jeden uzel (bitva, elita, událost, tábor, boss). Po bossovi následuje další akt, po bossovi 3. aktu je běh vyhraný.
+- **Zánik oddílu ukončí celý běh**, další začíná od aktu 1 (žádné opakování aktu). Padlý hrdina běh neukončí (nástupce). Mezi běhy jen meta progrese do šířky (síň předků, odemčené rody), ne do síly.
+- Lore je kulisa, ne jednotka postupu. Diagram: `docs/struktura-hry.md`.
+
 ## 29.10.2026 – Brána 1: pokračujeme
 - **Model hry potvrzen, stavíme fázi 2.** Tom: o každé odměně vážně uvažoval, běh působí skvěle.
 - Playtest s hráčem mimo nás (krok 1.8) zůstává otevřený a doplní se během fáze 2; jeho výsledek může model ještě korigovat.

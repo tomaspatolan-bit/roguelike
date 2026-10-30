@@ -17,7 +17,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
 - [ ] 1.2 Playtest (Tom): 3–5 bitev, zápis do `playtesty.md`
   - [x] První dojmy (2026-10-28): přísaha vs. postoje, kamera, přesouvání rytířů
   - [ ] Baví to? Co je nečitelné? Kdy se nudím?
-  - [ ] Signály: 0, 1, nebo 2?
+  - [x] Signály: nahrazeny pauzou kdykoli (29.10.2026)
   - [ ] Je jasné, proč jsem prohrál?
 - [ ] 1.3 Úpravy podle playtestu
   - [x] Přísaha určuje povolené postoje („Stát pevně“, Chránit prapor zakázán)
@@ -56,6 +56,7 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
   - [x] Kronika rodu na konci běhu (kdo padl, kdo co přísahal, kdo utekl a vrátil se)
   - [x] Bez výběru rodu, meta progrese, ukládání a finální grafiky
 - [ ] 1.8 Playtest běhu: Tom + aspoň jeden hráč mimo nás
+  - Otázka k testu: **zvládá hráč bitvu v reálném čase s pauzou?** Používá pauzu, nebo kliká v běhu? Stíhá reagovat na nepřítele?
 - [ ] (podle 1.8) Podmíněné instrukce a úmysly nepřátel, jen když postoje na míru nestačí
 **Hotovo, když:** Tom řekne, že bitvy baví hrát opakovaně, a aspoň jeden člověk mimo nás to potvrdí.
 **Brána 1: prošla 29.10.2026** (Tom, odměny vážně zvažoval; hráč mimo nás zatím chybí, doplní se).
@@ -63,10 +64,17 @@ Cíl: jedna bitva, kterou chceme hrát opakovaně.
 
 ## Fáze 2 – Jeden run
 Cíl: celý krátký run od výběru rodu po bosse.
-- [ ] 2.1 Mapa aktu: uzly bitva, elita, událost, tábor, kovář, boss
+- [x] 2.1 Mapa aktu: uzly bitva, elita, událost, tábor, boss (kovář odložen, až bude výbava); zranění se nesou
+- [x] 2.2a Typ bitvy (útok, střet, obrana) řídí výchozí chování oddílu; mířené Požehnání
+- [x] 2.2b První obranná mapa (vlny): Obrana Lesní vsi
+- [x] 2.2c Rozkazy pro hrdiny (29.10.2026): na místo, na skupinu nepřátel, ke spojenci, bez rozkazu drží místo; rozkazy kdykoli (od 29.10.2026 reálný čas s pauzou, výběr hrdinů a pravé tlačítko); pojmenované skupiny nepřátel; trasy a výchozí chování zrušeny. Hotovo, když: Tom odehraje bitvu každého typu jen s rozkazy a nikdo nestojí bez práce.
+- [x] 2.2d Bitva ve fázích (29.10.2026): skupinky nepřátel se probouzejí postupně, polovina nepřátel, velitel v každé bitvě s ohlášenou schopností, nejvýš 3 pěší na hrdinu, schopnosti s pevným počtem a nabíjením, kněz léčí jen v boji. Hotovo, když: Tom odehraje bitvu a nevidí shluky ani prolínání; balanc všech scénářů prošel.
+- [x] 2.2e Kamera s pevným úhlem podle mapy (30.10.2026): posun v hranicích mapy, malé přiblížení, bez otáčení; pravé tlačítko jen rozkazy. Hotovo, když: Tom odehraje bitvu na každé mapě a nic důležitého není mimo výřez nebo pod kartami.
+- [x] 2.2g Výcvik ve hře (30.10.2026): kroky v první bitvě, splní se akcí hráče, přeskočit, „Výcvik znovu“. Hotovo, když: tester bez vysvětlování projde první bitvu.
+- [ ] 2.2f Mapy z modulárních assetů: kit (Claude, Blender), kostra mapy z dat a vygenerovaná scéna (Claude), nástroj na překážky do dat, vzhled map v editoru (Tom). Hotovo, když: Tom sám oblékne jednu mapu a testy na ní projdou.
 - [ ] 2.2 Karta stage a volitelné úkoly z dat
 - [ ] 2.3 Odměny po stagi: pasivky, přísahy, nové schopnosti (2. a 3. slot u hrdiny)
-- [ ] 2.4 Více pasivek, přísah a schopností (obsah)
+- [ ] 2.4 Více pasivek, přísah a schopností (obsah); směr od 30.10.2026: vazby mezi hrdiny, odměna za riziko (vzor Slib odříkání)
 - [ ] 2.5 Další rody jako sestavy: Medvěd (berserkr), Sokol (sokolník); meta odemykání rodů
 - [ ] 2.6 Ústup s přeživšími, rozhodnutí, jestli prohraná bitva končí běh; najímání vojáků k hrdinům
 - [ ] 2.9 Průzkum: odhalování podmínek nepřátel jako zdroj v runu
@@ -78,7 +86,7 @@ Cíl: celý krátký run od výběru rodu po bosse.
 ## Fáze 3 – Vizuální identita a zvuk
 - [ ] 3.1 Finální styl (Tom schvaluje): rytíř, nepřátelé, prostředí
 - [ ] 3.2 Kůň pro jezdce, sada nepřátel, kit bojiště (les, vesnice, most, pahorek)
-- [ ] 3.3 Animace boje
+- [ ] 3.3 Animace boje (zástupné hotové 29.10.2026: útok podle třídy, schopnost, zásah, smrt; finální podle stylu)
 - [ ] 3.4 Styl UI
 - [ ] 3.5 Zvuky a hudba (koupit nebo zadat, Tom)
 **Hotovo, když:** snímek obrazovky vypadá jako hra, kterou by si člověk koupil.

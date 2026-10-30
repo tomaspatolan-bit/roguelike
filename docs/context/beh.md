@@ -1,34 +1,42 @@
 # Kontext: běh (run)
 
-Soubory: `scripts/run/run_state.gd` (logika), `scripts/run/run_main.gd` + `scenes/run/run.tscn` (obrazovky, hlavní scéna hry), `data/run_zkusebni.json`
-Hlídá: `tests/test_run.gd` (pravidla a celé běhy bez okna), `tests/screenshot_run.gd` (běh přes obrazovky)
+Soubory: `scripts/run/run_state.gd` (logika běhu), `scripts/run/act_map.gd` (generátor mapy aktu), `scripts/run/run_main.gd` + `scenes/run/run.tscn` (obrazovky, hlavní scéna hry), `scripts/run/map_view.gd` (kreslení mapy), `data/akt_1.json`, `data/udalosti.json`
+Hlídá: `tests/test_run.gd` (mapa, pravidla, události, tábor, celé běhy bez okna), `tests/screenshot_run.gd` (běh přes obrazovky)
 
 ## Účel
-Spojit bitvy do příběhu rodu: co se stane v jedné bitvě, nese se do další. Zkušební běh (krok 1.7) = 3 bitvy: Most přes řeku → Brod a les → Tábor na Vraní skále (vůdce Hejtman Kuno).
+Spojit bitvy do příběhu rodu na mapě aktu. Struktura hry: `docs/struktura-hry.md` (běh → 3 akty → 7 pater → uzly). Zatím je jen akt 1 (Hraběcí les), běh končí jeho bossem (Hejtman Kuno).
 
 ## Invarianty
-1. **Logika běhu je v `run_state.gd`, bez grafiky.** Obrazovky (`run_main.gd`) jen čtou stav a volají jeho metody. Běh jde odehrát v testu bez okna.
-2. **Průběh:** `battle_setup(data)` → bitva → `record_battle(sim.result())` → dědictví přísah (`legacy_*`) → odměna (`offers` / `pick_offer`) → další bitva. Po poslední bitvě nebo porážce `over` = `win` / `lose` a kronika.
-3. **Padlí zůstanou padlí:** padlý jde do `fallen`, na jeho místo nastoupí nástupce stejné třídy s novým jménem (`successors` v datech) a **bez pasivek**. Po závěrečné bitvě už nikdo nenastupuje.
-4. **Dědictví přísahy:** nedodržená přísaha padlého čeká v `pending_legacy`; převzít ji může živý hrdina bez přísahy (i nástupce), nebo zanikne. Hrdina má nejvýš 1 přísahu.
-5. **Porušená přísaha** po bitvě zmizí (zápis do kroniky).
-6. **Zranění se vyléčí:** každá bitva začíná s plným zdravím (simulace se staví znovu). **Sláva se přenáší** (`setup.glory`, nejvýš `glory.carry_max` = 50).
-7. **Odměna po vítězné bitvě:** 3 nabídky {hrdina, pasivka}, vybírá se jedna; pasivka sedí na třídu (nebo `any`), hrdina ji ještě nemá, přísahu nedostane hrdina, který už přísahu má. Nabídky se snaží o různé hrdiny a různé pasivky.
-8. **Uprchlíci:** nepřátelé, kteří utečou v bitvě bez `returnees`, se vrátí v první bitvě, která `returnees` má (závěrečná), v řadách kolem `returnees.pos`.
-9. **Prohra = padli všichni** (simulace jinak než vítězstvím neskončí) → běh končí.
-10. **Kronika** (`chronicle`: {stage, text}) zapisuje: vítězství/porážky, padlé a kolik slávy přinesli, nástupce, útěky a návraty, přísahy (složené, převzaté, porušené, zaniklé), odměny.
-11. **Bitva v běhu** (`battle.gd` s `run` ≠ null): bez výběru bitvy, pasivky jen ke čtení, počet signálů daný, výsledek s tlačítkem „Pokračovat v běhu“ → signál `battle_done(result)`.
+1. **Logika běhu je v `run_state.gd` a `act_map.gd`, bez grafiky.** Obrazovky jen čtou stav a volají metody. Běh jde odehrát v testu bez okna.
+2. **Mapa aktu** (`ActMap.generate(act, rng)`, deterministická se semínkem): `floors` pater po `width_min`–`width_max` uzlech, nahoře boss. Každý uzel má cestu dál, každý uzel nad prvním patrem cestu dovnitř, cesty se nekříží, poslední patro vede k bossovi. První patro samé `first_floor` (bitvy), poslední `last_floor` (tábor), na předposledním není tábor, elity až od `elite_from`, dvě elity ani dva tábory za sebou na jedné cestě nejsou. Bitvy a elity berou scénáře z promíchaných seznamů, události z `events`.
+3. **Postup:** `available()` (na začátku celé 1. patro, pak cesty z uzlu) → `choose(id)`. Dokud uzel není vyřízený (`node_finished`: bitva s dědictvím a odměnou, rozhodnutá událost), dál se nejde.
+4. **Padlí zůstanou padlí:** padlý jde do `fallen`, na jeho místo nastoupí nástupce stejné třídy (`successors` v rodu, pak římské číslice) **bez pasivek a zdravý**. Po bossovi už nikdo nenastupuje.
+5. **Dědictví přísahy:** nedodržená přísaha padlého čeká v `pending_legacy`; převzít ji může hrdina bez přísahy (i nástupce), nebo zanikne. Hrdina má nejvýš 1 přísahu. Porušená přísaha po bitvě zmizí.
+6. **Zranění se nesou** (`heroes[cls].hp`, podíl 0–1, do bitvy přes `setup.hp`): po bitvě se hrdina doléčí o `regen` (0,2), tábor o `camp_heal` (vše), jednou za tábor. Zranění z události nikoho nezabije (minimum 10 %). **Sláva se přenáší**, nejvýš `glory.carry_max` (50).
+7. **Odměna po vítězné bitvě:** `offers` nabídek {hrdina, pasivka} a 1 výběr; elita `elite_offers` (4) a `elite_picks` (2). Pasivka sedí na třídu (nebo `any`), hrdina ji nemá, druhou přísahu nedostane; po první volbě u elity se neplatné nabídky vyřadí.
+8. **Události** (`udalosti.json`): volby s efekty `glory`, `heal`, `wound`, `gift` (náhodná pasivka/přísaha náhodnému hrdinovi, kterému sedí), `fled` (nepřátelé, kteří se vrátí u bosse). Volba bez dost slávy nebo bez možného příjemce nejde (`event_option_problem`). Text volby jde do kroniky.
+9. **Uprchlíci:** nepřátelé, kteří utečou v bitvě bez `returnees` (nebo z události), se vrátí v bitvě, která `returnees` má (boss), nejvýš `returnees.max` (u Hejtmana 3), ostatní se rozutekli nadobro.
+10. **Prohra = padli všichni** v jedné bitvě → běh končí (`over = "lose"`). Po bossovi `over = "win"`.
+11. **Kronika** (`chronicle`: {stage, text}): vítězství a porážky, padlí a jejich sláva, nástupci, útěky a návraty, přísahy (složené, převzaté, porušené, zaniklé), odměny, události, tábor.
+13. **Úvodní obrazovka:** Nový běh, Volná bitva a po dokončeném výcviku „Výcvik znovu“ (`BattleScript.set_tutorial_done(false)`).
+12. **Bitva v běhu** (`battle.gd` s `run` ≠ null): scénář z uzlu, bez výběru bitvy, pasivky jen ke čtení, výsledek s „Pokračovat v běhu“ → `battle_done(result)`.
 
 ## Rozhraní
-- `Run.new(seed = -1, run_key = "run_zkusebni")`
-- čtení: `stage`, `stage_count()`, `stage_key()`, `stage_name(i)`, `heroes` (třída → {name, passives, glory, joined}), `fallen`, `fled`, `returned`, `glory`, `chronicle`, `over`, `hero_name`, `class_name_of`, `passive_name`, `passive_desc`, `is_oath`, `oath_of`
+- `Run.new(seed = -1, act_key = "akt_1")`
+- mapa: `map` ({floors, boss, nodes}), `node(id)`, `node_type(id)`, `node_label(id)`, `node_id`, `path`, `available()`, `choose(id)`, `node_finished()`, `current_floor()`, `floor_count()`, `scenario_info(key)`, `is_battle_node()`
+- rod: `heroes` (třída → {name, passives, glory, hp, joined}), `fallen`, `fled`, `returned`, `glory`, `chronicle`, `over`, `hero_name`, `class_name_of`, `passive_name`, `passive_desc`, `is_oath`, `oath_of`, `hp_of`
 - bitva: `load_stage_data()`, `battle_setup(data)`, `returnee_rows(scenario)`, `record_battle(result)`
-- tábor: `has_legacy()`, `legacy_current()`, `legacy_candidates()`, `resolve_legacy(cls | "")`, `offers()`, `pick_offer(i)`
+- po bitvě: `has_legacy()`, `legacy_current()`, `legacy_candidates()`, `resolve_legacy(cls | "")`, `offers()`, `offer_valid(o)`, `picks_left()`, `pick_offer(i)`
+- událost: `event()`, `event_option_problem(i)`, `event_choose(i)`, `event_done`; tábor: `camp_rest()`, `camp_done`
 
 ## Úskalí
-- `record_battle` čte název scénáře z `stage` před jeho zvýšením; po zvýšení ukazuje `stage_name()` na další bitvu.
-- Nabídky se počítají líně a po `resolve_legacy` znovu (dědictví může změnit, kdo smí dostat přísahu); proto obrazovka nejdřív vyřeší dědictví, pak ukáže odměnu.
-- Vzhled obrazovek je zástupný (půjčuje si téma a tlačítka z `battle_ui.gd`); finální UI navrhne Tom.
+- Nabídky se počítají líně a po `resolve_legacy` znovu (dědictví může změnit, kdo smí dostat přísahu); obrazovka nejdřív vyřeší dědictví, pak odměnu.
+- Varianty scénářů (`base`) se skládají přes `Sim.read_scenario`; pro název a popis uzlu používej `scenario_info`, ne surový JSON.
+- Vzhled obrazovek a mapy je zástupný (půjčuje si téma z `battle_ui.gd`); finální UI navrhne Tom.
 
 ## Historie významných změn
+- 29.10.2026: u Hejtmana se vrátí nejvýš 3 uprchlíci (auto-hraní vyhrávalo jen 3–4 běhy z 20, skoro vždy se prohrálo u bosse).
+- 29.10.2026: Lesní ves (obrana) mezi bitvami aktu, po bitvě se hrdina doléčí o 30 %, tábory častěji (váha 2).
+- 29.10.2026: na mapě (najetí na uzel, tooltip) je vidět typ bitvy.
+- 29.10.2026: mapa aktu 1 (2.1): 7 pater, bitvy, elity (2 ze 4 odměn), události (4), tábor, boss; zranění se nesou; nástupci v datech rodu; zkušební běh nahrazen. Auto-hraní s náhodnou cestou: ~50–65 % vítězných běhů, nejčastěji se prohrává u bosse.
 - 28.10.2026: založeno se zkušebním během (krok 1.7). Auto-hraní se schopnostmi a náhodnými odměnami: 17/20 vítězných běhů.

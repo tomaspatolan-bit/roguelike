@@ -1,8 +1,11 @@
 {
-  "_info": "Závěrečná bitva zkušebního běhu. Za potokem tábor lapků, vzadu jejich vůdce (Hejtman Kuno) se stráží. Když vůdce padne, morálka nepřátel se zlomí. returnees = kde se objeví uprchlíci z předchozích bitev běhu (pos = střed, spread = rozestup v metrech).",
+  "_info": "Boss aktu 1. Za potokem předsunutá hlídka, napravo střelci na skalách, vzadu tábor Hejtmana Kuna se stráží. Když Hejtman padne, morálka nepřátel se zlomí. returnees = kde se objeví uprchlíci z předchozích bitev běhu (pos = střed, spread = rozestup, max = kolik se jich nejvýš vrátí, pod = do které skupinky se přidají).",
+  "alarm_radius": 6,
+  "mode": "utok",
+  "foe_hp": 1.8, "foe_dmg": 1.8,
   "name": "Tábor na Vraní skále",
-  "subtitle": "Hejtman Kuno a jeho tlupa · 7 pěšáků, 4 kopiníci, 3 střelci, vůdce",
-  "stage_label": "Zkušební běh · Závěrečná bitva",
+  "subtitle": "Hejtman Kuno a jeho tlupa · 4 pěšáci, 2 kopiníci, 2 střelci, vůdce",
+  "stage_label": "Akt 1 · Boss",
   "win_title": "Hejtman Kuno je poražen",
   "river": {"y0": 5.0, "y1": 7.5, "crossings": [
     {"x0": -1.5, "x1": 1.5, "kind": "most", "speed": 1.0},
@@ -13,6 +16,7 @@
   ],
   "trees": [[-14, -3, 4.5], [14, -2, 4.2], [-16, 5, 4.0], [16, 6, 4.4], [-13, 21, 4.4], [13, 22, 4.2]],
   "rocks": [[11, 16, 1.6, 15], [12.5, 17.5, 1.0, 40], [-3, 21, 1.2, 70]],
+  "camera": {"target": [2, 1], "bounds": [-4, 8, 0, 12]},
   "deploy_zone": {"x0": -9, "x1": 9, "y0": -7, "y1": 1.5},
   "deploy": {
     "tank": {"pos": [0, 0.5]},
@@ -22,14 +26,22 @@
     "asasin": {"pos": [2.0, -0.5]}
   },
   "optional_task": {"text": "Hejtman Kuno padne.", "reward": "vzácné znamení", "kill": "vudce"},
-  "returnees": {"pos": [0.0, 19.0], "spread": 1.2},
-  "enemy_morale": {"break_losses": 0.7, "flee_y": 26.0},
+  "returnees": {"pos": [0.0, 24.0], "spread": 1.2, "max": 2, "pod": 2},
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
+  "pods": [
+    {"name": "Předsunutá hlídka", "wake": 7.0},
+    {"name": "Střelci na skalách", "wake": 9.0},
+    {"name": "Hejtmanův tábor", "wake": 8.0}
+  ],
   "enemies": [
-    ["lapka", -3.0, 10.0], ["lapka", -1.5, 9.6], ["lapka", 0.0, 10.2], ["lapka", 1.5, 9.6], ["lapka", 3.0, 10.0],
-    ["lapka", -2.0, 11.6], ["lapka", 2.0, 11.6],
-    ["kopinik", 6.5, 10.0, {"hold": true, "engage": 4.0, "hold_time": 25}], ["kopinik", 8.5, 10.0, {"hold": true, "engage": 4.0, "hold_time": 25}],
-    ["strelec", -3.0, 14.0], ["strelec", 0.0, 14.5], ["strelec", 3.0, 14.0],
-    ["kopinik", -1.2, 16.5, {"hold": true, "engage": 5.0, "hold_time": 40}], ["kopinik", 1.2, 16.5, {"hold": true, "engage": 5.0, "hold_time": 40}],
-    ["vudce", 0.0, 17.5, {"hold": true, "engage": 6.0, "hold_time": 40}]
+    ["lapka", -1.0, 9.5, {"pod": 0}],
+    ["lapka", 1.0, 9.5, {"pod": 0}],
+    ["strelec", 10.5, 15.0, {"pod": 1}],
+    ["strelec", 12.5, 16.0, {"pod": 1}],
+    ["lapka", 11.5, 14.0, {"pod": 1}],
+    ["vudce", 0.0, 22.0, {"pod": 2}],
+    ["kopinik", -1.6, 21.0, {"pod": 2}],
+    ["kopinik", 1.6, 21.0, {"pod": 2}],
+    ["lapka", 0.0, 20.0, {"pod": 2}]
   ]
 }

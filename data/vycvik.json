@@ -1,0 +1,13 @@
+{
+  "_info": "Výcvik v první bitvě (rozhodnutí 30.10.2026). Kroky jdou po sobě; krok skončí, až hráč udělá, co popisuje (done): selected (vybraný hrdina), order_point (rozkaz na místo), running (bitva běží), order_group (rozkaz na skupinu nepřátel), ability (použitá schopnost), hold (H), ok (jen tlačítko Rozumím). Co hráč udělal dřív, platí. trigger = krok se ukáže, až nastane situace (contact: bdělý nepřítel do 10 m od hrdiny nebo se probudila skupinka; combat: hrdina bojuje; warn: velitel chystá schopnost); pak se bitva sama zastaví, ať hráč stihne zareagovat. Do té doby panel ukazuje wait_text. anchor = k čemu se karta přišpendlí se šipkou: heroes (hrdinové), ahead (místo před hrdiny), pause (tlačítko nahoře), foe (nejbližší bdělý nepřítel), cards (tlačítko schopnosti), warn (ohlášený kruh velitele).",
+  "title": "Výcvik",
+  "steps": [
+    {"done": "selected", "anchor": "heroes", "text": "Vyber hrdinu: klikni na něj levým tlačítkem, nebo levým táhni obdélník přes víc hrdinů. Ctrl+A vybere celý oddíl."},
+    {"done": "order_point", "anchor": "ahead", "text": "Pošli vybrané: klikni pravým tlačítkem na zem, třeba sem. Kruh pod kurzorem ukazuje, co se stane (bílý = jdi sem, modrý = drž se spojence, červený = útok na skupinu)."},
+    {"done": "running", "anchor": "pause", "text": "Bitva teď stojí. Pusť ji mezerníkem (nebo tlačítkem nahoře). Mezerníkem ji kdykoli zase zastavíš a v klidu dáš rozkazy."},
+    {"done": "order_group", "trigger": "contact", "anchor": "foe", "wait_text": "Bitva běží. Sleduj nepřítele: až se dá do pohybu, hra se zastaví a poradí ti.", "text": "Nepřátelé jdou na vás, hra se zastavila. Vyber oddíl (Ctrl+A) a pravým klikni na nepřítele: hrdinové půjdou po celé jeho skupině. Pak pusť bitvu mezerníkem."},
+    {"done": "ability", "trigger": "combat", "anchor": "cards", "wait_text": "Hrdinové jdou do boje. Až se střetnou, hra se zastaví.", "text": "Boj začal, hra se zastavila. Použij schopnost: stiskni klávesu v rámečku na kartě (1–5), cílenou pak namiř pravým tlačítkem. Každá má 3 použití za bitvu a nabíjí se. Pak pusť bitvu mezerníkem."},
+    {"done": "hold", "anchor": "heroes", "text": "Klávesa H zruší rozkaz vybraným: zůstanou stát a brání se. Tak hrdinu zastavíš, když zabíhá moc daleko. Vyzkoušej to."},
+    {"done": "ok", "trigger": "warn", "anchor": "warn", "wait_text": "Dobře. Ještě jedna věc: až nepřátelský velitel začne chystat schopnost, hra se zastaví.", "text": "Velitel chystá schopnost: červený kruh ukazuje, kam dopadne. Uhni z něj (pravým klikni mimo), nebo velitele omrač Nájezdem. Pak pusť bitvu mezerníkem."}
+  ]
+}

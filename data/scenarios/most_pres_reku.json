@@ -1,10 +1,14 @@
 {
-  "_info": "Bitva Most přes řeku. Souřadnice v metrech: x doprava, y dopředu (k nepříteli). Řeka vede napříč mezi river.y0 a y1, přejít jde jen přechody (crossings: x0–x1, kind most/brod/lavka, speed = násobek rychlosti). forests = lesy (obdélník, speed, path = stezka x0–x1 bez zpomalení). deploy.<rytíř>.route = výchozí trasa. optional_task.protect = id hrdiny, nebo 'all' (nikdo nesmí padnout). enemy_morale = kdy se nepřítel zlomí (podíl ztrát) a kam prchá (y okraje bojiště).",
+  "_info": "Bitva Most přes řeku. Souřadnice v metrech: x doprava, y dopředu (k nepříteli). Řeka vede napříč mezi river.y0 a y1, přejít jde jen přechody (crossings: x0–x1, kind most/brod/lavka, speed = násobek rychlosti). forests = lesy (obdélník, speed, path = stezka x0–x1 bez zpomalení). optional_task.protect = id hrdiny, nebo 'all' (nikdo nesmí padnout). enemy_morale = kdy se nepřítel zlomí (podíl ztrát) a kam prchá (y okraje bojiště). pods = skupinky nepřátel (fáze bitvy): name, wake (na kolik m od hrdiny se probudí), awake (bdělá od začátku). Nepřítel se do skupinky řadí {\"pod\": n}. alarm_radius = jak daleko od skupinky musí probíhat boj, aby se přidala. foe_hp, foe_dmg = obtížnost bitvy. auto_plan = jen pro automatického velitele v testech.",
+  "mode": "stret",
+  "foe_hp": 2.3, "foe_dmg": 2.3,
   "name": "Most přes řeku",
-  "subtitle": "Lapkové z Hraběcího lesa · 11 pěšáků, 3 střelci",
-  "stage_label": "Akt 1 · Stage 2",
+  "subtitle": "Lapkové z Hraběcího lesa · 6 pěšáků, 2 střelci",
+  "auto_plan": "hold",
+  "stage_label": "Akt 1",
   "win_title": "Vítězství u mostu",
   "river": {"y0": 4.0, "y1": 8.0, "crossings": [{"x0": -1.25, "x1": 1.25, "kind": "most", "speed": 1.0}]},
+  "camera": {"target": [0, -1], "bounds": [-5, 5, -1, 12]},
   "deploy_zone": {"x0": -6, "x1": 6, "y0": -8.5, "y1": -3.5},
   "deploy": {
     "tank": {"pos": [0, -4.3]},
@@ -14,11 +18,21 @@
     "asasin": {"pos": [2.6, -5.0]}
   },
   "optional_task": {"text": "Otec Jan nesmí padnout.", "reward": "vzácné znamení", "protect": "knez"},
-  "enemy_morale": {"break_losses": 0.7, "flee_y": 20.0},
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
+  "pods": [
+    {"name": "Lapkové u mostu", "awake": true},
+    {"name": "Střelci na břehu", "wake": 9.0},
+    {"name": "Tábor lapků", "wake": 8.0}
+  ],
+  "alarm_radius": 6,
   "enemies": [
-    ["lapka", -3.0, 11.0], ["lapka", -1.5, 10.5], ["lapka", 0.0, 11.2], ["lapka", 1.5, 10.6], ["lapka", 3.0, 11.0],
-    ["lapka", -2.0, 12.6], ["lapka", 2.0, 12.6], ["lapka", -4.5, 12.0], ["lapka", 4.5, 12.0],
-    ["lapka", -1.0, 13.4], ["lapka", 1.0, 13.4],
-    ["strelec", -2.0, 14.0], ["strelec", 0.0, 14.4], ["strelec", 2.0, 14.0]
+    ["lapka", -1.5, 11.0, {"pod": 0}],
+    ["lapka", 0.0, 11.6, {"pod": 0}],
+    ["lapka", 1.5, 11.0, {"pod": 0}],
+    ["strelec", -3.0, 13.5, {"pod": 1}],
+    ["strelec", 3.0, 13.5, {"pod": 1}],
+    ["lapka", -2.0, 22.0, {"pod": 2}],
+    ["palic", 0.0, 23.0, {"pod": 2}],
+    ["lapka", 2.0, 22.0, {"pod": 2}]
   ]
 }

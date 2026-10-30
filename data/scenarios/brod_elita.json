@@ -1,0 +1,30 @@
+{
+  "_info": "Elita: brod se silnější posádkou ve třech skupinkách, v táboře ostrostřelec. Terén z base.",
+  "base": "brod_a_les",
+  "elite": true,
+  "alarm_radius": 6,
+  "mode": "utok",
+  "foe_hp": 2.1, "foe_dmg": 2.1,
+  "auto_plan": "attack",
+  "name": "Posádka Černého brodu",
+  "subtitle": "Elita · posádka drží oba brody i tábor · 4 pěšáci, 3 kopiníci, 2 střelci",
+  "win_title": "Černý brod padl",
+  "optional_task": {"text": "Sir Radek nesmí padnout.", "reward": "vzácné znamení", "protect": "jezdec"},
+  "pods": [
+    {"name": "Posádka levého brodu", "wake": 7.0},
+    {"name": "Posádka pravého brodu", "wake": 7.0},
+    {"name": "Velitelství za lesem", "wake": 8.0}
+  ],
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
+  "enemies": [
+    ["kopinik", -9.0, 10.2, {"pod": 0}],
+    ["kopinik", -7.4, 10.2, {"pod": 0}],
+    ["lapka", -8.2, 11.4, {"pod": 0}],
+    ["lapka", 7.4, 10.4, {"pod": 1}],
+    ["lapka", 8.8, 10.0, {"pod": 1}],
+    ["lapka", 10.2, 10.4, {"pod": 1}],
+    ["ostrostrelec", 0.0, 19.5, {"pod": 2}],
+    ["strelec", -2.0, 21.0, {"pod": 2}],
+    ["strelec", 2.0, 21.0, {"pod": 2}]
+  ]
+}
