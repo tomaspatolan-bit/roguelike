@@ -216,6 +216,17 @@ func _test_realtime_orders() -> void:
 	var cam_ok := (scene.get("selection") as Array) == ["tank"]
 	scene.call("_select_all")
 	print("Karta a Ctrl+A: %s" % ("OK" if cam_ok and (scene.get("selection") as Array).size() == alive_k else "CHYBA"))
+	# H: vybraní drží místo; karta má schopnost s klávesou a nemá Poslat ani text rozkazu
+	scene.call("_set_selected", "jezdec")
+	scene.call("_hold_selected")
+	var held := String(sim.call("by_id", "jezdec").get("order")) == ""
+	var ui: Variant = scene.get("ui")
+	var texts: Array = []
+	for l: Label in (ui.get("cards_row") as Node).find_children("*", "Label", true, false):
+		texts.append(l.text)
+	var clean := not texts.has("Poslat") and not texts.any(func(t: String) -> bool: return t.begins_with("Se spojencem") or t.begins_with("Bez rozkazu"))
+	print("H drží místo, karta bez Poslat, schopnost s klávesou: %s" % ("OK" if held and clean and texts.has("1") else "CHYBA (%s, %s)" % [held, texts]))
+	scene.call("_select_all")
 	# náhled pravého tlačítka nad nepřítelem (kamera se po druhém kliku na kartu natočila, pozice znovu)
 	screen = cam.unproject_position((views[String(foe.get("id"))] as Node3D).global_position + Vector3(0, 1.0, 0))
 	scene.call("_pointer_move", screen)

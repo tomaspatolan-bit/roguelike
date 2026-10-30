@@ -21,7 +21,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 9. **Cílení schopnosti** (potvrzuje levé i pravé tlačítko): `_aim_id` = hrdina, jehož schopnost se cílí; kruh pod kurzorem v poloměru schopnosti (červený mimo dosah), klik pošle cíl do `sim.use_ability`, neplatný cíl ukáže `flash_hint`. Nepřítel se vybírá podle postavy na obrazovce (`_pick_foe`). Událost `ability` = krátký kruh efektu.
 10. **Přísahy se ve scéně ověřují přes simulaci** (`has_oath`, `is_retreat`), nikdy podle klíče hrdiny.
 11. **Rozhodnutá bitva** (událost `decided`) přepne rychlost aspoň na 2×. Uprchlá jednotka (`fled`) je skrytá.
-12. **Výběr bitvy** jen v rozestavení nebo v úvodní pauze (`t == 0`) (`_load_scenario`, bojiště v `field_root`). **Rozkazy:** Poslat na kartě (`_order_id`) → klik: na nepřítele = jeho skupina, na hrdinu = spojenec, jinak místo na zemi (`_order_click` → `_give_order`); v rozestavení se rozkaz uloží do `setup.orders` (simulace se při startu staví znovu). Rozkaz k ústupu u přísahy Nikdy neustoupí: v rozestavení odmítnut s nápovědou, v bitvě dialog přísahy. Kruhy cílů rozkazů v barvě hrdiny (`_sync_order_marks`, `hero_color`): na místo malý kruh, na skupinu kruh kolem jejího středu, ke spojenci kruh pod ním (víc hrdinů = soustředné kruhy); v rozestavení a v pauze u všech, v běžící bitvě u vybraných a 2 s po rozkazu (`_order_flash`); při výběru cíle kruh pod kurzorem. Kroužky výběru pod hrdiny v jeho barvě.
+12. **Výběr bitvy** jen v rozestavení nebo v úvodní pauze (`t == 0`) (`_load_scenario`, bojiště v `field_root`). **Rozkazy:** pravým tlačítkem (viz 7), **H** = vybraní drží místo (`_hold_selected`); cesta přes `_order_id` (dřív tlačítko Poslat, teď ho volají jen testy) → klik: na nepřítele = jeho skupina, na hrdinu = spojenec, jinak místo na zemi (`_order_click` → `_give_order`); v rozestavení se rozkaz uloží do `setup.orders` (simulace se při startu staví znovu). Rozkaz k ústupu u přísahy Nikdy neustoupí: v rozestavení odmítnut s nápovědou, v bitvě dialog přísahy. Kruhy cílů rozkazů v barvě hrdiny (`_sync_order_marks`, `hero_color`): na místo malý kruh, na skupinu kruh kolem jejího středu, ke spojenci kruh pod ním (víc hrdinů = soustředné kruhy); v rozestavení a v pauze u všech, v běžící bitvě u vybraných a 2 s po rozkazu (`_order_flash`); při výběru cíle kruh pod kurzorem. Kroužky výběru pod hrdiny v jeho barvě.
 
 ## Úskalí
 - Proměnná s typem `Node3D` nezná metody skriptu: použij typ skriptu (`var v := UnitView.new()`).
@@ -29,6 +29,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 - Limity testů počítej v čase bitvy, ne ve snímcích (monitor může mít 144 Hz).
 
 ## Historie významných změn
+- 30.10.2026: H = vybraní drží místo; tlačítko Poslat z karty pryč.
 - 30.10.2026: pravé tlačítko provede i cílenou schopnost a rozkaz z tlačítka Poslat (Tom: levé pro schopnosti a pravé pro rozkazy bylo nekonzistentní); levé dál funguje.
 - 30.10.2026: kamera s pevným úhlem podle mapy (posun v hranicích, bez otáčení, pravé tlačítko jen rozkazy).
 - 30.10.2026: ovládání podle zvyklostí RTS (Tom: nešlo odznačit oddíl, misclicky): klik na hrdinu vybere jen jeho, v bitvě žádné přetahování hrdinů, Ctrl+A, druhý klik na kartu natočí kameru, náhled pravého tlačítka pod kurzorem, rozkaz ke spojenci jen při kliku přímo na něj, větší tolerance kliku pravým.

@@ -13,6 +13,11 @@ Nejnovější nahoře. Každý záznam: datum, kdo hrál, build (větev nebo com
 - Z toho plyne (úkol v plan.md / nápad v napady.md / rozhodnutí):
 ```
 
+## 30.10.2026 – Tom, build `faze2-mapa` (27074b9), pravé tlačítko provádí akci
+- Bavilo: „feeluje o dost lépe“, ovládání dostal do ruky rychle. Slib odříkání je přesně směr odměn: interakce mezi hrdiny, odměna i riziko.
+- Nebavilo / nečitelné: na kartě zbytečný text rozkazu a Poslat; u schopnosti chybí klávesa.
+- Z toho plyne: karta bez rozkazů, klávesa na tlačítku schopnosti, H drží místo; směr odměn do deníku rozhodnutí a plánu (2.4).
+
 ## 30.10.2026 – Tom, build `faze2-mapa` (48553b2), kamera s pevným úhlem
 - Nebavilo / nečitelné: rozkaz se dává pravým, ale cílená schopnost levým tlačítkem („ux fail“).
 - Z toho plyne: pravé tlačítko provede i schopnost a rozkaz z tlačítka Poslat.

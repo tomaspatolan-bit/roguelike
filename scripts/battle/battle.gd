@@ -338,6 +338,12 @@ func _set_selected(id: String) -> void:
 	_refresh_panel()
 
 
+## H: vybraní hrdinové zruší rozkaz a drží místo, kde stojí.
+func _hold_selected() -> void:
+	for id: String in _selection_alive():
+		_clear_order(id)
+
+
 ## Ctrl+A: vybere všechny živé hrdiny.
 func _select_all() -> void:
 	if phase == Phase.OVER:
@@ -523,6 +529,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_A:
 				if (event as InputEventKey).ctrl_pressed:
 					_select_all()
+			KEY_H:
+				_hold_selected()
 			KEY_1:
 				_ability_by_index(0)
 			KEY_2:

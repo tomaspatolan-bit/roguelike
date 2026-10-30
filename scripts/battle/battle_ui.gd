@@ -278,6 +278,22 @@ func _bar(fill: Color, h: int = 6) -> ProgressBar:
 
 
 ## Tlačítko s ikonkou a textem (popisek je Label uvnitř, aby šel měnit v update_dynamic).
+## Klávesová zkratka na tlačítku: malý rámeček s klávesou za textem (text tlačítka zůstává první Label).
+func _add_keycap(b: Button, key: String) -> void:
+	var h := b.get_child(0) as HBoxContainer
+	var cap := PanelContainer.new()
+	cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	cap.add_theme_stylebox_override("panel", _box(Color(1, 1, 1, 0.08), 4, 2, MUTED, 1))
+	var l := _label(key, 11, INK)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.custom_minimum_size = Vector2(12, 0)
+	cap.add_child(l)
+	h.add_child(cap)
+	b.custom_minimum_size.x += 26.0
+
+
 func _icon_button(kind: String, text: String, icon_col: Color = INK) -> Button:
 	var b := Button.new()
 	var h := HBoxContainer.new()
@@ -426,7 +442,7 @@ func _fill_info(sim: Sim, deploy: bool, scenario_id: String) -> void:
 	if sim.sleeping_pods() > 0:
 		info_box.add_child(_label("Dál čeká nepřátel: skupinek %d" % sim.sleeping_pods(), 13, GLORY))
 	if deploy:
-		info_box.add_child(_label("Vyber hrdinu (klik, tažení obdélníku, Shift přidá další) a pravým tlačítkem ho pošli: na místo, na nepřítele (půjde po celé jeho skupině) nebo na spojence (zůstane s ním). Kdo rozkaz nemá nebo ho splnil, drží místo a brání se. Mezerník bitvu pozastaví i spustí.", 12, MUTED, true))
+		info_box.add_child(_label("Vyber hrdinu (klik, tažení obdélníku, Shift přidá další) a pravým tlačítkem ho pošli: na místo, na nepřítele (půjde po celé jeho skupině) nebo na spojence (zůstane s ním). Kdo rozkaz nemá nebo ho splnil, drží místo a brání se (H zruší rozkaz vybraným). Schopnost: klávesa na tlačítku, cíl pravým tlačítkem. Mezerník bitvu pozastaví i spustí.", 12, MUTED, true))
 		info_box.add_child(_label("Nepřátelé stojí ve skupinkách a přidají se, až se přiblížíš nebo uslyší boj. Schopnosti mají pevný počet použití na celou bitvu (●) a po použití se nabíjejí; mezi skupinkami se nic nedoplňuje a kněz léčí jen v boji.", 12, MUTED, true))
 
 
@@ -480,7 +496,6 @@ func show_battle(sim: Sim, pause_phase: bool, selection: Array, speed: float, lo
 ## Karty hrdinů; zvýrazněné jsou vybraní (selection). Rozkaz k ústupu v bitvě porušuje
 ## přísahu Nikdy neustoupí (battle.gd se zeptá).
 func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String, aim_id: String) -> void:
-	var idx_key := 0
 	for u in sim.knights():
 		var sel := selection.has(u.id)
 		var card := PanelContainer.new()
@@ -522,35 +537,13 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 			cards_row.add_child(card)
 			continue
 
-		idx_key += 1
-		var no_order := u.order == "" and not in_battle
-		var bl := _label(sim.order_text(u.id), 12, BAD if no_order else ORDER_COL, true)
-		bl.tooltip_text = "Bez rozkazu hrdina drží místo a brání se. Pošli ho tlačítkem Poslat." if no_order else "Rozkaz hrdiny. Změníš ho kdykoli: vyber hrdinu a klikni pravým, nebo Poslat."
-		bl.mouse_filter = Control.MOUSE_FILTER_PASS
-		v.add_child(bl)
-		var orow := HBoxContainer.new()
-		orow.add_theme_constant_override("separation", 4)
-		var picking := order_id == u.id
-		var ob := _icon_button("route", "Vyber cíl…" if picking else "Poslat", ORDER_COL)
-		ob.tooltip_text = "Klikni (levým nebo pravým) na místo, na nepřítele (skupina) nebo na spojence. Esc zruší." if picking else "Poslat hrdinu: na místo, na skupinu nepřátel, nebo ke spojenci."
-		ob.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if picking:
-			ob.add_theme_stylebox_override("normal", _box(Color("#3a3220"), 7, 8, GLORY, 1))
-		ob.pressed.connect(func() -> void: order_pressed.emit(id))
-		orow.add_child(ob)
-		if u.order != "":
-			var cb := Button.new()
-			cb.text = "✕"
-			cb.tooltip_text = "Zrušit rozkaz (hrdina bude držet místo, kde stojí)"
-			cb.custom_minimum_size = Vector2(32, 36)
-			cb.pressed.connect(func() -> void: order_clear_pressed.emit(id))
-			orow.add_child(cb)
-		v.add_child(orow)
 		var a := sim.ability_of(u.id)
 		if not a.is_empty():
-			var ab := _icon_button(ABILITY_ICONS.get(u.ability, "glory"), "%s [%d]" % [a["name"], idx_key], GLORY)
+			var key := sim.knights().find(u) + 1   # klávesa 1–5 podle pořadí karet (battle.gd _ability_by_index)
+			var ab := _icon_button(ABILITY_ICONS.get(u.ability, "glory"), String(a["name"]), GLORY)
 			ab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			ab.tooltip_text = String(a["desc"])
+			_add_keycap(ab, str(key))
 			if aim_id == u.id:
 				ab.add_theme_stylebox_override("normal", _box(Color("#3a3220"), 7, 8, GLORY, 2))
 				ab.tooltip_text += "\nKlikni na bojiště (levým nebo pravým), Esc zruší."

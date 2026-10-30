@@ -73,7 +73,7 @@ Cíl: celý krátký run od výběru rodu po bosse.
 - [ ] 2.2f Mapy z modulárních assetů: kit (Claude, Blender), kostra mapy z dat a vygenerovaná scéna (Claude), nástroj na překážky do dat, vzhled map v editoru (Tom). Hotovo, když: Tom sám oblékne jednu mapu a testy na ní projdou.
 - [ ] 2.2 Karta stage a volitelné úkoly z dat
 - [ ] 2.3 Odměny po stagi: pasivky, přísahy, nové schopnosti (2. a 3. slot u hrdiny)
-- [ ] 2.4 Více pasivek, přísah a schopností (obsah)
+- [ ] 2.4 Více pasivek, přísah a schopností (obsah); směr od 30.10.2026: vazby mezi hrdiny, odměna za riziko (vzor Slib odříkání)
 - [ ] 2.5 Další rody jako sestavy: Medvěd (berserkr), Sokol (sokolník); meta odemykání rodů
 - [ ] 2.6 Ústup s přeživšími, rozhodnutí, jestli prohraná bitva končí běh; najímání vojáků k hrdinům
 - [ ] 2.9 Průzkum: odhalování podmínek nepřátel jako zdroj v runu

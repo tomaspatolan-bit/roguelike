@@ -13,7 +13,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 4. **Hráč se soustředí na hrdiny:** žádné bonusy pro celý oddíl v UI. Musí vždy vidět: použití a nabíjení schopností na kartách, stav úkolu, zda čas stojí (pauza).
 5. **Texty česky,** krátce. Zkratky kláves na tlačítkách odpovídají `battle.gd`.
 6. **Font:** systémový (Segoe UI na Windows), musí umět českou diakritiku.
-7. **Karta hrdiny:** rámeček a jméno v barvě hrdiny (`color` z dat; vybraný silnější rámeček), ikona třídy, zdraví, ikonky stavu, text rozkazu (`order_text`; v rozestavení bez rozkazu červeně), tlačítko schopnosti s klávesou 1–5 a použitími (●), nabíjením („●● 12 s“) nebo „vyčerpáno“; při cílení je tlačítko zvýrazněné. Vždy tlačítko Poslat (při výběru cíle zvýrazněné „Vyber cíl…“) a ✕ (zrušit rozkaz); v rozestavení a úvodní pauze menu Pasivky (na zkoušku, zaškrtávací). Ikonky pasivek a přísahy s popisem. Klik na kartu = výběr hrdiny (Shift přidá); vybraní mají zvýrazněný rámeček (`selection`).
+7. **Karta hrdiny:** rámeček a jméno v barvě hrdiny (`color` z dat; vybraný silnější rámeček), ikona třídy, zdraví, ikonky stavu a tlačítko schopnosti s použitími (●), nabíjením („●● 12 s“) nebo „vyčerpáno“ a s klávesou 1–5 v rámečku (`_add_keycap`, pořadí karet = `_ability_by_index`); při cílení je tlačítko zvýrazněné. Text rozkazu, Poslat ani ✕ na kartě nejsou (zrušeno 30.10.2026, Tom: ovládání pravým tlačítkem stačí; rozkaz je vidět kruhem cíle). V rozestavení a úvodní pauze menu Pasivky (na zkoušku, zaškrtávací). Ikonky pasivek a přísahy s popisem. Klik na kartu = výběr hrdiny (Shift přidá); vybraní mají zvýrazněný rámeček (`selection`).
 8. **Žádné tlačítko nesmí brát fokus klávesnice** (`_no_focus` po každé přestavbě panelu).
 9. **Povel Do boje!** se ukáže až po zlomení morálky nepřítele (klávesa F).
 10. **Rozestavení a úvodní pauza** (`t == 0`): vlevo nahoře výběr bitvy a nápověda; v bitvě karta ukazuje, kolik skupinek ještě čeká („Dál čeká nepřátel: skupinek N“). Výběr bitvy (`scenario_choices` nastavuje `battle.gd`). Výsledek bitvy bere nadpis ze scénáře (`win_title`) a ukáže, kdo přinesl nejvíc slávy.
@@ -29,6 +29,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 - Místní proměnná se nesmí jmenovat jako metoda `CanvasLayer` (`hide`, `show`).
 
 ## Historie významných změn
+- 30.10.2026: karta bez textu rozkazu, Poslat a ✕; klávesa schopnosti v rámečku na tlačítku.
 - 29.10.2026: bitva ve fázích: pryč ukazatel slávy a dialog před bitvou, schopnost ukazuje použití a nabíjení, ikonky spící skupinky, velitele a chystané schopnosti, počet čekajících skupinek, úvodní pauza s výběrem bitvy.
 - 29.10.2026: barvy hrdinů: rámeček karty a jméno, rámeček ukazatele zdraví nad hlavou.
 - 29.10.2026: obdélník výběru tažením.

@@ -6,6 +6,7 @@ Aktualizováno: 30.10.2026
 **Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotové všechny tři typy bitev (útok, střet, obrana s Lesní vsí) a animace boje hrdinů. Hotové rozkazy pro hrdiny (2.2c). Další: karta stage a volitelné úkoly (2.2). Otevřené: playtest s hráčem mimo nás (1.8).
 
 ## Hotovo
+- Karta hrdiny bez textu rozkazu, Poslat a ✕; tlačítko schopnosti ukazuje klávesu (1–5). Klávesa H: vybraní hrdinové zruší rozkaz a drží místo.
 - Pravé tlačítko vždy provede akci: rozkaz, cílenou schopnost (po tlačítku nebo klávese 1–5) i rozkaz z tlačítka Poslat; levé vybírá.
 - Kamera s pevným úhlem podle mapy: výřez se posouvá WASD, šipkami nebo myší u okraje obrazovky jen v hranicích mapy, kolečko trochu přiblíží, otáčet nejde, pravé tlačítko je jen na rozkazy. Obrana Lesní vsi má výřez úplně pevný. Rozhodnuto, jak budeme dělat mapy: kit assetů (Claude) a vzhled map v editoru (Tom).
 - Po hraní bitvy ve fázích: každá schopnost 3× za bitvu (bylo moc těžké); ovládání podle zvyklostí RTS: klik na hrdinu vybere jen jeho, v bitvě se hrdinové netahají, Ctrl+A vybere všechny, druhý klik na kartu natočí kameru, kruh pod kurzorem ukazuje, co udělá pravé tlačítko (červený skupina, modrý spojenec, bílý místo). Balanc s automatickým velitelem: se schopnostmi 38–40/40 všude, bez schopností 0/40; běh 13/20.

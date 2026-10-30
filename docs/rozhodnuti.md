@@ -2,6 +2,10 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 30.10.2026 – Karta hrdiny bez rozkazů; směr odměn
+- **Z karty hrdiny pryč text rozkazu, Poslat a ✕**; tlačítko schopnosti ukazuje klávesu. Rozkaz zrušíš klávesou H. Tom: ovládání má v ruce, karta má být přehledná.
+- **Směr pasivek a přísah (odměn): interakce mezi hrdiny, která dává smysl, odmění a zároveň je riskantní.** Vzor: Slib odříkání (schopnost má o 1 použití víc, ale kněz hrdinu nesmí léčit). Nové odměny navrhujeme hlavně takto (vazba na jiného hrdinu, síla za omezení, pilíře Velíš rodu a Přísaha má cenu).
+
 ## 30.10.2026 – Pravé tlačítko provádí akci
 - **Pravé tlačítko vždy provede akci:** rozkaz vybraným hrdinům, cílenou schopnost i rozkaz z tlačítka Poslat. Levé vybírá (a cílení schopnosti potvrzuje taky, pro zvyk z jiných her). Tom: rozkaz pravým a schopnost levým bylo obrácené ovládání, „ux fail“.
 
