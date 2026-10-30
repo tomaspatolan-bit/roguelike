@@ -123,6 +123,9 @@ func _build_knight(u: Sim.Unit) -> void:
 		var bs: Dictionary = u.base.get("bow_string", {})
 		if w != null and not bs.is_empty():
 			_setup_bow_string(w, bs)
+		var om := String(u.base.get("offhand_model", ""))
+		if om != "" and ResourceLoader.exists(om):
+			_attach_weapon_model(om, String(u.base.get("offhand_bone", "hand_l")))   # druhá zbraň (asasín: dýka v levé)
 	else:
 		_attach_weapon(String(u.base.get("weapon", "")))
 
