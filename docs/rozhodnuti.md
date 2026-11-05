@@ -3,7 +3,9 @@
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
 ## 05.11.2026 – Odměny podle návrhu, rody až po schopnostech
-- **Návrh odměn a jádra běhu schválen** (dokument „Odměny a jádro běhu – návrh“): pouta mezi hrdiny, nové přísahy a pasivky, druhá schopnost, znamení rodu, 12 událostí, tábor se čtyřmi volbami, sláva jako měna běhu. Otevřené: ovládání druhé schopnosti (každý hrdina bude mít 2 schopnosti, kláves pro 10 schopností je málo).
+- **Návrh odměn a jádra běhu schválen** (dokument „Odměny a jádro běhu – návrh“): pouta mezi hrdiny, nové přísahy a pasivky, druhá schopnost, znamení rodu, 12 událostí, tábor se čtyřmi volbami, sláva jako měna běhu. 
+- **Žádný druhý slot na schopnost** (Tom souhlasí): hrdina má dál jednu schopnost na klávese 1–5, ovládání se nemění. Schopnosti jsou součástí powerupů ve čtyřech vrstvách: výměna schopnosti (3 na třídu, elita, kovář, události), zušlechtění přilepené ke schopnosti (při výměně propadne), přísaha (chování a cena) a pouto se souhrou (souhra = schopnosti dvou hrdinů). Důvod: pět hrdinů v reálném čase je dost akcí, druhý slot by z velení udělal mačkání kláves a rozbil ovládání, které tester rychle pochopil.
+- **Interakce schopností a přísah jsou zapsané v datech a vždy vidět** (karta nabídky, varování před porušením přísahy, co propadne při výměně). Poměr interakcí cílí zhruba 35 % dobrých, 45 % neutrálních, 20 % špatných; hlídá ho test nad daty. Tom: hráč musí vědět, do čeho jde, a kdyby byla většina interakcí špatná, nemělo by smysl je vymýšlet.
 - **Struktura rodů (Medvěd, Sokol) až po schopnostech**; teprve pak se rozhodne, které třídy dostanou nové modely (Tom). Sdílené třídy mezi rody stačí přebarvit (paleta, znak rodu).
 
 ## 30.10.2026 – Směr stylu a kdy začít polish
