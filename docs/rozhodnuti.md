@@ -2,6 +2,10 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 05.11.2026 – Odměny podle návrhu, rody až po schopnostech
+- **Návrh odměn a jádra běhu schválen** (dokument „Odměny a jádro běhu – návrh“): pouta mezi hrdiny, nové přísahy a pasivky, druhá schopnost, znamení rodu, 12 událostí, tábor se čtyřmi volbami, sláva jako měna běhu. Otevřené: ovládání druhé schopnosti (každý hrdina bude mít 2 schopnosti, kláves pro 10 schopností je málo).
+- **Struktura rodů (Medvěd, Sokol) až po schopnostech**; teprve pak se rozhodne, které třídy dostanou nové modely (Tom). Sdílené třídy mezi rody stačí přebarvit (paleta, znak rodu).
+
 ## 30.10.2026 – Směr stylu a kdy začít polish
 - **Vizuální směr: čistý low-poly ve stylu Bad North** (ploché barvy, jasné siluety, měkké světlo a stíny, okluze, mlha a barevné ladění scény, malé čitelné postavy). Tom: „něco na styl Bad North, za mě top“. Důvod: tenhle styl Claude dotáhne sám (pevné geometrické tvary: zbroj, helmy, zbraně, budovy), organické tvary a ručně malované textury by potřebovaly artistu. Slabé místo jsou animace: zlepšit převodem hotových pohybů z knihovny na kostru (názvy kostí podle UE5).
 - **Polish až po bráně, ne až po „všem“:** pravidla boje se zásadně nemění, odměny s vazbami a rizikem (15–20) dělají runy různými, hráč mimo nás dohraje run a chce znovu (playtest 1.8). Pak vertical slice prvního aktu ve finální kvalitě (styl hrdinů a nepřátel, kit map, styl UI, zvuk, úvod příběhu), ze slice Steam stránka a demo, pak výroba dalšího obsahu. Assety se nevyrábějí před schváleným stylem (dělaly by se dvakrát); kit map (2.2f) proto až ve slice.
