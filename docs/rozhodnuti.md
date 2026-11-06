@@ -2,6 +2,11 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 06.11.2026 – Osobní přísahy, přísahy rodu a vlastnosti hrdinů
+- **Přísahy jsou osobní pro třídu** (3 na třídu, navržené proti jejím třem schopnostem: jedna sedí k výchozí, jedna k alternativě, jedna se schválně tluče) **plus 3 přísahy rodu**, které sedí každému hrdinovi (Pod korouhví, Přísaha milosti, Přísaha předků). Tom: přísahy mají působit osobně, kněz s „Nikdy neustoupí“ je divný. Osobní přísahu padlého dědí jen nástupce, přísahu rodu kdokoli bez přísahy.
+- **Vlastnosti hrdinů:** Útok, Moc (síla schopnosti, léčení), Odolnost, Pohotovost a souhrnná Síla (Útok i Moc). Každá třída má jiné hlavní vlastnosti; bonus k vlastnosti, na které hrdinovi nezáleží, hra označí jako promrhaný. Přísahy rodu a znamení dávají Sílu, osobní přísahy a pasivky konkrétní vlastnost. Tom: „+ útok“ je knězi jedno, přísahy rodu mají být overall ability power.
+- Interaktivní model systému: artefakt „Stavitel oddílu“; podrobnosti v dokumentu „Odměny a jádro běhu – návrh“.
+
 ## 05.11.2026 – Odměny podle návrhu, rody až po schopnostech
 - **Návrh odměn a jádra běhu schválen** (dokument „Odměny a jádro běhu – návrh“): pouta mezi hrdiny, nové přísahy a pasivky, druhá schopnost, znamení rodu, 12 událostí, tábor se čtyřmi volbami, sláva jako měna běhu. 
 - **Žádný druhý slot na schopnost** (Tom souhlasí): hrdina má dál jednu schopnost na klávese 1–5, ovládání se nemění. Schopnosti jsou součástí powerupů ve čtyřech vrstvách: výměna schopnosti (3 na třídu, elita, kovář, události), zušlechtění přilepené ke schopnosti (při výměně propadne), přísaha (chování a cena) a pouto se souhrou (souhra = schopnosti dvou hrdinů). Důvod: pět hrdinů v reálném čase je dost akcí, druhý slot by z velení udělal mačkání kláves a rozbil ovládání, které tester rychle pochopil.
