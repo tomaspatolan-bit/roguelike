@@ -35,6 +35,8 @@ func _init() -> void:
 		_test_calm(sid)
 		_test_mode(sid)
 	_test_oath(data)
+	_test_oaths_and_stats(data)
+	_test_interaction_ratio(data)
 	_test_stand_firm(data)
 	var brod := Sim.load_data("brod_a_les")
 	_test_terrain(brod)
@@ -462,11 +464,10 @@ func _test_orders(data: Dictionary) -> void:
 
 	# přísaha pomsty: dokud žije viník, jde po něm a rozkaz neplatí
 	var s5 := Sim.new(data, Sim.default_setup(data), 64)
-	s5.set_passive("tank", "nikdy_neustoupi", false)
-	s5.set_passive("tank", "pomsta", true)
+	s5.set_passive("asasin", "pomsta", true)
 	var culprit := s5.by_id("e3")
 	s5._hurt(culprit, s5.by_id("knez"), 5.0)
-	var tk := s5.by_id("tank")
+	var tk := s5.by_id("asasin")
 	var d0 := tk.pos.distance_to(culprit.pos)
 	for i in 60:
 		s5.step(DT)
@@ -701,19 +702,22 @@ func _test_passives(data: Dictionary) -> void:
 	var asasin := s.by_id("asasin")
 	_check(s.has_oath("tank") and s.oath_of("tank")["name"] == "Nikdy neustoupí", "tank má na zkoušku přísahu z rodu")
 	_check(not s.set_passive("tank", "rychle_ruce", true), "pasivka jiné třídy nejde")
-	_check(not s.set_passive("tank", "pomsta", true), "hrdina má nejvýš jednu přísahu")
+	_check(not s.set_passive("tank", "ochrana", true), "hrdina má nejvýš jednu přísahu")
+	_check(not s.set_passive("tank", "pomsta", true), "osobní přísaha jiné třídy nejde")
 	_check(s.set_passive("tank", "veteran", true) and is_equal_approx(tank.maxhp, 375.0 * 1.15), "Veterán: +15 % zdraví")
 	_check(s.set_passive("knez", "milosrdenstvi", true) and is_equal_approx(knez.heal, 14.0 * 1.5), "Milosrdenství: léčení +50 %")
 	_check(s.set_passive("lucistnik", "rychle_ruce", true) and is_equal_approx(luc.cd, 1.3 * 0.8), "Rychlé ruce: rychlejší střelba")
 	_check(s.set_passive("jezdec", "druhy_najezd", true) and jezdec.uses == 4, "Druhý nájezd: 4 použití")
 	_check(s.set_passive("tank", "hlasita_vyzva", true) and is_equal_approx(float(s.ability_of("tank")["radius"]), 9.0), "Hlasitá výzva: dosah 9 m")
-	_check(s.set_passive("asasin", "chudoba", true) and asasin.uses == 4, "Slib odříkání: použití navíc")
+	_check(s.set_passive("asasin", "prisaha_mlceni", true) and asasin.uses == 4, "Přísaha mlčení: použití navíc")
 	var foe := s.by_id("e0")
-	asasin.hp = asasin.maxhp * 0.5
-	asasin.pos = knez.pos + Vector2(1.0, 0.0)
-	s.use_ability("knez", asasin.pos)
-	_check(is_equal_approx(asasin.hp, asasin.maxhp * 0.5), "Slib odříkání: kněz hrdinu neléčí (ani Požehnáním)")
-	asasin.hp = asasin.maxhp
+	_check(s.set_passive("knez", "chudoba", true), "Slib chudoby jde knězi")
+	knez.hp = knez.maxhp * 0.5
+	s.use_ability("knez", knez.pos)
+	_check(is_equal_approx(knez.hp, knez.maxhp * 0.5), "Slib chudoby: kněz neléčí sám sebe (ani Požehnáním)")
+	knez.hp = knez.maxhp
+	s.set_passive("knez", "chudoba", false)
+	s.set_passive("asasin", "prisaha_mlceni", false)
 	_check(s.set_passive("asasin", "lovec", true) and is_equal_approx(s._dmg_mult(asasin, s.by_id("e3")), 1.3), "Lovec: +30 % proti střelcům")
 	_check(s.set_passive("tank", "ochrance", true), "Ochránce jde tankovi")
 	luc.pos = tank.pos + Vector2(1.0, 0.0)
@@ -754,13 +758,164 @@ func _test_passives(data: Dictionary) -> void:
 	s2.set_passive("tank", "ochrance", false)
 	var s3 := Sim.new(data, Sim.default_setup(data), 63)
 	s3.set_passive("tank", "nikdy_neustoupi", false)
-	_check(s3.set_passive("tank", "pomsta", true), "přísahu jde vyměnit")
+	_check(s3.set_passive("tank", "ochrana", true), "přísahu jde vyměnit")
+	_check(s3.set_passive("asasin", "pomsta", true), "Krevní dluh jde asasínovi")
 	s3._hurt(s3.by_id("e0"), s3.by_id("knez"), 5.0)
-	_check(s3.order_problem("tank") != "" and not s3.order_move("tank", Vector2.ZERO), "Přísaha pomsty: neposlechne rozkaz, dokud viník žije")
-	_check(is_equal_approx(s3._dmg_mult(s3.by_id("tank"), s3.by_id("e0")), 1.4), "Přísaha pomsty: +40 % proti viníkovi")
+	_check(s3.order_problem("asasin") != "" and not s3.order_move("asasin", Vector2.ZERO), "Krevní dluh: neposlechne rozkaz, dokud viník žije")
+	_check(is_equal_approx(s3._dmg_mult(s3.by_id("asasin"), s3.by_id("e0")), 1.4), "Krevní dluh: +40 % proti viníkovi")
 	s3.set_passive("asasin", "ukryt", true)
 	var a3 := s3.by_id("asasin")
 	var v3 := s3.by_id("e1")
 	v3.pos = a3.pos + Vector2(0, 4)
 	s3.use_ability("asasin", v3.id)
 	_check(a3.hidden_t > 0.0 and not s3._visible_knights().has(a3), "Úkryt: po úderu ho nikdo necílí")
+
+
+## Vlastnosti hrdinů a nové přísahy (rod i osobní): bonusy, omezení a porušení.
+func _test_oaths_and_stats(data: Dictionary) -> void:
+	print("Přísahy a vlastnosti")
+	var s := Sim.new(data, _setup_with(data, {"knez": ["milost"], "tank": ["stit"], "lucistnik": ["bdelost"]}), 71)
+	var knez := s.by_id("knez")
+	var tank := s.by_id("tank")
+	var luc := s.by_id("lucistnik")
+	_check(is_equal_approx(s.stat(knez, "utok"), 0.25) and is_equal_approx(s.stat(knez, "moc"), 0.25), "Přísaha milosti: Síla = Útok i Moc +25 %")
+	_check(is_equal_approx(knez.heal, 14.0 * 1.25), "Moc zvětší léčení kněze")
+	_check(is_equal_approx(float(s.ability_of("knez")["heal_frac"]), 0.3 * 1.25), "Moc zvětší Požehnání")
+	_check(is_equal_approx(tank.maxhp, 375.0 * 1.4) and tank.uses == 4 and is_equal_approx(s._dmg_mult(tank), 0.6), "Přísaha štítu: Odolnost +40 %, +1 použití, Útok −40 %")
+	_check(is_equal_approx(luc.reach, 9.0 * 1.4), "Přísaha bdělosti: dostřel +40 %")
+	_check(s.order_oath_conflict("lucistnik", "point", luc.pos + Vector2(0, 2)) == "", "před bitvou se bdělý lučištník smí přesunout")
+	var y0 := luc.pos
+	s.step(DT)
+	s.events.clear()
+	_check(s.order_oath_conflict("lucistnik", "point", luc.pos + Vector2(2, 0)) != "", "v bitvě rozkaz bdělost poruší")
+	s._walk(luc, luc.pos + Vector2(3, 0), 0.5)
+	_check(luc.pos.distance_to(y0) < 0.01, "bdělý lučištník se v bitvě nepohne")
+	s.set_order("lucistnik", "point", luc.pos + Vector2(2, 0))
+	_check(not s.has_oath("lucistnik") and luc.oath_broken, "rozkaz v bitvě bdělost porušil")
+	# milost: Salva do prchajícího přísahu poruší, sám prchající necílí
+	var s2 := Sim.new(data, _setup_with(data, {"lucistnik": ["milost"]}), 72)
+	var l2 := s2.by_id("lucistnik")
+	var f2 := s2.by_id("e0")
+	f2.fleeing = true
+	_check(s2._choose_target(l2, [f2] as Array[Sim.Unit]) == null, "s Přísahou milosti necílí prchající")
+	for f in s2.living(Sim.SIDE_FOE):
+		if f != f2:
+			_park(f)
+	f2.pos = l2.pos + Vector2(0, 6)
+	f2.speed = 0.0
+	s2.use_ability("lucistnik", f2.pos)
+	_check(l2.oath_broken, "Salva do prchajícího Přísahu milosti poruší")
+	# předků: bonus za padlé předky, bez zabití se po výhře poruší
+	var st3 := _setup_with(data, {"jezdec": ["predku"]})
+	st3["ancestors"] = 2
+	var s3 := Sim.new(data, st3, 73)
+	var j3 := s3.by_id("jezdec")
+	_check(is_equal_approx(s3.stat(j3, "utok"), 0.2) and is_equal_approx(j3.maxhp, 285.0 * 1.2), "Přísaha předků: +10 % Síla a Odolnost za předka")
+	s3._end_oaths()
+	_check(j3.oath_broken, "Přísaha předků: bez zabití se poruší")
+	# pod korouhví: sám déle než 5 s
+	var s4 := Sim.new(data, _setup_with(data, {"asasin": ["pod_korouhvi"]}), 74)
+	var a4 := s4.by_id("asasin")
+	_check(is_equal_approx(s4.stat(a4, "utok"), 0.2), "Pod korouhví: u oddílu Síla +20 %")
+	a4.pos = Vector2(40.0, -6.0)
+	a4.home = a4.pos
+	for i in int(6.0 / DT):
+		s4._watch_oaths(a4, DT)
+	_check(a4.oath_broken, "Pod korouhví: sám déle než 5 s přísahu poruší")
+	# Přísaha mlčení: 3 rozkazy v bitvě, čtvrtý poruší
+	var s5 := Sim.new(data, _setup_with(data, {"asasin": ["prisaha_mlceni"], "knez": ["slib_mlceni"]}), 75)
+	s5.step(DT)
+	s5.events.clear()
+	var a5 := s5.by_id("asasin")
+	for i in 3:
+		s5.set_order("asasin", "point", a5.pos + Vector2(0.5 * (i + 1), 0))
+	_check(s5.has_oath("asasin") and s5.order_oath_conflict("asasin", "point", a5.pos) != "", "Přísaha mlčení: po 3 rozkazech čtvrtý poruší")
+	_check(s5.order_oath_conflict("knez", "ally", "tank") != "", "Slib mlčení: v bitvě rozkaz poruší")
+	# stín: na útočníka neútočí, na nečekajícího dvojnásob
+	var s6 := Sim.new(data, _setup_with(data, {"asasin": ["stin"]}), 76)
+	var a6 := s6.by_id("asasin")
+	var e6 := s6.by_id("e1")
+	e6.target_id = ""
+	_check(is_equal_approx(s6._dmg_mult(a6, e6), 2.0), "Přísaha stínu: Útok ×2 na nečekajícího")
+	e6.target_id = "asasin"
+	_check(s6._choose_target(a6, [e6] as Array[Sim.Unit]) == null and s6.ability_oath_conflict("asasin", e6.id) != "", "Přísaha stínu: na útočníka neútočí, Úder by ji porušil")
+	# ochrana: tank bere za kněze půlku zranění, když kněz padne, poruší ji
+	var s7 := Sim.new(data, _setup_with(data, {"tank": ["ochrana"]}), 77)
+	var t7 := s7.by_id("tank")
+	var k7 := s7.by_id("knez")
+	_check(t7.ward == "knez" and is_equal_approx(t7.maxhp, 375.0 * 1.2), "Přísaha ochrany: chrání kněze, Odolnost +20 %")
+	k7.pos = t7.pos + Vector2(1.0, 0.0)
+	var th := t7.hp
+	var kh := k7.hp
+	s7._hurt(s7.by_id("e0"), k7, 40.0)
+	_check(t7.hp < th and kh - k7.hp < 40.0 * (1.0 - k7.armor) * 0.6, "Přísaha ochrany: tank bere polovinu zranění")
+	s7._hurt(s7.by_id("e0"), k7, 99999.0)
+	_check(t7.oath_broken, "Přísaha ochrany: chráněný padl, přísaha porušena")
+	# mučedník: když padne, vyléčí hrdiny u sebe
+	var s8 := Sim.new(data, _setup_with(data, {"knez": ["mucednik"]}), 78)
+	var k8 := s8.by_id("knez")
+	var l8 := s8.by_id("lucistnik")
+	_check(is_equal_approx(k8.maxhp, 185.0 * 0.8), "Přísaha mučedníka: Odolnost −20 %")
+	l8.pos = k8.pos + Vector2(2.0, 0.0)
+	l8.hp = 10.0
+	s8._hurt(s8.by_id("e0"), k8, 99999.0)
+	_check(is_equal_approx(l8.hp, l8.maxhp), "Přísaha mučedníka: smrt kněze vyléčí druhy")
+	# lovecká čest, rytířská výzva, korouhve
+	var s9 := Sim.new(data, _setup_with(data, {"lucistnik": ["lovecka_cest"], "jezdec": ["rytirska_vyzva"]}), 79)
+	var e9: Sim.Unit = null
+	for f in s9.living(Sim.SIDE_FOE):
+		if e9 == null and not f.leader and f.skill == "":
+			e9 = f
+	e9.hp = e9.maxhp * 0.2
+	_check(s9._choose_target(s9.by_id("lucistnik"), [e9] as Array[Sim.Unit]) == null, "Lovecká čest: nestřílí na zraněné pod 30 %")
+	e9.hp = e9.maxhp
+	_check(not e9.leader and e9.skill == "" and s9._choose_target(s9.by_id("jezdec"), [e9] as Array[Sim.Unit]) == null, "Rytířská výzva: před první ranou jen na velitele")
+	var s10 := Sim.new(data, _setup_with(data, {"jezdec": ["korouhve"]}), 80)
+	var j10 := s10.by_id("jezdec")
+	_check(j10.uses == 4, "Přísaha korouhve: +1 použití")
+	j10.pos = s10.by_id("tank").pos + Vector2(12.0, 0.0)
+	for i in int(3.0 / DT):
+		s10._watch_oaths(j10, DT)
+	_check(j10.oath_broken, "Přísaha korouhve: daleko od tanka se poruší")
+	var s11 := Sim.new(data, _setup_with(data, {"lucistnik": ["rychle_ruce"], "tank": ["veteran"]}), 81)
+	_check(is_equal_approx(s11.stats_of("lucistnik")["pohotovost"], 0.25) and is_equal_approx(s11.by_id("lucistnik").cd, 1.3 / 1.25), "Rychlé ruce = Pohotovost +25 %")
+	_check(is_equal_approx(s11.stats_of("tank")["odolnost"], 0.15), "Veterán = Odolnost +15 %")
+
+
+## Setup s danými pasivkami (ostatní hrdinové bez pasivek, tank bez přísahy na zkoušku).
+func _setup_with(data: Dictionary, pas: Dictionary) -> Dictionary:
+	var st := Sim.default_setup(data)
+	var all := {}
+	for k: String in data["units"]["knights"]:
+		all[k] = pas.get(k, [])
+	st["passives"] = all
+	return st
+
+
+## Poměr interakcí schopnost × přísaha: zhruba 35 % dobrých, 45 % neutrálních, 20 % špatných
+## (rozhodnutí 07.11.2026). Přísahy rodu proti všem schopnostem, osobní proti schopnostem své třídy.
+func _test_interaction_ratio(data: Dictionary) -> void:
+	var knights: Dictionary = data["units"]["knights"]
+	var all_ab: Array = []
+	for k: String in knights:
+		for a: String in knights[k]["abilities"]:
+			all_ab.append(a)
+	var good := 0
+	var bad := 0
+	var total := 0
+	var pas: Dictionary = data["units"]["passives"]
+	for key: String in pas:
+		if key.begins_with("_") or pas[key].get("kind", "") != "oath":
+			continue
+		var o: Dictionary = pas[key]
+		var abs_: Array = all_ab if bool(o.get("rod", false)) else knights[o["class"]]["abilities"]
+		for a: String in abs_:
+			total += 1
+			if (o.get("fits", {}) as Dictionary).has(a):
+				good += 1
+			elif (o.get("clashes", {}) as Dictionary).has(a):
+				bad += 1
+	var gp := 100.0 * good / maxi(total, 1)
+	var bp := 100.0 * bad / maxi(total, 1)
+	print("Interakce: %d kombinací, dobré %.0f %%, neutrální %.0f %%, špatné %.0f %%" % [total, gp, 100.0 - gp - bp, bp])
+	_check(total == 90 and gp >= 30.0 and gp <= 40.0 and bp >= 15.0 and bp <= 25.0, "poměr interakcí kolem 35/45/20")

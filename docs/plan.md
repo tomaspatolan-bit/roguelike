@@ -74,8 +74,13 @@ Cíl: celý krátký run od výběru rodu po bosse.
 - [ ] 2.0s Zkouška stylu (Bad North, rozhodnutí 30.10.2026): tank a kousek bojiště ve finálním směru (světlo a obraz, zkosené hrany, proporce, měkké váhy, animace z knihovny). Hotovo, když: Tom rozhodne, jestli styl dotáhneme sami, nebo zadáme hrdiny a animace externě.
 - [ ] 2.2f Mapy z modulárních assetů (až ve vertical slice po bráně, viz níže): kit (Claude, Blender), kostra mapy z dat a vygenerovaná scéna (Claude), nástroj na překážky do dat, vzhled map v editoru (Tom). Hotovo, když: Tom sám oblékne jednu mapu a testy na ní projdou.
 - [ ] 2.2 Karta stage a volitelné úkoly z dat
-- [ ] 2.3 Odměny po stagi: pasivky, přísahy, nové schopnosti (2. a 3. slot u hrdiny)
-- [ ] 2.4 Více pasivek, přísah a schopností (obsah); směr od 30.10.2026: vazby mezi hrdiny, odměna za riziko (vzor Slib odříkání)
+- [ ] 2.3 Powerupy podle návrhu „Odměny a jádro běhu“ (rozhodnutí 05.–07.11.2026), stavba v pěti krocích:
+  - [x] 2.3a Vlastnosti hrdinů (Útok, Moc, Odolnost, Pohotovost, Síla), 18 přísah (3 rodu, 15 osobních) s omezeními, pasivky převedené na vlastnosti, dědění přísah, test poměru interakcí. Hotovo, když: testy simulace a běhu projdou a balanc se nezměnil.
+  - [ ] 2.3b Pouta rostoucí společnými vítězstvími (úrovně 1–3, žal, nástupce od nuly) a komba na Q/E pro výchozí schopnosti. Hotovo, když: pouto vznikne po 2 výhrách, kombo jde spustit a test ho hlídá.
+  - [ ] 2.3c Nabídky odměn (kategorie, zelené a červené interakce na kartách), tábor se čtyřmi volbami, sláva do 120, nové události.
+  - [ ] 2.3d Výměna schopností (3 na třídu, 10 nových) a zušlechtění, zbylá komba, animace.
+  - [ ] 2.3e Znamení rodu (relikvie běhu: Síla) a balanc běhu.
+- [ ] 2.4 Obsah navíc (pasivky Kryt, Značka, Korouhev v kopí, Tvrdá škola a další) podle playtestu
 - [ ] 2.5 (až po druhé schopnosti, rozhodnutí 05.11.2026) Další rody jako sestavy: Medvěd (berserkr), Sokol (sokolník); meta odemykání rodů
 - [ ] 2.6 Ústup s přeživšími, rozhodnutí, jestli prohraná bitva končí běh; najímání vojáků k hrdinům
 - [ ] 2.9 Průzkum: odhalování podmínek nepřátel jako zdroj v runu

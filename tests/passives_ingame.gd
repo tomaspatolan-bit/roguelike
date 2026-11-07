@@ -19,7 +19,7 @@ const SETS := {
 		"knez": ["pozehnana_zbroj"],
 		"lucistnik": ["probodnuti"],
 		"jezdec": ["rozbeh", "mstitel"],
-		"asasin": ["ze_stinu", "chudoba"]}},
+		"asasin": ["ze_stinu"]}},
 }
 
 var out_dir := ""
@@ -185,7 +185,6 @@ func _observe(sim: Variant) -> void:
 			_ok("lovec", is_equal_approx(float(sim.call("_dmg_mult", asasin, _first_ranged(sim))), 1.3), "asasín má proti střelcům ×%.2f útok" % float(sim.call("_dmg_mult", asasin, _first_ranged(sim))))
 		else:
 			_ok("hlasita_vyzva", is_equal_approx(float(sim.call("ability_of", "tank")["radius"]), 9.0), "Výzva má dosah %d m" % int(sim.call("ability_of", "tank")["radius"]))
-			_ok("chudoba", int(asasin.get("uses")) == 4, "Úder ze stínu má %d použití (Slib odříkání)" % int(asasin.get("uses")))
 	# ikonky nad hlavou a na kartě
 	var oh: Dictionary = ui.get("_overhead")
 	if oh.has("tank") and not seen.has("icons"):
@@ -289,7 +288,6 @@ func _finish(sim: Variant) -> void:
 		_ok("druhy_najezd (karta)", String(seen.get("jezdec_label", "")).contains("●●"), "tlačítko na kartě: „%s“" % seen.get("jezdec_label", ""))
 	else:
 		_ok("rozbeh", seen.has("primed"), "jezdec se rozjel k výpadu (dvojnásobný první úder)")
-		_ok("chudoba (léčení)", bool(sim.call("_no_heal", asasin)), "kněz asasína neléčí (Slib odříkání)")
 	for k in ["ohniva_salva", "drtivy_najezd", "ukryt", "pozehnana_zbroj", "ze_stinu"]:
 		var needed: bool = (set_key == "A" and k in ["ohniva_salva", "drtivy_najezd", "ukryt"]) or (set_key == "B" and k in ["pozehnana_zbroj", "ze_stinu"])
 		if needed:

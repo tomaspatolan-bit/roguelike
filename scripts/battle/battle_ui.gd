@@ -395,6 +395,13 @@ func _status_icons(sim: Sim, u: Sim.Unit, in_battle: bool) -> Array:
 				out.append(["oath", GLORY, u.oath_broken, "Přísaha %s%s: %s" % [pd["name"], " (zlomena)" if u.oath_broken else "", pd["desc"]]])
 			else:
 				out.append(["glory", Color(STEEL, 0.9), false, "%s: %s" % [pd["name"], pd["desc"]]])
+		var st: Dictionary = sim.stats_of(u.id)
+		var parts: Array = []
+		for sk: String in ["utok", "moc", "odolnost", "pohotovost"]:
+			if absf(float(st[sk])) > 0.001:
+				parts.append("%s %+d %%" % [sim.units_data["stats"][sk]["name"], roundi(float(st[sk]) * 100.0)])
+		if not parts.is_empty():
+			out.append(["glory", Color(GLORY, 0.7), false, "Vlastnosti: " + ", ".join(parts)])
 		if in_battle and u.alive():
 			if u.taunt_t > 0.0:
 				out.append(["hradba", STEEL, false, "Výzva: nepřátelé útočí na něj, poloviční zranění"])
@@ -808,12 +815,12 @@ func hide_toast() -> void:
 	toast.visible = false
 
 
-func ask_oath(knight_name: String, oath: Dictionary, on_break: Callable, on_keep: Callable) -> void:
+func ask_oath(knight_name: String, oath: Dictionary, why: String, on_break: Callable, on_keep: Callable, keep_text: String = "Zrušit rozkaz") -> void:
 	_oath_break_cb = on_break
 	_oath_keep_cb = on_keep
-	var bonus := roundi(float(oath.get("dmg_bonus", 0.0)) * 100.0)
+	oath_dialog.cancel_button_text = keep_text
 	var cost := int(oath.get("break_glory_cost", 0))
-	oath_dialog.dialog_text = "%s složil přísahu „%s“ a tenhle rozkaz ji poruší.\n\nKdyž ji porušíš, ztratí bonus +%d %% k útoku, oddíl přijde o %d slávy a zlomená přísaha se nedědí." % [knight_name, oath.get("name", ""), bonus, cost]
+	oath_dialog.dialog_text = "%s složil přísahu „%s“ (%s) a tohle ji poruší: %s.\n\nKdyž ji porušíš, přísaha přestane platit, oddíl přijde o %d slávy a zlomená přísaha se nedědí." % [knight_name, oath.get("name", ""), oath.get("desc", ""), why, cost]
 	oath_dialog.popup_centered()
 
 

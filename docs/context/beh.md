@@ -11,7 +11,7 @@ Spojit bitvy do příběhu rodu na mapě aktu. Struktura hry: `docs/struktura-hr
 2. **Mapa aktu** (`ActMap.generate(act, rng)`, deterministická se semínkem): `floors` pater po `width_min`–`width_max` uzlech, nahoře boss. Každý uzel má cestu dál, každý uzel nad prvním patrem cestu dovnitř, cesty se nekříží, poslední patro vede k bossovi. První patro samé `first_floor` (bitvy), poslední `last_floor` (tábor), na předposledním není tábor, elity až od `elite_from`, dvě elity ani dva tábory za sebou na jedné cestě nejsou. Bitvy a elity berou scénáře z promíchaných seznamů, události z `events`.
 3. **Postup:** `available()` (na začátku celé 1. patro, pak cesty z uzlu) → `choose(id)`. Dokud uzel není vyřízený (`node_finished`: bitva s dědictvím a odměnou, rozhodnutá událost), dál se nejde.
 4. **Padlí zůstanou padlí:** padlý jde do `fallen`, na jeho místo nastoupí nástupce stejné třídy (`successors` v rodu, pak římské číslice) **bez pasivek a zdravý**. Po bossovi už nikdo nenastupuje.
-5. **Dědictví přísahy:** nedodržená přísaha padlého čeká v `pending_legacy`; převzít ji může hrdina bez přísahy (i nástupce), nebo zanikne. Hrdina má nejvýš 1 přísahu. Porušená přísaha po bitvě zmizí.
+5. **Dědictví přísahy:** nedodržená přísaha padlého čeká v `pending_legacy`; přísahu rodu může převzít kdokoli bez přísahy, osobní přísahu třídy jen nástupce stejné třídy (`legacy_candidates`), nebo zanikne. Bitva dostává `ancestors` = počet padlých (Přísaha předků). Hrdina má nejvýš 1 přísahu. Porušená přísaha po bitvě zmizí.
 6. **Zranění se nesou** (`heroes[cls].hp`, podíl 0–1, do bitvy přes `setup.hp`): po bitvě se hrdina doléčí o `regen` (0,2), tábor o `camp_heal` (vše), jednou za tábor. Zranění z události nikoho nezabije (minimum 10 %). **Sláva se přenáší**, nejvýš `glory.carry_max` (50).
 7. **Odměna po vítězné bitvě:** `offers` nabídek {hrdina, pasivka} a 1 výběr; elita `elite_offers` (4) a `elite_picks` (2). Pasivka sedí na třídu (nebo `any`), hrdina ji nemá, druhou přísahu nedostane; po první volbě u elity se neplatné nabídky vyřadí.
 8. **Události** (`udalosti.json`): volby s efekty `glory`, `heal`, `wound`, `gift` (náhodná pasivka/přísaha náhodnému hrdinovi, kterému sedí), `fled` (nepřátelé, kteří se vrátí u bosse). Volba bez dost slávy nebo bez možného příjemce nejde (`event_option_problem`). Text volby jde do kroniky.
@@ -35,6 +35,7 @@ Spojit bitvy do příběhu rodu na mapě aktu. Struktura hry: `docs/struktura-hr
 - Vzhled obrazovek a mapy je zástupný (půjčuje si téma z `battle_ui.gd`); finální UI navrhne Tom.
 
 ## Historie významných změn
+- 07.11.2026: osobní přísahu dědí jen nástupce, přísahu rodu kdokoli; setup bitvy nese počet padlých předků.
 - 29.10.2026: u Hejtmana se vrátí nejvýš 3 uprchlíci (auto-hraní vyhrávalo jen 3–4 běhy z 20, skoro vždy se prohrálo u bosse).
 - 29.10.2026: Lesní ves (obrana) mezi bitvami aktu, po bitvě se hrdina doléčí o 30 %, tábory častěji (váha 2).
 - 29.10.2026: na mapě (najetí na uzel, tooltip) je vidět typ bitvy.

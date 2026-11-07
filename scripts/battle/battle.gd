@@ -398,7 +398,7 @@ func _order_click(screen_pos: Vector2) -> void:
 	_give_order(sim.by_id(id), kind, target)
 
 
-## Dá rozkaz (v bitvě se u přísahy Nikdy neustoupí zeptá, jestli ji porušit).
+## Dá rozkaz (když by porušil přísahu, v bitvě se zeptá, jestli ji porušit; v rozestavení ho odmítne).
 func _give_order(u: Sim.Unit, kind: String, target: Variant) -> void:
 	var problem := sim.order_problem(u.id, kind, target)
 	if problem != "":
@@ -414,11 +414,11 @@ func _give_order(u: Sim.Unit, kind: String, target: Variant) -> void:
 		paused = false
 		_flush_events()
 		_refresh_panel()
-	var retreat := kind == "point" and bool(sim.oath_of(u.id).get("no_retreat", false)) and sim.is_retreat(u.id, target)
-	if retreat and phase == Phase.DEPLOY:
-		ui.flash_hint("%s složil přísahu „%s“: rozkaz nesmí vést zpět." % [u.name, sim.oath_of(u.id).get("name", "")])
+	var conflict := sim.order_oath_conflict(u.id, kind, target)
+	if conflict != "" and phase == Phase.DEPLOY:
+		ui.flash_hint("%s složil přísahu „%s“: %s." % [u.name, sim.oath_of(u.id).get("name", ""), conflict])
 		_refresh_panel()
-	elif retreat:
+	elif conflict != "":
 		paused = true
 		var on_break := func() -> void:
 			sim.break_oath(u.id)
@@ -426,9 +426,28 @@ func _give_order(u: Sim.Unit, kind: String, target: Variant) -> void:
 		var on_keep := func() -> void:
 			paused = false
 			_refresh_panel()
-		ui.ask_oath(u.name, sim.oath_of(u.id), on_break, on_keep)
+		ui.ask_oath(u.name, sim.oath_of(u.id), conflict, on_break, on_keep)
 	else:
 		apply.call()
+
+
+## Použije schopnost; když by porušila přísahu, nejdřív se zeptá (Porušit / Zrušit).
+func _use_ability_asking(id: String, target: Variant) -> void:
+	var conflict := sim.ability_oath_conflict(id, target)
+	var go := func() -> void:
+		if sim.use_ability(id, target):
+			_flush_events()
+		paused = false if conflict != "" else paused
+		_refresh_panel()
+	if conflict == "":
+		go.call()
+		return
+	var u := sim.by_id(id)
+	paused = true
+	var keep := func() -> void:
+		paused = false
+		_refresh_panel()
+	ui.ask_oath(u.name, sim.oath_of(id), conflict, go, keep, "Zrušit schopnost")
 
 func _new_sim() -> void:
 	sim = Sim.new(data, setup)
@@ -619,9 +638,7 @@ func _ability(id: String) -> void:
 		ui.flash_hint(sim.ability_problem(id))
 		return
 	if sim.ability_target(id) == "none":
-		if sim.use_ability(id):
-			_flush_events()
-			_refresh_panel()
+		_use_ability_asking(id, null)
 		return
 	_aim_id = "" if _aim_id == id else id
 	_order_id = ""
@@ -653,9 +670,7 @@ func _aim_click(screen_pos: Vector2) -> void:
 		ui.flash_hint(problem)
 		return
 	_aim_id = ""
-	sim.use_ability(id, target)
-	_flush_events()
-	_refresh_panel()
+	_use_ability_asking(id, target)
 
 
 func _pick_foe(screen_pos: Vector2) -> String:
@@ -1068,6 +1083,11 @@ func _flush_events() -> void:
 					av.play_ability(speed)
 			"wake", "warn":
 				ui.flash_hint(String(ev.get("text", "")))
+			"oath_broken":
+				var bu := sim.by_id(String(ev.get("id", "")))
+				if bu != null and String(ev.get("text", "")) != "":
+					ui.flash_hint("%s porušil přísahu: %s." % [bu.name, ev["text"]])
+				relog = true
 			"skill":
 				var sr := Field.ring(maxf(float(ev.get("radius", 1.0)), 0.9), 0.2, Color(1.0, 0.3, 0.2, 0.85))
 				sr.position = Field.to_world(ev["pos"], 0.1)

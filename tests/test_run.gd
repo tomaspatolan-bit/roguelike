@@ -136,8 +136,9 @@ func _test_rules() -> void:
 	_check(r.has_legacy() and r.legacy_current()["oath"] == "nikdy_neustoupi", "přísaha padlého čeká na dědice")
 	_check(r.available().is_empty(), "dokud není dědictví a odměna vyřízená, nejde se dál")
 	_check(r.fled.size() == 3, "uprchlíci se zapamatovali")
-	r.resolve_legacy("lucistnik")
-	_check(r.oath_of("lucistnik") == "nikdy_neustoupi" and not r.has_legacy(), "Matěj zdědil přísahu")
+	_check(not r.legacy_candidates().has("lucistnik") and r.legacy_candidates().has("tank"), "osobní přísahu tanka dědí jen nástupce")
+	r.resolve_legacy("tank")
+	_check(r.oath_of("tank") == "nikdy_neustoupi" and not r.has_legacy(), "Sir Vítek zdědil přísahu předchůdce")
 	var offers := r.offers()
 	_check(offers.size() == 3, "po bitvě se nabízí 3 odměny")
 	var ok := true
@@ -146,13 +147,22 @@ func _test_rules() -> void:
 		var c: String = d.get("class", "any")
 		if c != "any" and c != o["hero"]:
 			ok = false
-		if o["hero"] == "lucistnik" and r.is_oath(o["passive"]):
+		if o["hero"] == "tank" and r.is_oath(o["passive"]):
 			ok = false
 	_check(ok, "nabídky sedí na třídu a nedávají druhou přísahu")
 	var o0: Dictionary = offers[0]
 	r.pick_offer(0)
 	_check((r.heroes[o0["hero"]]["passives"] as Array).has(o0["passive"]), "vybraná odměna patří hrdinovi")
 	_check(r.offers().is_empty() and not r.available().is_empty(), "odměna se vybírá jednou, pak se jde dál")
+
+	# přísahu rodu zdědí kdokoli bez přísahy
+	var rr2 := Run.new(8)
+	rr2.heroes["knez"]["passives"] = ["milost"]
+	rr2.choose(rr2.available()[0])
+	rr2.record_battle(_fake("win", ["knez"], [], 30.0, {}))
+	_check(rr2.has_legacy() and rr2.legacy_candidates().has("lucistnik") and rr2.legacy_candidates().has("knez"), "přísahu rodu může převzít kdokoli bez přísahy")
+	var s2 := rr2.battle_setup(rr2.load_stage_data())
+	_check(int(s2["ancestors"]) == 1, "bitva ví, kolik předků padlo (Přísaha předků)")
 
 	# elita: 4 nabídky, 2 výběry
 	var re := Run.new(11)

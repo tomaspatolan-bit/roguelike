@@ -198,6 +198,7 @@ func battle_setup(data: Dictionary) -> Dictionary:
 	setup["names"] = names
 	setup["hp"] = hp
 	setup["glory"] = glory
+	setup["ancestors"] = fallen.size()   # Přísaha předků
 	setup["extra_enemies"] = returnee_rows(data["scenario"])
 	return setup
 
@@ -309,11 +310,15 @@ func legacy_current() -> Dictionary:
 	return pending_legacy[0] if has_legacy() else {}
 
 
-## Kdo může přísahu zdědit: živí hrdinové bez přísahy (vč. nástupců).
+## Kdo může přísahu zdědit: živí hrdinové bez přísahy (vč. nástupců). Osobní přísahu třídy
+## dědí jen nástupce stejné třídy, přísahu rodu kdokoli.
 func legacy_candidates() -> Array:
 	var out: Array = []
+	var cls_of := ""
+	if has_legacy():
+		cls_of = String(units_data["passives"][legacy_current()["oath"]].get("class", "any"))
 	for cls: String in heroes:
-		if oath_of(cls) == "":
+		if oath_of(cls) == "" and (cls_of == "any" or cls_of == "" or cls_of == cls):
 			out.append(cls)
 	return out
 
