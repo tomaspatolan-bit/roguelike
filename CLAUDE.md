@@ -30,6 +30,7 @@ Přečti `docs/stav.md` (co se teď dělá), `docs/plan.md` (kde jsme ve stepper
 
 ## Ostatní dokumenty
 
+- `README.md` – popis hry pro člověka zvenku (o co jde, jak se hraje, kde je hra teď, ovládání). Aktualizuj po dokončeném kroku plánu.
 - `docs/plan.md` – stepper fází a kroků s kritérii „hotovo, když“.
 - `docs/playtesty.md` – Tomova zpětná vazba z hraní. Po každém playtestu z ní vyvoď úkoly.
 - `docs/napady.md` – parkoviště nápadů.
