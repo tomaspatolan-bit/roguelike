@@ -209,6 +209,8 @@ func show_after_battle() -> void:
 
 	if run.has_legacy():
 		_legacy_block(v)
+	elif not run.bond_offer().is_empty():
+		_bond_block(v)
 	elif not run.offers().is_empty():
 		_reward_block(v)
 	else:
@@ -303,6 +305,37 @@ func _legacy_block(v: VBoxContainer) -> void:
 	v.add_child(_panel(box))
 
 
+## Pouto: dvojice vyhrála dost bitev spolu, hráč vybere typ ze dvou (nebo odloží).
+func _bond_block(v: VBoxContainer) -> void:
+	var o := run.bond_offer()
+	var a: String = o["a"]
+	var b: String = o["b"]
+	v.add_child(_label("Pouto: %s a %s" % [run.hero_name(a), run.hero_name(b)], 22, GLORY))
+	v.add_child(_label("Společná vítězství: %d. Jaké pouto mezi nimi vznikne? Pouto sílí dalšími společnými vítězstvími (úroveň 2 odemkne kombo); když jeden padne, druhý ponese žal." % int(o["wins"]), 15, INK, true))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	for t: String in o["choices"]:
+		var card := VBoxContainer.new()
+		card.add_theme_constant_override("separation", 6)
+		card.add_child(_label(run.bond_name(t), 19, GLORY, true))
+		card.add_child(_label(run.bond_desc(t), 14, INK, true))
+		card.add_child(_label("Žal: " + String(run.units_data["bonds"][t].get("grief_desc", "")), 13, MUTED, true))
+		var pick := _primary("Vybrat")
+		pick.pressed.connect(func() -> void:
+			run.choose_bond(t)
+			show_after_battle())
+		card.add_child(pick)
+		var p := _panel(card)
+		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(p)
+	v.add_child(row)
+	var later := _button("Zatím ne (nabídne se po dalším společném vítězství)")
+	later.pressed.connect(func() -> void:
+		run.choose_bond("")
+		show_after_battle())
+	v.add_child(later)
+
+
 func _reward_block(v: VBoxContainer) -> void:
 	var offers := run.offers()
 	v.add_child(_label("Odměna: vyber jednu" if run.picks_left() <= 1 else "Odměna elity: vyber %d" % run.picks_left(), 22, GLORY))
@@ -353,6 +386,9 @@ func _roster() -> Control:
 		hpb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		hpb.tooltip_text = "Zdraví %d %%" % roundi(run.hp_of(cls) * 100.0)
 		row.add_child(hpb)
+		var bd: Dictionary = h.get("bond", {})
+		if not bd.is_empty():
+			names.append("Pouto %s · %s (úr. %d, společná vítězství: %d)" % [run.bond_name(bd["type"]), run.hero_name(bd["with"]), run.bond_level(cls), run.wins_of(cls, bd["with"])])
 		var pl := _label(", ".join(names) if not names.is_empty() else "bez pasivek", 14, MUTED, true)
 		pl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(pl)

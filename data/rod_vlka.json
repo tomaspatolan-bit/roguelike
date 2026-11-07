@@ -1,5 +1,5 @@
 {
-  "_info": "Rod Vlka: sestava je v units.json (knights), tady sláva a výchozí pasivky. Sláva je společná rezerva rodu: plní se činy hrdinů, platí se jí v událostech a za porušenou přísahu (schopnosti už neplatí), carry_max = kolik slávy si rod nese do další bitvy běhu. successors = jména nástupců padlých podle třídy (popořadě), start_passives = pasivky a přísahy hrdinů na začátku (v prototypu má tank přísahu Nikdy neustoupí jen na zkoušku; ve hře budou odměnou v běhu).",
+  "_info": "Rod Vlka: sestava je v units.json (knights), tady sláva a výchozí pasivky. Sláva je společná rezerva rodu: plní se činy hrdinů, platí se jí v událostech a za porušenou přísahu (schopnosti už neplatí), carry_max = kolik slávy si rod nese do další bitvy běhu. successors = jména nástupců padlých podle třídy (popořadě), start_passives = pasivky a přísahy hrdinů na začátku (v prototypu má tank přísahu Nikdy neustoupí jen na zkoušku; ve hře budou odměnou v běhu). trial_bonds = pouta na zkoušku ve volné bitvě (aby šla vyzkoušet komba); v běhu pouta vznikají společnými vítězstvími.",
   "name": "Rod Vlka",
   "glory": {
     "start": 25,
@@ -17,8 +17,12 @@
     "asasin": ["Jakub", "Vavřinec", "Štěpán", "Řehoř"]
   },
   "start_passives": {
-    "tank": [
-      "nikdy_neustoupi"
-    ]
+    "tank": ["nikdy_neustoupi"]
+  },
+  "trial_bonds": {
+    "tank": {"with": "lucistnik", "type": "stitonos", "level": 2},
+    "lucistnik": {"with": "tank", "type": "stitonos", "level": 2},
+    "jezdec": {"with": "asasin", "type": "bratri", "level": 2},
+    "asasin": {"with": "jezdec", "type": "bratri", "level": 2}
   }
 }

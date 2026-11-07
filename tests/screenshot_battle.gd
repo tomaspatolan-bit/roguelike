@@ -238,6 +238,10 @@ func _test_realtime_orders() -> void:
 		texts.append(l.text)
 	var clean := not texts.has("Poslat") and not texts.any(func(t: String) -> bool: return t.begins_with("Se spojencem") or t.begins_with("Bez rozkazu"))
 	print("H drží místo, karta bez Poslat, schopnost s klávesou: %s" % ("OK" if held and clean and texts.has("1") else "CHYBA (%s, %s)" % [held, texts]))
+	# volná bitva má pouta na zkoušku: dvě komba na Q a E v panelu za kartami
+	var combos: Array = sim.call("combos")
+	var combo_ok := combos.size() == 2 and texts.has("Q") and texts.has("E") and (ui.get("_combo_buttons") as Dictionary).size() == 2
+	print("Komba pout na Q a E: %s" % ("OK" if combo_ok else "CHYBA (%d komb, Q %s, E %s)" % [combos.size(), texts.has("Q"), texts.has("E")]))
 	scene.call("_select_all")
 	# náhled pravého tlačítka nad nepřítelem (kamera se po druhém kliku na kartu natočila, pozice znovu)
 	screen = cam.unproject_position((views[String(foe.get("id"))] as Node3D).global_position + Vector3(0, 1.0, 0))

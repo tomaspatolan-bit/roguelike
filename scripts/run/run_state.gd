@@ -3,7 +3,7 @@ extends RefCounted
 ## Čistá logika bez grafiky, jde spustit v testech bez okna (tests/test_run.gd).
 ##
 ## Průběh: available() → choose(id) → podle typu uzlu:
-##   bitva / elita / boss: battle_setup(data) → bitva → record_battle(sim.result()) → dědictví (legacy_*) → odměna (offers / pick_offer)
+##   bitva / elita / boss: battle_setup(data) → bitva → record_battle(sim.result()) → dědictví (legacy_*) → pouto (bond_offer / choose_bond) → odměna (offers / pick_offer)
 ##   udalost: event() → event_option_problem(i) / event_choose(i)
 ##   tabor: camp_rest()
 ## a zpět na mapu. Po bossovi je akt (zatím celý běh) vyhraný.
@@ -19,7 +19,8 @@ var house: Dictionary
 var events_data: Dictionary
 var map: Dictionary
 
-## Hrdinové podle třídy: {"name", "passives": Array, "glory": float, "hp": podíl zdraví 0..1, "joined": patro}
+## Hrdinové podle třídy: {"name", "passives": Array, "glory": float, "hp": podíl zdraví 0..1, "joined": patro,
+## "bond": {} nebo {"with": třída, "type": klíč pouta}}
 var heroes := {}
 var fallen: Array = []          # [{"cls", "name", "stage", "passives", "glory"}]
 var node_id := ""               # uzel, kde rod právě je ("" = před prvním patrem)
@@ -34,12 +35,16 @@ var over := ""                  # "" běží, "win", "lose"
 var last_result := {}
 var event_done := false         # událost v aktuálním uzlu už je rozhodnutá
 var camp_done := false          # v aktuálním táboře už se odpočívalo
+var pair_wins := {}             # společná vítězství dvojic: {"a|b" (třídy podle abecedy): počet}
+var bond_declined := {}         # dvojice, kterým hráč pouto odložil: {"a|b": počet vítězství tehdy}
 
 var _offers: Array = []
 var _offers_ready := false
 var _picks_left := 0
 var _rng := RandomNumberGenerator.new()
 var _succ_used := {}
+var _bond_open := false
+var _bond_offer := {}
 
 
 func _init(rng_seed: int = -1, act_key: String = "akt_1") -> void:
@@ -60,6 +65,7 @@ func _init(rng_seed: int = -1, act_key: String = "akt_1") -> void:
 			"glory": 0.0,
 			"hp": 1.0,
 			"joined": 0,
+			"bond": {},
 		}
 	map = ActMap.generate(act, _rng)
 	_note("", "%s vyráží do kraje %s. Pět hrdinů, %d pater, na konci Hejtman Kuno." % [house["name"], act["name"], int(act["floors"])])
@@ -102,7 +108,7 @@ func node_finished() -> bool:
 		"":
 			return true
 		"bitva", "elita", "boss":
-			return last_result.has("node") and last_result["node"] == node_id and not has_legacy() and offers().is_empty()
+			return last_result.has("node") and last_result["node"] == node_id and not has_legacy() and bond_offer().is_empty() and offers().is_empty()
 		"udalost":
 			return event_done
 		"tabor":
@@ -199,6 +205,14 @@ func battle_setup(data: Dictionary) -> Dictionary:
 	setup["hp"] = hp
 	setup["glory"] = glory
 	setup["ancestors"] = fallen.size()   # Přísaha předků
+	var bonds := {}
+	for cls: String in heroes:
+		var b: Dictionary = heroes[cls]["bond"]
+		if not b.is_empty():
+			var other: String = b["with"]
+			bonds[cls] = {"with": other, "type": b["type"], "level": bond_level(cls),
+				"student": b["type"] == "ucitel" and int(heroes[cls]["joined"]) > int(heroes[other]["joined"])}
+	setup["bonds"] = bonds
 	setup["extra_enemies"] = returnee_rows(data["scenario"])
 	return setup
 
@@ -259,6 +273,7 @@ func record_battle(res: Dictionary) -> void:
 
 	# padlí: zapsat, přísaha čeká na dědice, nastoupí nástupce
 	var dead: Array = res.get("dead", [])
+	_bonds_after_deaths(dead, sname)
 	for cls: String in dead:
 		var h: Dictionary = heroes[cls]
 		fallen.append({"cls": cls, "name": h["name"], "stage": sname, "passives": (h["passives"] as Array).duplicate(), "glory": h["glory"]})
@@ -272,6 +287,8 @@ func record_battle(res: Dictionary) -> void:
 		_note("", "%s padl celý. Běh končí." % house["name"])
 		return
 
+	_count_wins(dead, sname)
+
 	# zranění se nesou, po bitvě se kousek doléčí
 	var hp: Dictionary = res.get("hp", {})
 	for cls: String in heroes:
@@ -281,7 +298,7 @@ func record_battle(res: Dictionary) -> void:
 	if not is_boss:
 		for cls: String in dead:
 			var nm := _successor_name(cls)
-			heroes[cls] = {"name": nm, "passives": [], "glory": 0.0, "hp": 1.0, "joined": current_floor()}
+			heroes[cls] = {"name": nm, "passives": [], "glory": 0.0, "hp": 1.0, "joined": current_floor(), "bond": {}}
 			_note(sname, "Na místo padlého nastupuje %s." % nm)
 
 	# uprchlíci z této bitvy se mohou vrátit později
@@ -298,6 +315,8 @@ func record_battle(res: Dictionary) -> void:
 		return
 	var elite := node_type() == "elita"
 	_picks_left = int(act.get("elite_picks", 2)) if elite else 1
+	_bond_open = true
+	_bond_offer = {}
 
 
 # --- dědictví přísahy ---
@@ -319,6 +338,8 @@ func legacy_candidates() -> Array:
 		cls_of = String(units_data["passives"][legacy_current()["oath"]].get("class", "any"))
 	for cls: String in heroes:
 		if oath_of(cls) == "" and (cls_of == "any" or cls_of == "" or cls_of == cls):
+			if has_legacy() and bool(units_data["passives"][legacy_current()["oath"]].get("no_bond", false)) and not (heroes[cls]["bond"] as Dictionary).is_empty():
+				continue   # Přísaha samotáře nejde k hrdinovi s poutem
 			out.append(cls)
 	return out
 
@@ -336,6 +357,166 @@ func resolve_legacy(cls: String) -> void:
 	_offers_ready = false
 
 
+# --- pouta mezi hrdiny (rozhodnutí 07.11.2026) ---
+
+func pair_key(a: String, b: String) -> String:
+	return "%s|%s" % [a, b] if a < b else "%s|%s" % [b, a]
+
+
+## Společná vítězství dvojice (oba přežili).
+func wins_of(a: String, b: String) -> int:
+	return int(pair_wins.get(pair_key(a, b), 0))
+
+
+## Úroveň pro počet společných vítězství (0–3, prahy bond_rules.levels).
+func level_for(wins: int) -> int:
+	var lv := 0
+	for th: Variant in (units_data["bond_rules"]["levels"] as Array):
+		if wins >= int(th):
+			lv += 1
+	return lv
+
+
+## Úroveň pouta hrdiny (0 = bez pouta).
+func bond_level(cls: String) -> int:
+	var b: Dictionary = heroes[cls]["bond"]
+	return 0 if b.is_empty() else maxi(1, level_for(wins_of(cls, String(b["with"]))))
+
+
+func bond_name(type: String) -> String:
+	return String(units_data["bonds"][type]["name"])
+
+
+func bond_desc(type: String) -> String:
+	return String(units_data["bonds"][type].get("desc", ""))
+
+
+func _no_bond(cls: String) -> bool:
+	var o := oath_of(cls)
+	return o != "" and bool(units_data["passives"][o].get("no_bond", false))
+
+
+## Sedí typ pouta na dvojici? (who: jeden z A, druhý z B; successor: jeden přišel později)
+func bond_fits(type: String, a: String, b: String) -> bool:
+	var bd: Dictionary = units_data["bonds"][type]
+	var who: Array = bd.get("who", [["*"], ["*"]])
+	var in_set := func(arr: Array, c: String) -> bool: return arr.has("*") or arr.has(c)
+	var ok: bool = (in_set.call(who[0], a) and in_set.call(who[1], b)) or (in_set.call(who[0], b) and in_set.call(who[1], a))
+	if bool(bd.get("successor", false)):
+		ok = ok and int(heroes[a]["joined"]) != int(heroes[b]["joined"])
+	return ok
+
+
+## Nabídka pouta po bitvě: dvojice s aspoň levels[0] vítězstvími, oba bez pouta (a bez Přísahy samotáře),
+## nejdřív ta s nejvíc vítězstvími. {"a", "b", "wins", "choices": [typ, typ]} nebo {}.
+func bond_offer() -> Dictionary:
+	if not _bond_open or over != "" or has_legacy():
+		return {}
+	if not _bond_offer.is_empty():
+		return _bond_offer
+	var need := int(units_data["bond_rules"]["levels"][0])
+	var best := {}
+	for key: String in pair_wins:
+		var w := int(pair_wins[key])
+		var ab := key.split("|")
+		var a: String = ab[0]
+		var b: String = ab[1]
+		if w < need or not heroes.has(a) or not heroes.has(b):
+			continue
+		if not (heroes[a]["bond"] as Dictionary).is_empty() or not (heroes[b]["bond"] as Dictionary).is_empty():
+			continue
+		if _no_bond(a) or _no_bond(b):
+			continue
+		if bond_declined.has(key) and int(bond_declined[key]) >= w:
+			continue
+		if best.is_empty() or w > int(best["wins"]):
+			best = {"a": a, "b": b, "wins": w}
+	if best.is_empty():
+		_bond_open = false
+		return {}
+	var types: Array = []
+	for t: String in units_data["bonds"]:
+		if not t.begins_with("_") and bond_fits(t, best["a"], best["b"]):
+			types.append(t)
+	_shuffle(types)
+	best["choices"] = types.slice(0, int(units_data["bond_rules"].get("choices", 2)))
+	_bond_offer = best
+	return _bond_offer
+
+
+## Hráč vybere typ pouta z nabídky ("" = zatím ne, nabídne se znovu po dalším společném vítězství).
+func choose_bond(type: String) -> void:
+	var o := bond_offer()
+	if o.is_empty():
+		return
+	var a: String = o["a"]
+	var b: String = o["b"]
+	if type != "" and (o["choices"] as Array).has(type):
+		heroes[a]["bond"] = {"with": b, "type": type}
+		heroes[b]["bond"] = {"with": a, "type": type}
+		_note("", "Vzniklo pouto %s: %s a %s (společná vítězství: %d)." % [bond_name(type), hero_name(a), hero_name(b), int(o["wins"])])
+	else:
+		bond_declined[pair_key(a, b)] = int(o["wins"])
+		_note("", "Pouto odloženo: %s a %s." % [hero_name(a), hero_name(b)])
+	_bond_offer = {}
+	_offers_ready = false
+
+
+## Padlí: druh přijde o pouto (Učitel a žák: žák zdědí jednu pasivku učitele), historie padlého se smaže.
+func _bonds_after_deaths(dead: Array, sname: String) -> void:
+	for cls: String in dead:
+		var b: Dictionary = heroes[cls]["bond"]
+		if not b.is_empty():
+			var other: String = b["with"]
+			if heroes.has(other) and not dead.has(other):
+				heroes[other]["bond"] = {}
+				_note(sname, "%s truchlí, padl jeho druh %s. Pouto %s zaniklo." % [hero_name(other), hero_name(cls), bond_name(b["type"])])
+				if b["type"] == "ucitel" and int(heroes[other]["joined"]) > int(heroes[cls]["joined"]):
+					var can: Array = []
+					for k: String in heroes[cls]["passives"]:
+						var c: String = units_data["passives"][k].get("class", "any")
+						if not is_oath(k) and (c == "any" or c == other) and not (heroes[other]["passives"] as Array).has(k):
+							can.append(k)
+					if not can.is_empty():
+						var pick: String = can[_rng.randi() % can.size()]
+						(heroes[other]["passives"] as Array).append(pick)
+						_note(sname, "%s po učiteli převzal: %s." % [hero_name(other), passive_name(pick)])
+		var longest := ""
+		for key: String in pair_wins.keys():
+			if (key as String).split("|").has(cls):
+				var w := int(pair_wins[key])
+				if w >= 2 and (longest == "" or w > int(pair_wins.get(longest, 0))):
+					longest = key
+		if longest != "":
+			var ab := longest.split("|")
+			var mate: String = ab[1] if ab[0] == cls else ab[0]
+			_note(sname, "%s a %s stáli bok po boku (společná vítězství: %d)." % [hero_name(cls), hero_name(mate), int(pair_wins[longest])])
+		for key: String in pair_wins.keys():
+			if (key as String).split("|").has(cls):
+				pair_wins.erase(key)
+				bond_declined.erase(key)
+
+
+## Vyhraná bitva: každá dvojice, která přežila, má o společné vítězství víc; pouto může zesílit.
+func _count_wins(dead: Array, sname: String) -> void:
+	var alive: Array = []
+	for cls: String in heroes:
+		if not dead.has(cls):
+			alive.append(cls)
+	for i in alive.size():
+		for j in range(i + 1, alive.size()):
+			var key := pair_key(alive[i], alive[j])
+			pair_wins[key] = int(pair_wins.get(key, 0)) + 1
+	for cls: String in alive:
+		var b: Dictionary = heroes[cls]["bond"]
+		if b.is_empty() or cls > String(b["with"]):
+			continue
+		var w := wins_of(cls, b["with"])
+		var lv := level_for(w)
+		if lv > level_for(w - 1) and lv >= 2:
+			_note(sname, "Pouto %s (%s a %s) zesílilo na úroveň %d." % [bond_name(b["type"]), hero_name(cls), hero_name(b["with"]), lv])
+
+
 # --- odměna po bitvě ---
 
 ## Kolik odměn z nabídky si hráč ještě vybere (elita 2, jinak 1).
@@ -345,7 +526,7 @@ func picks_left() -> int:
 
 ## Nabídky odměny: [{"hero": třída, "passive": klíč}].
 func offers() -> Array:
-	if over != "" or _picks_left <= 0 or has_legacy():
+	if over != "" or _picks_left <= 0 or has_legacy() or not bond_offer().is_empty():
 		return []
 	if not _offers_ready:
 		var n := int(act.get("elite_offers", 4)) if node_type() == "elita" else int(act.get("offers", 3))
@@ -359,6 +540,8 @@ func offer_valid(o: Dictionary) -> bool:
 	var cls: String = o["hero"]
 	var key: String = o["passive"]
 	if (heroes[cls]["passives"] as Array).has(key):
+		return false
+	if bool(units_data["passives"][key].get("no_bond", false)) and not (heroes[cls]["bond"] as Dictionary).is_empty():
 		return false
 	return not (is_oath(key) and oath_of(cls) != "")
 
@@ -399,6 +582,8 @@ func _passives_for(cls: String, kind: String) -> Array:
 		if c != "any" and c != cls:
 			continue
 		if (heroes[cls]["passives"] as Array).has(key):
+			continue
+		if bool(d.get("no_bond", false)) and not (heroes[cls]["bond"] as Dictionary).is_empty():
 			continue
 		var k: String = d.get("kind", "passive")
 		if k == "oath" and has_oath:

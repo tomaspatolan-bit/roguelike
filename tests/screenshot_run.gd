@@ -96,6 +96,11 @@ func _process(_delta: float) -> bool:
 			var c: Array = run.call("legacy_candidates")
 			run.call("resolve_legacy", c[0] if not c.is_empty() else "")
 			scene.call("show_after_battle")
+		elif not (run.call("bond_offer") as Dictionary).is_empty():
+			_shot("%02d_pouto.png" % step)
+			var ch: Array = run.call("bond_offer")["choices"]
+			run.call("choose_bond", ch[0] if not ch.is_empty() else "")
+			scene.call("show_after_battle")
 		else:
 			_shot("%02d_odmena_%s.png" % [step, t])
 			run.call("pick_offer", 0)

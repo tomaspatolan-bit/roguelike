@@ -127,5 +127,32 @@
     "odolnost": {"name": "Odolnost", "desc": "Zdraví hrdiny."},
     "pohotovost": {"name": "Pohotovost", "desc": "Rychlost útoků, léčení kněze a nabíjení schopnosti."},
     "sila": {"name": "Síla", "desc": "Útok i Moc zároveň (přísahy rodu, znamení)."}
+  },
+  "bond_rules": {
+    "_info": "Pouta mezi hrdiny (rozhodnutí 07.11.2026). Dvojice, která vyhraje bitvu a oba přežijí, má +1 společné vítězství. levels = kolik společných vítězství je potřeba na úroveň 1, 2, 3. Úroveň 1: hráč vybere typ pouta ze dvou (choices). Kombo od úrovně combo_level. Žal: úroveň 1 poloviční (grief_half), úroveň 3 navíc Síla grief_sila do konce bitvy.",
+    "levels": [2, 4, 6],
+    "choices": 2,
+    "combo_level": 2,
+    "grief_half": 0.5,
+    "grief_sila": -0.15
+  },
+  "bonds": {
+    "_info": "Typy pout. who = [skupina A, skupina B]: jeden hrdina z A, druhý z B (\"*\" = kdokoli); successor = jeden z dvojice musí být nástupce (přišel později). Čísla se seznamem jsou pro úroveň 1 / 2 / 3. desc = co dává, grief_desc = žal, když jeden padne.",
+    "bratri": {"name": "Bratři ve zbrani", "who": [["tank", "jezdec", "asasin"], ["tank", "jezdec", "asasin"]], "desc": "Do 4 m od sebe oba Útok +10 / 20 / 30 %.", "grief_desc": "Druhý 8 s zuří: Útok +40 %, neposlouchá rozkazy.", "near_radius": 4.0, "stats": {"utok": [0.1, 0.2, 0.3]}, "rage_t": 8.0, "rage_utok": 0.4},
+    "zpovednik": {"name": "Zpovědník", "who": [["knez"], ["*"]], "desc": "Kněz ho léčí o 25 / 50 / 75 % víc.", "grief_desc": "Kněz 10 s nikoho neléčí.", "heal_bonus": [0.25, 0.5, 0.75], "mourn_t": 10.0},
+    "stitonos": {"name": "Štítonoš", "who": [["tank"], ["lucistnik", "knez"]], "desc": "Tank bere 15 / 30 / 40 % zranění druha do 3 m.", "grief_desc": "Tank přijde o zbylá použití schopnosti.", "share_radius": 3.0, "share": [0.15, 0.3, 0.4]},
+    "lovci": {"name": "Lovecká dvojice", "who": [["lucistnik"], ["asasin"]], "desc": "Na cíl asasínova Úderu střílí lučištník 5 s ×1,5 / ×2 / ×2,5.", "grief_desc": "Druhý do konce bitvy Útok −20 %.", "mark_t": 5.0, "mark_mult": [1.5, 2.0, 2.5], "grief_utok": -0.2},
+    "kopi": {"name": "Kopí a štít", "who": [["jezdec"], ["tank"]], "desc": "Po schopnosti tanka se jezdcova nabije o 50 / 100 / 100 %, na úrovni 3 má +1 použití. Cena: když tank klesne pod 25 % zdraví, jezdec k němu sám vyrazí.", "grief_desc": "Jen žal podle úrovně.", "recharge": [0.5, 1.0, 1.0], "extra_uses": [0, 0, 1], "rescue_at": 0.25, "rescue_t": 4.0},
+    "krev": {"name": "Pokrevní bratrství", "who": [["*"], ["*"]], "desc": "Léčení jednoho léčí i druhého z 25 / 50 / 75 %.", "grief_desc": "Druhý hned ztratí 30 % zdraví.", "heal_share": [0.25, 0.5, 0.75], "grief_hp": 0.3},
+    "ucitel": {"name": "Učitel a žák", "who": [["*"], ["*"]], "successor": true, "desc": "Žák do 5 m od učitele Síla +10 / 15 / 20 %.", "grief_desc": "Žák zdědí jednu pasivku učitele.", "near_radius": 5.0, "stats": {"sila": [0.1, 0.15, 0.2]}},
+    "souperi": {"name": "Soupeři", "who": [["*"], ["*"]], "desc": "Oba Útok +10 / 15 / 20 %; kdo v bitvě zabije víc, přinese rodu +15 slávy. Cena: druhovi pod 30 % zdraví nepomůže.", "grief_desc": "Jen žal podle úrovně.", "stats": {"utok": [0.1, 0.15, 0.2]}, "rival_glory": 15, "no_help_below": 0.3}
+  },
+  "combos": {
+    "_info": "Komba pout (rozhodnutí 07.11.2026): dva hrdinové s poutem aspoň na úrovni combo_level, jejich schopnosti a a b. Spustí obě najednou (Q, E), spotřebuje po jednom použití a nabije obě. aim = none (kotva = hrdina se schopností a) / point (míří se schopnost aim_by). max_gap = jak daleko od sebe smí hrdinové být. Zatím komba výchozích schopností; další přijdou se schopnostmi 2.3d.",
+    "navnada": {"name": "Návnada", "a": "vyzva", "b": "salva", "aim": "none", "desc": "Tank vyzve nepřátele a Salva dopadne na ty kolem něj, poškození +50 %.", "radius": 3.5, "dmg_mult": 1.5, "max_gap": 14.0},
+    "za_zady": {"name": "Za zády", "a": "vyzva", "b": "uder", "aim": "none", "desc": "Tank vyzve nepřátele a asasín skočí za toho, kdo na tanka útočí, úder ×4.", "mult": 4.0, "max_gap": 14.0},
+    "stit_a_kopi": {"name": "Štít a kopí", "a": "vyzva", "b": "najezd", "aim": "none", "desc": "Tank vyzve nepřátele a jezdec projede k němu skrz přitažené, Nájezd +50 %.", "dmg_mult": 1.5, "max_gap": 14.0},
+    "posvecene_sipy": {"name": "Posvěcené šípy", "a": "salva", "b": "pozehnani", "aim": "point", "aim_by": "salva", "desc": "Salva pálí nepřátele +30 % a hrdiny v kruhu 4 m vyléčí o 10 %.", "dmg_mult": 1.3, "heal_radius": 4.0, "heal_frac": 0.1, "max_gap": 16.0},
+    "kladivo": {"name": "Kladivo a kovadlina", "a": "najezd", "b": "uder", "aim": "point", "aim_by": "najezd", "desc": "Jezdec projede, asasín skočí za prvního omráčeného: pěšáka zabije, velitele zasáhne ×4.", "mult": 4.0, "max_gap": 16.0}
   }
 }

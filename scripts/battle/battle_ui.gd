@@ -10,6 +10,7 @@ const Icon := preload("res://scripts/battle/ui_icon.gd")
 
 signal knight_clicked(id: String)
 signal ability_pressed(id: String)
+signal combo_pressed(id: String)
 signal passive_toggled(id: String, key: String, on: bool)
 signal scenario_changed(id: String)
 signal order_pressed(id: String)
@@ -71,6 +72,7 @@ var _overhead: Dictionary = {}     # id -> {"root", "fill", "bg", "icons", "sig"
 var _cards: Dictionary = {}        # id -> {"hp": ProgressBar, "icons": HBoxContainer, "sig": String}
 var _time_label: Label
 var _ability_buttons: Dictionary = {}   # id hrdiny -> Button
+var _combo_buttons: Dictionary = {}     # id komba -> Button
 var _hint: Label
 var _hint_t := 0.0
 var _pause_button: Button
@@ -375,6 +377,7 @@ func _clear() -> void:
 		c.queue_free()
 	_cards.clear()
 	_ability_buttons.clear()
+	_combo_buttons.clear()
 	_pause_button = null
 	_charge_button = null
 	_time_label = null
@@ -395,6 +398,10 @@ func _status_icons(sim: Sim, u: Sim.Unit, in_battle: bool) -> Array:
 				out.append(["oath", GLORY, u.oath_broken, "Přísaha %s%s: %s" % [pd["name"], " (zlomena)" if u.oath_broken else "", pd["desc"]]])
 			else:
 				out.append(["glory", Color(STEEL, 0.9), false, "%s: %s" % [pd["name"], pd["desc"]]])
+		var bond := sim.bond_of(u.id)
+		if not bond.is_empty():
+			var mate := sim.by_id(String(bond["with"]))
+			out.append(["glory", GLORY, mate == null or not mate.alive(), "Pouto %s · druh %s (úroveň %d): %s Žal: %s" % [bond["name"], mate.name if mate != null else "?", int(bond["level"]), bond["desc"], bond["grief_desc"]]])
 		var st: Dictionary = sim.stats_of(u.id)
 		var parts: Array = []
 		for sk: String in ["utok", "moc", "odolnost", "pohotovost"]:
@@ -632,6 +639,33 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 					passive_toggled.emit(id, String(pm.get_item_metadata(index)), not pm.is_item_checked(index)))
 			v.add_child(mb)
 		cards_row.add_child(card)
+	_build_combos(sim)
+
+
+## Komba pout (Q, E): tlačítko s klávesou, názvem a dvojicí hrdinů. Jen čte simulaci.
+func _build_combos(sim: Sim) -> void:
+	var list := sim.combos()
+	if list.is_empty():
+		return
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.94), 9, 8, Color(GLORY, 0.6), 2))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 3)
+	card.add_child(v)
+	v.add_child(_label("Komba pout", 11, MUTED))
+	for c: Dictionary in list:
+		var a := sim.by_id(String(c["a"]))
+		var b := sim.by_id(String(c["b"]))
+		var btn := _icon_button("glory", String(c["name"]), GLORY)
+		_add_keycap(btn, String(c["key"]))
+		btn.tooltip_text = "%s + %s: %s" % [a.name, b.name, c["desc"]]
+		btn.set_meta("tip", btn.tooltip_text)
+		btn.custom_minimum_size.y = 30
+		var cid := String(c["id"])
+		btn.pressed.connect(func() -> void: combo_pressed.emit(cid))
+		v.add_child(btn)
+		_combo_buttons[cid] = btn
+	cards_row.add_child(card)
 
 
 ## Krok výcviku: nadpis s číslem kroku, text; `ok` = krok potvrdí tlačítko Rozumím.
@@ -725,6 +759,12 @@ func update_dynamic(sim: Sim, _pause_phase: bool, paused: bool) -> void:
 				tail = "●".repeat(u.uses)
 			(labs[0] as Label).text = "%s  %s" % [base, tail]
 			b.tooltip_text = String(sim.ability_of(id).get("desc", "")) + ("\n" + sim.ability_problem(id) if sim.ability_problem(id) != "" else "")
+	for cid: String in _combo_buttons:
+		var cb: Button = _combo_buttons[cid]
+		var cprob := sim.combo_problem(cid)
+		cb.disabled = not in_play or paused or cprob != ""
+		cb.tooltip_text = String(cb.get_meta("tip", "")) + ("\n" + cprob if cprob != "" else "")
+		cb.modulate = Color(1, 1, 1, 0.55) if cb.disabled else Color.WHITE
 	if _hint_t > 0.0:
 		_hint_t -= 0.1
 		if _hint_t <= 0.0:

@@ -17,6 +17,8 @@ Spojit bitvy do příběhu rodu na mapě aktu. Struktura hry: `docs/struktura-hr
 8. **Události** (`udalosti.json`): volby s efekty `glory`, `heal`, `wound`, `gift` (náhodná pasivka/přísaha náhodnému hrdinovi, kterému sedí), `fled` (nepřátelé, kteří se vrátí u bosse). Volba bez dost slávy nebo bez možného příjemce nejde (`event_option_problem`). Text volby jde do kroniky.
 9. **Uprchlíci:** nepřátelé, kteří utečou v bitvě bez `returnees` (nebo z události), se vrátí v bitvě, která `returnees` má (boss), nejvýš `returnees.max` (u Hejtmana 3), ostatní se rozutekli nadobro.
 10. **Prohra = padli všichni** v jedné bitvě → běh končí (`over = "lose"`). Po bossovi `over = "win"`.
+14. **Pouta** (rozhodnutí 07.11.2026): `pair_wins` (`pair_key` „a|b“ podle abecedy) se po každé vyhrané bitvě zvýší všem dvojicím, které obě přežily (`_count_wins`). Dvojice s `bond_rules.levels[0]` vítězstvími, kde nikdo nemá pouto ani Přísahu samotáře, dostane nabídku (`bond_offer`: nejvíc vítězství první, `choices` typů, které na dvojici sedí, `bond_fits`); `choose_bond(typ | "")` (odložení = znovu až po dalším společném vítězství, `bond_declined`). Pořadí po bitvě: dědictví → pouto → odměna. Úroveň pouta z počtu vítězství (`bond_level`, `level_for`), bitva dostává `setup.bonds`. Smrt: druh přijde o pouto (Učitel a žák: žák zdědí pasivku učitele), padlého historie se smaže a nástupce začíná od nuly (`_bonds_after_deaths`). Přísahu samotáře nedostane hrdina s poutem.
+
 11. **Kronika** (`chronicle`: {stage, text}): vítězství a porážky, padlí a jejich sláva, nástupci, útěky a návraty, přísahy (složené, převzaté, porušené, zaniklé), odměny, události, tábor.
 13. **Úvodní obrazovka:** Nový běh, Volná bitva a po dokončeném výcviku „Výcvik znovu“ (`BattleScript.set_tutorial_done(false)`).
 12. **Bitva v běhu** (`battle.gd` s `run` ≠ null): scénář z uzlu, bez výběru bitvy, pasivky jen ke čtení, výsledek s „Pokračovat v běhu“ → `battle_done(result)`.
@@ -26,7 +28,7 @@ Spojit bitvy do příběhu rodu na mapě aktu. Struktura hry: `docs/struktura-hr
 - mapa: `map` ({floors, boss, nodes}), `node(id)`, `node_type(id)`, `node_label(id)`, `node_id`, `path`, `available()`, `choose(id)`, `node_finished()`, `current_floor()`, `floor_count()`, `scenario_info(key)`, `is_battle_node()`
 - rod: `heroes` (třída → {name, passives, glory, hp, joined}), `fallen`, `fled`, `returned`, `glory`, `chronicle`, `over`, `hero_name`, `class_name_of`, `passive_name`, `passive_desc`, `is_oath`, `oath_of`, `hp_of`
 - bitva: `load_stage_data()`, `battle_setup(data)`, `returnee_rows(scenario)`, `record_battle(result)`
-- po bitvě: `has_legacy()`, `legacy_current()`, `legacy_candidates()`, `resolve_legacy(cls | "")`, `offers()`, `offer_valid(o)`, `picks_left()`, `pick_offer(i)`
+- po bitvě: `has_legacy()`, `legacy_current()`, `legacy_candidates()`, `resolve_legacy(cls | "")`, `bond_offer()`, `choose_bond(typ | "")`, `pair_wins`, `wins_of()`, `bond_level()`, `bond_fits()`, `bond_name()`, `bond_desc()`, `offers()`, `offer_valid(o)`, `picks_left()`, `pick_offer(i)`
 - událost: `event()`, `event_option_problem(i)`, `event_choose(i)`, `event_done`; tábor: `camp_rest()`, `camp_done`
 
 ## Úskalí
@@ -35,6 +37,7 @@ Spojit bitvy do příběhu rodu na mapě aktu. Struktura hry: `docs/struktura-hr
 - Vzhled obrazovek a mapy je zástupný (půjčuje si téma z `battle_ui.gd`); finální UI navrhne Tom.
 
 ## Historie významných změn
+- 07.11.2026: pouta rostou společnými vítězstvími, obrazovka volby pouta po bitvě, pouto v soupisce.
 - 07.11.2026: osobní přísahu dědí jen nástupce, přísahu rodu kdokoli; setup bitvy nese počet padlých předků.
 - 29.10.2026: u Hejtmana se vrátí nejvýš 3 uprchlíci (auto-hraní vyhrávalo jen 3–4 běhy z 20, skoro vždy se prohrálo u bosse).
 - 29.10.2026: Lesní ves (obrana) mezi bitvami aktu, po bitvě se hrdina doléčí o 30 %, tábory častěji (váha 2).

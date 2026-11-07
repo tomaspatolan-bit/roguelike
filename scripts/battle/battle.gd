@@ -40,6 +40,7 @@ var projectile_views: Dictionary = {}
 var aim_ring: MeshInstance3D      # cílení schopnosti: kruh pod kurzorem
 var _fx: Array = []                # krátké efekty schopností [MeshInstance3D, zbývající čas]
 var _aim_id := ""                  # hrdina, jehož schopnost se právě cílí
+var _aim_combo := ""                # kombo pouta, které se právě míří (spolu s _aim_id = kdo míří)
 var _aim_point := Vector2.ZERO
 var _zone_meshes: Array = []      # hořící zem ze simulace (sim.zones)
 var select_ring: MeshInstance3D
@@ -92,7 +93,7 @@ func _ready() -> void:
 		setup = run.battle_setup(data)
 	else:
 		data = Sim.load_data(scenario_id)
-		setup = Sim.default_setup(data)
+		setup = _free_setup(data)
 	field_root = Node3D.new()
 	add_child(field_root)
 	Field.build(field_root, data["scenario"])
@@ -132,6 +133,7 @@ func _ready() -> void:
 	ui.run_continue_pressed.connect(func() -> void: battle_done.emit(sim.result()))
 	ui.knight_clicked.connect(_select)
 	ui.ability_pressed.connect(_ability)
+	ui.combo_pressed.connect(_combo)
 	ui.passive_toggled.connect(_on_passive)
 	ui.scenario_changed.connect(_load_scenario)
 	ui.order_pressed.connect(func(id: String) -> void:
@@ -351,7 +353,7 @@ func _load_scenario(id: String) -> void:
 		return
 	scenario_id = id
 	data = Sim.load_data(id)
-	setup = Sim.default_setup(data)
+	setup = _free_setup(data)
 	field_root.queue_free()
 	field_root = Node3D.new()
 	add_child(field_root)
@@ -501,6 +503,13 @@ func _start_battle() -> void:
 	_refresh_panel()
 
 
+## Setup volné bitvy: výchozí rozestavení a na zkoušku pouta z rodu (trial_bonds), aby šla vyzkoušet komba.
+static func _free_setup(d: Dictionary) -> Dictionary:
+	var st := Sim.default_setup(d)
+	st["bonds"] = (d["house"].get("trial_bonds", {}) as Dictionary).duplicate(true)
+	return st
+
+
 func _refresh_panel() -> void:
 	if phase == Phase.DEPLOY:
 		ui.show_deploy(sim, setup, selection, scenario_id, _order_id)
@@ -645,6 +654,37 @@ func _ability(id: String) -> void:
 	_refresh_panel()
 
 
+## Kombo pouta (tlačítko nebo Q / E): bez míření se spustí hned, jinak začne cílení schopností, kterou se kombo míří.
+func _combo(cid: String) -> void:
+	if (phase != Phase.BATTLE and phase != Phase.PAUSE) or paused:
+		return
+	var problem := sim.combo_problem(cid)
+	if problem != "":
+		ui.flash_hint(problem)
+		return
+	var aimer := sim.combo_aimer(cid)
+	if aimer == "":
+		if sim.use_combo(cid):
+			_tut_mark("ability")
+			_flush_events()
+		_refresh_panel()
+		return
+	if _aim_combo == cid:
+		_aim_combo = ""
+		_aim_id = ""
+	else:
+		_aim_combo = cid
+		_aim_id = aimer
+	_order_id = ""
+	_refresh_panel()
+
+
+func _combo_by_index(i: int) -> void:
+	var list := sim.combos()
+	if i < list.size():
+		_combo(String(list[i]["id"]))
+
+
 func _ability_by_index(i: int) -> void:
 	var ks := sim.knights()
 	if i < ks.size():
@@ -665,6 +705,18 @@ func _aim_click(screen_pos: Vector2) -> void:
 		if gp == null:
 			return
 		target = gp
+	if _aim_combo != "":
+		var cp := sim.combo_target_problem(_aim_combo, target)
+		if cp != "":
+			ui.flash_hint(cp)
+			return
+		var cid := _aim_combo
+		_aim_combo = ""
+		_aim_id = ""
+		sim.use_combo(cid, target)
+		_flush_events()
+		_refresh_panel()
+		return
 	var problem := sim.ability_target_problem(id, target)
 	if problem != "":
 		ui.flash_hint(problem)
@@ -750,6 +802,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				_ability_by_index(3)
 			KEY_5:
 				_ability_by_index(4)
+			KEY_Q:
+				_combo_by_index(0)
+			KEY_E:
+				_combo_by_index(1)
 			KEY_F:
 				_charge()
 			KEY_SPACE:
@@ -760,6 +816,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_ESCAPE:
 				if _aim_id != "":
 					_aim_id = ""
+					_aim_combo = ""
 					_refresh_panel()
 				elif _order_id != "":
 					_order_id = ""

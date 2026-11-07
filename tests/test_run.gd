@@ -16,6 +16,7 @@ func _init() -> void:
 	_test_rules()
 	_test_events_and_camp()
 	_test_leader()
+	_test_bonds()
 	_test_full_runs()
 	if failures.is_empty():
 		print("VÝSLEDEK: OK")
@@ -354,6 +355,9 @@ func _test_full_runs() -> void:
 					while r.has_legacy():
 						var c := r.legacy_candidates()
 						r.resolve_legacy(c[rng.randi_range(0, c.size() - 1)] if not c.is_empty() else "")
+					while not r.bond_offer().is_empty():
+						var ch: Array = r.bond_offer()["choices"]
+						r.choose_bond(ch[rng.randi_range(0, ch.size() - 1)] if not ch.is_empty() else "")
 					while not r.offers().is_empty():
 						r.pick_offer(rng.randi_range(0, r.offers().size() - 1))
 				"udalost":
@@ -380,3 +384,53 @@ func _test_full_runs() -> void:
 	_check(stuck == 0, "žádný běh ani bitva neuvízne")
 	_check(wins >= RUNS * 3 / 10, "auto-hraní vyhraje aspoň 30 %% běhů (%d/%d)" % [wins, RUNS])
 	_check(wins < RUNS, "běh není jistá výhra (%d/%d)" % [wins, RUNS])
+
+
+## Pouta: rostou společnými vítězstvími, vznik s výběrem typu, úroveň, smrt a nástupce.
+func _test_bonds() -> void:
+	print("Pouta")
+	var r := Run.new(21)
+	r.choose(r.available()[0])
+	r.record_battle(_fake("win", [], [], 30.0))
+	_check(r.wins_of("tank", "knez") == 1 and r.bond_offer().is_empty(), "po první společné výhře pouto ještě nevzniká")
+	r.record_battle(_fake("win", [], [], 30.0))
+	var o := r.bond_offer()
+	_check(not o.is_empty() and (o["choices"] as Array).size() == 2, "po 2 společných výhrách se nabízí pouto ze 2 typů")
+	var fits := true
+	for t: String in o.get("choices", []):
+		fits = fits and r.bond_fits(t, o["a"], o["b"])
+	_check(fits, "nabídnuté typy sedí na dvojici")
+	_check(r.offers().is_empty() and not r.node_finished(), "dokud se pouto nevybere, odměna čeká")
+	var a: String = o["a"]
+	var b: String = o["b"]
+	r.choose_bond(String(o["choices"][0]))
+	_check(String(r.heroes[a]["bond"]["with"]) == b and String(r.heroes[b]["bond"]["with"]) == a and r.bond_level(a) == 1, "pouto vzniklo na úrovni 1 u obou")
+	var o2 := r.bond_offer()
+	_check(o2.is_empty() or not ([o2["a"], o2["b"]] as Array).has(a), "hrdina s poutem druhé nedostane")
+	while not r.bond_offer().is_empty():
+		r.choose_bond("")
+	_check(r.bond_offer().is_empty() and not r.offers().is_empty(), "odložená pouta: pak přijde odměna")
+	r.pick_offer(0)
+	r.record_battle(_fake("win", [], [], 30.0))
+	r.record_battle(_fake("win", [], [], 30.0))
+	while not r.bond_offer().is_empty():
+		r.choose_bond("")
+	_check(r.bond_level(a) == 2, "po 4 společných výhrách úroveň 2 (kombo)")
+	var st := r.battle_setup(r.load_stage_data())
+	_check(int(st["bonds"][a]["level"]) == 2 and String(st["bonds"][a]["with"]) == b, "bitva dostane pouto s úrovní")
+	var victim := a if r.oath_of(a) == "" else b
+	var mate := b if victim == a else a
+	r.record_battle(_fake("win", [victim], [], 30.0))
+	_check((r.heroes[mate]["bond"] as Dictionary).is_empty() and r.wins_of(victim, mate) == 0 and r.wins_of(victim, "jezdec" if victim != "jezdec" else "tank") == 0, "smrt: druh přijde o pouto, nástupce začíná od nuly")
+	# Přísaha samotáře pouto zakazuje
+	var rs := Run.new(22)
+	rs.heroes["lucistnik"]["passives"] = ["samotar"]
+	rs.choose(rs.available()[0])
+	for i in 2:
+		rs.record_battle(_fake("win", [], [], 30.0))
+	var blocked := true
+	while not rs.bond_offer().is_empty():
+		var bo := rs.bond_offer()
+		blocked = blocked and not ([bo["a"], bo["b"]] as Array).has("lucistnik")
+		rs.choose_bond("")
+	_check(blocked, "s Přísahou samotáře pouto nevznikne")

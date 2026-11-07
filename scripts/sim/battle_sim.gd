@@ -83,6 +83,19 @@ class Unit:
 	var away_t: float = 0.0       # jak dlouho je daleko od tanka (Přísaha korouhve)
 	var first_struck: bool = false  # už zasáhl první ranou (Rytířská výzva)
 	var ward: String = ""         # koho chrání (Přísaha ochrany)
+	var bond_with: String = ""    # pouto: s kým (id hrdiny)
+	var bond_type: String = ""    # pouto: typ (units.json bonds)
+	var bond_level: int = 0       # pouto: úroveň 1–3
+	var student: bool = false     # Učitel a žák: tento hrdina je žák
+	var rage_t: float = 0.0       # žal Bratrů ve zbrani: zuří (silnější, neposlouchá rozkazy)
+	var mourn_t: float = 0.0      # žal Zpovědníka: kněz neléčí
+	var grief: Dictionary = {}    # postihy žalu do konce bitvy {vlastnost: podíl}
+	var marked_by: String = ""    # nepřítel: cíl Lovecké dvojice (id lučištníka)
+	var mark_t: float = 0.0
+	var rescue_used: bool = false # Kopí a štít: jezdec už vyrazil tankovi na pomoc
+	var rescue_t: float = 0.0
+	var dash_mult: float = 1.0    # kombo: silnější Nájezd
+	var combo_strike: String = "" # kombo Kladivo a kovadlina: kdo skočí za prvního sraženého
 	var target_id: String = ""    # nepřítel: na koho právě útočí
 	var leader: bool = false      # vůdce nepřátel: když padne, zlomí se morálka
 	var ability_cd: float = 0.0   # nabíjení schopnosti (s), než jde použít znovu
@@ -188,6 +201,12 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		units.append(u)
 		var pas: Dictionary = setup.get("passives", house.get("start_passives", {}))
 		u.passives = (pas.get(key, []) as Array).duplicate()
+		var bd: Dictionary = (setup.get("bonds", {}) as Dictionary).get(key, {})
+		if not bd.is_empty() and (units_data.get("bonds", {}) as Dictionary).has(String(bd.get("type", ""))):
+			u.bond_with = String(bd["with"])
+			u.bond_type = String(bd["type"])
+			u.bond_level = clampi(int(bd.get("level", 1)), 1, 3)
+			u.student = bool(bd.get("student", false))
 		_apply_passives(u)
 		var names: Dictionary = setup.get("names", {})
 		if names.has(key):
@@ -433,6 +452,8 @@ func _apply_passives(u: Unit) -> void:
 		var d: Dictionary = _pas(u, k)
 		extra += int(d.get("extra_uses", 0))
 		reach_mult *= float(d.get("reach_mult", 1.0))
+	if _bond_side(u) == 0:
+		extra += int(_bv(u, "extra_uses"))
 	u.maxhp = float(u.base["hp"]) * maxf(0.1, 1.0 + stat(u, "odolnost", null, true))
 	u.hp = u.maxhp
 	var quick := maxf(0.1, 1.0 + stat(u, "pohotovost", null, true))
@@ -465,6 +486,25 @@ func stat(u: Unit, key: String, tg: Unit = null, static_only: bool = false) -> f
 			sum += n * float(pa.get(key, 0.0))
 			if key == "utok" or key == "moc":
 				sum += n * float(pa.get("sila", 0.0))
+	if static_only:
+		return sum
+	var sila := key == "utok" or key == "moc"
+	sum += float(u.grief.get(key, 0.0)) + (float(u.grief.get("sila", 0.0)) if sila else 0.0)
+	if u.rage_t > 0.0 and key == "utok":
+		sum += float(_bond_def(u).get("rage_utok", 0.0))
+	var p := _partner(u)
+	if p != null:
+		var bd := _bond_def(u)
+		var on := true
+		if bd.has("near_radius"):
+			on = p.pos.distance_to(u.pos) <= float(bd["near_radius"])
+		if bool(bd.get("successor", false)):
+			on = on and u.student
+		if on:
+			var bst: Dictionary = bd.get("stats", {})
+			for sk: String in bst:
+				if sk == key or (sk == "sila" and sila):
+					sum += _lvl(bst[sk], u.bond_level)
 	return sum
 
 
@@ -497,6 +537,124 @@ func _when_ok(u: Unit, d: Dictionary, tg: Unit) -> bool:
 		"unseen":
 			return tg != null and tg.side == SIDE_FOE and tg.target_id != u.id
 	return false
+
+
+# --------------------------------------------------------------- pouta
+
+## Data typu pouta hrdiny (units.json bonds), prázdné bez pouta.
+func _bond_def(u: Unit) -> Dictionary:
+	if u == null or u.bond_type == "":
+		return {}
+	return (units_data.get("bonds", {}) as Dictionary).get(u.bond_type, {})
+
+
+## Živý druh z pouta, nebo null.
+func _partner(u: Unit) -> Unit:
+	if u == null or u.bond_with == "":
+		return null
+	var p := by_id(u.bond_with)
+	return p if p != null and p.alive() else null
+
+
+## Hodnota pro úroveň: seznam [ú1, ú2, ú3] nebo jedno číslo.
+func _lvl(v: Variant, level: int) -> float:
+	if v is Array:
+		var arr: Array = v
+		return float(arr[clampi(level - 1, 0, arr.size() - 1)]) if not arr.is_empty() else 0.0
+	return float(v)
+
+
+## Číslo z pouta hrdiny pro jeho úroveň (0, když pouto nemá).
+func _bv(u: Unit, key: String) -> float:
+	var bd := _bond_def(u)
+	return _lvl(bd[key], u.bond_level) if bd.has(key) else 0.0
+
+
+## Strana hrdiny v pouto `who`: 0 = skupina A (třeba jezdec v Kopí a štít), 1 = skupina B, -1 = bez pouta.
+## U dvojice, která sedí oběma směry, je A ten s menším pořadím ve skupině A.
+func _bond_side(u: Unit) -> int:
+	var bd := _bond_def(u)
+	if bd.is_empty():
+		return -1
+	var who: Array = bd.get("who", [["*"], ["*"]])
+	var in_a := (who[0] as Array).has(u.key) or (who[0] as Array).has("*")
+	var in_b := (who[1] as Array).has(u.key) or (who[1] as Array).has("*")
+	if in_a and not in_b:
+		return 0
+	if in_b and not in_a:
+		return 1
+	return 0 if u.key < u.bond_with else 1
+
+
+## Pouto hrdiny pro scénu: {type, name, with, level, desc, grief_desc} nebo prázdné.
+func bond_of(id: String) -> Dictionary:
+	var u := by_id(id)
+	var bd := _bond_def(u)
+	if bd.is_empty():
+		return {}
+	return {"type": u.bond_type, "name": bd["name"], "with": u.bond_with, "level": u.bond_level, "desc": bd.get("desc", ""), "grief_desc": bd.get("grief_desc", "")}
+
+
+## Léčení hrdiny k o `amount` od léčitele (kněz, Požehnání, Druhý dech…): Zpovědník léčí druha víc,
+## kněz v žalu neléčí, Pokrevní bratrství léčí i druha.
+func _heal(healer: Unit, k: Unit, amount: float, share: bool = true) -> void:
+	if not k.alive() or amount <= 0.0:
+		return
+	if healer != null and healer.mourn_t > 0.0 and healer != k:
+		return
+	if healer != null and healer.bond_type == "zpovednik" and healer.bond_with == k.id and healer.heal > 0.0:
+		amount *= 1.0 + _bv(healer, "heal_bonus")
+	k.hp = minf(k.maxhp, k.hp + amount)
+	events.append({"type": "heal", "id": k.id})
+	if share and k.bond_type == "krev":
+		var p := _partner(k)
+		if p != null and not _no_heal(p):
+			_heal(null, p, amount * _bv(k, "heal_share"), false)
+
+
+## Kdo bere za zraněného část zranění: Přísaha ochrany (chráněný), Štítonoš (druh do share_radius). [hrdina, podíl] nebo [].
+func _shield_bearer(tg: Unit) -> Array:
+	var guard := _warden_of(tg)
+	if guard != null:
+		return [guard, float(oath_of(guard.id).get("ward_share", 0.5))]
+	var p := _partner(tg)
+	if p != null and tg.bond_type == "stitonos" and _bond_side(p) == 0:
+		if p.pos.distance_to(tg.pos) <= float(_bond_def(tg).get("share_radius", 3.0)):
+			return [p, _bv(tg, "share")]
+	return []
+
+
+## Žal: padl hrdina s poutem, druh dostane žal podle typu a úrovně (úroveň 1 poloviční, úroveň 3 navíc −Síla).
+func _grieve(dead: Unit) -> void:
+	var p := _partner(dead)
+	if p == null:
+		return
+	var bd := _bond_def(dead)
+	var rules: Dictionary = units_data.get("bond_rules", {})
+	var scale := float(rules.get("grief_half", 0.5)) if dead.bond_level <= 1 else 1.0
+	match dead.bond_type:
+		"bratri":
+			p.rage_t = float(bd.get("rage_t", 8.0)) * scale
+		"zpovednik":
+			if p.heal > 0.0:
+				p.mourn_t = float(bd.get("mourn_t", 10.0)) * scale
+		"stitonos":
+			if _bond_side(p) == 0:
+				p.uses = int(floor(p.uses * (1.0 - scale)))
+		"lovci":
+			p.grief["utok"] = float(p.grief.get("utok", 0.0)) + float(bd.get("grief_utok", -0.2)) * scale
+		"krev":
+			p.hp = maxf(1.0, p.hp - p.maxhp * float(bd.get("grief_hp", 0.3)) * scale)
+	if dead.bond_level >= 3:
+		p.grief["sila"] = float(p.grief.get("sila", 0.0)) + float(rules.get("grief_sila", -0.15))
+	_log("%s truchlí, padl druh %s (%s)" % [p.name, dead.name, bd.get("name", "")], true)
+
+
+## Kopí a štít: po schopnosti tanka se jezdcova schopnost nabije.
+func _after_ability(u: Unit) -> void:
+	var p := _partner(u)
+	if p != null and u.bond_type == "kopi" and _bond_side(u) == 1:
+		p.ability_cd *= 1.0 - _bv(u, "recharge")
 
 
 func _allies_within(u: Unit, r: float) -> int:
@@ -726,9 +884,12 @@ func _dmg_mult(u: Unit, tg: Unit = null, ability: bool = false) -> float:
 		if u.rally_t > 0.0:
 			fm *= u.rally_mult
 		return fm
+	var mark := 1.0
+	if tg != null and tg.mark_t > 0.0 and tg.marked_by == u.id:
+		mark = _bv(u, "mark_mult") if u.bond_type == "lovci" else 1.0
 	if ability:
-		return 1.0
-	return maxf(0.0, 1.0 + stat(u, "utok", tg))
+		return mark
+	return maxf(0.0, 1.0 + stat(u, "utok", tg)) * maxf(mark, 0.0)
 
 
 func _taken_mult(u: Unit) -> float:
@@ -971,60 +1132,229 @@ func use_ability(id: String, target: Variant = null) -> bool:
 	u.uses -= 1
 	u.ability_cd = float(a.get("cooldown", 0.0))
 	abilities_used += 1
+	_after_ability(u)
 	var where: Vector2 = u.pos
 	match u.ability:
 		"vyzva":
 			u.taunt_t = float(a["duration"])
 		"pozehnani":
 			where = target
-			for k in living(SIDE_KNIGHT):
-				if k.pos.distance_to(where) <= float(a["radius"]) and not _no_heal(k) and not (k == u and _no_self_heal(u)):
-					k.hp = minf(k.maxhp, k.hp + k.maxhp * float(a["heal_frac"]))
-					if a.has("shield_t"):
-						k.shield_t = float(a["shield_t"])
-						k.shield = float(a["shield"])
-					events.append({"type": "heal", "id": k.id})
+			_bless(u, where, a, float(a["heal_frac"]))
 		"salva":
 			where = target
-			var hits: Array[Unit] = []
-			for f in living(SIDE_FOE):
-				if f.pos.distance_to(where) <= float(a["radius"]):
-					hits.append(f)
-			for i in int(a["arrows"]):
-				if hits.is_empty():
-					break
-				var f: Unit = hits[_rng.randi() % hits.size()]
-				_ability_hit(u, f)
-				_hurt(u, f, float(a["dmg"]) * _dmg_mult(u, f, true) * (u.vs_mounted if f.mounted else 1.0))
-				if not f.alive():
-					hits.erase(f)
-			if a.has("fire_t"):
-				zones.append({"pos": where, "r": float(a["radius"]), "t": float(a["fire_t"]), "dps": float(a["fire_dps"]), "from": u.id})
+			_volley(u, where, float(a["radius"]), a, 1.0)
 		"najezd":
 			where = target
-			u.dashing = true
-			u.dash_to = target
-			u.dash_hit.clear()
-			u.dash_t = u.pos.distance_to(target) / maxf(u.speed * float(a["speed_mult"]), 0.1) + 0.3
+			_start_dash(u, target, a, 1.0)
 		"uder":
 			var e := by_id(String(target))
-			var dir := (e.pos - u.pos).normalized()
-			var behind := e.pos + dir * (e.radius + u.radius)
-			if not _in_water(behind):
-				u.pos = behind
 			where = e.pos
-			_face_to(u, e)
-			u.focus_id = e.id
-			u.focus_t = _ord("focus_time", 3.0)
-			u.atk = 0.25
-			u.combat_t = t
-			_ability_hit(u, e)
-			_hurt(u, e, u.dmg * float(a["mult"]) * _dmg_mult(u, e))
-			if not _pas(u, "ukryt").is_empty():
-				u.hidden_t = float(_pas(u, "ukryt")["hidden_t"])
+			_shadow_strike(u, e, float(a["mult"]))
 	events.append({"type": "ability", "id": u.id, "key": u.ability, "pos": where})
 	_log("%s: %s" % [u.name, a["name"]], true)
 	return true
+
+
+## Požehnání: vyléčí hrdiny v kruhu kolem `where` o `frac` jejich zdraví (štít z Požehnané zbroje).
+func _bless(u: Unit, where: Vector2, a: Dictionary, frac: float) -> void:
+	for k in living(SIDE_KNIGHT):
+		if k.pos.distance_to(where) <= float(a["radius"]) and not _no_heal(k) and not (k == u and _no_self_heal(u)):
+			_heal(u, k, k.maxhp * frac)
+			if a.has("shield_t"):
+				k.shield_t = float(a["shield_t"])
+				k.shield = float(a["shield"])
+
+
+## Salva: šípy náhodně mezi nepřátele v kruhu (mult = násobek z komba), Ohnivá salva zapálí zem.
+func _volley(u: Unit, where: Vector2, radius: float, a: Dictionary, mult: float) -> void:
+	var hits: Array[Unit] = []
+	for f in living(SIDE_FOE):
+		if f.pos.distance_to(where) <= radius:
+			hits.append(f)
+	for i in int(a["arrows"]):
+		if hits.is_empty():
+			break
+		var f: Unit = hits[_rng.randi() % hits.size()]
+		_ability_hit(u, f)
+		_hurt(u, f, float(a["dmg"]) * mult * _dmg_mult(u, f, true) * (u.vs_mounted if f.mounted else 1.0))
+		if not f.alive():
+			hits.erase(f)
+	if a.has("fire_t"):
+		zones.append({"pos": where, "r": radius, "t": float(a["fire_t"]), "dps": float(a["fire_dps"]), "from": u.id})
+
+
+## Nájezd k bodu (mult = silnější z komba).
+func _start_dash(u: Unit, target: Vector2, a: Dictionary, mult: float) -> void:
+	u.dashing = true
+	u.dash_to = target
+	u.dash_hit.clear()
+	u.dash_mult = mult
+	u.dash_t = u.pos.distance_to(target) / maxf(u.speed * float(a["speed_mult"]), 0.1) + 0.3
+
+
+## Úder ze stínu: skok za nepřítele a úder `mult` × útok (mult už se zvětšením z Moci).
+## Lovecká dvojice: cíl označí pro lučištníka.
+func _shadow_strike(u: Unit, e: Unit, mult: float) -> void:
+	var dir := (e.pos - u.pos).normalized()
+	var behind := e.pos + dir * (e.radius + u.radius)
+	if not _in_water(behind):
+		u.pos = behind
+	_face_to(u, e)
+	u.focus_id = e.id
+	u.focus_t = _ord("focus_time", 3.0)
+	u.atk = 0.25
+	u.combat_t = t
+	_ability_hit(u, e)
+	_hurt(u, e, u.dmg * mult * _dmg_mult(u, e))
+	if not _pas(u, "ukryt").is_empty():
+		u.hidden_t = float(_pas(u, "ukryt")["hidden_t"])
+	var p := _partner(u)
+	if p != null and u.bond_type == "lovci" and e.alive():
+		e.marked_by = p.id
+		e.mark_t = float(_bond_def(u).get("mark_t", 5.0))
+
+
+# --------------------------------------------------------------- komba pout
+
+## Komba, která oddíl teď má (pouto aspoň na combo_level a schopnosti tvoří pár), v pořadí karet:
+## [{id, name, a (id hrdiny se schopností a), b, key ("Q"/"E"), aim, desc}]. Nejvýš 2.
+func combos() -> Array:
+	var out: Array = []
+	var cdefs: Dictionary = units_data.get("combos", {})
+	var need := int((units_data.get("bond_rules", {}) as Dictionary).get("combo_level", 2))
+	var seen := {}
+	for u in knights():
+		if u.bond_with == "" or u.bond_level < need or seen.has(u.id):
+			continue
+		var p := by_id(u.bond_with)
+		if p == null or p.bond_with != u.id:
+			continue
+		seen[u.id] = true
+		seen[p.id] = true
+		for cid: String in cdefs:
+			if cid.begins_with("_"):
+				continue
+			var c: Dictionary = cdefs[cid]
+			var ha: Unit = null
+			var hb: Unit = null
+			if u.ability == c["a"] and p.ability == c["b"]:
+				ha = u
+				hb = p
+			elif p.ability == c["a"] and u.ability == c["b"]:
+				ha = p
+				hb = u
+			if ha != null and out.size() < 2:
+				out.append({"id": cid, "name": c["name"], "a": ha.id, "b": hb.id, "key": ["Q", "E"][out.size()], "aim": c.get("aim", "none"), "desc": c.get("desc", "")})
+				break
+	return out
+
+
+func _combo(cid: String) -> Dictionary:
+	for c: Dictionary in combos():
+		if c["id"] == cid:
+			return c
+	return {}
+
+
+## Proč kombo teď nejde ("" = jde): oba žijí, oba mají schopnost nabitou, jsou dost blízko.
+func combo_problem(cid: String) -> String:
+	var c := _combo(cid)
+	if c.is_empty() or over != "":
+		return "Kombo teď oddíl nemá."
+	var ha := by_id(c["a"])
+	var hb := by_id(c["b"])
+	for h: Unit in [ha, hb]:
+		if not h.alive():
+			return "%s padl." % h.name
+		if not can_use_ability(h.id):
+			return "%s: %s" % [h.name, ability_problem(h.id)]
+	var cd: Dictionary = units_data["combos"][cid]
+	if ha.pos.distance_to(hb.pos) > float(cd.get("max_gap", 14.0)):
+		return "%s a %s jsou moc daleko od sebe (nejvýš %d m)." % [ha.name, hb.name, int(cd.get("max_gap", 14.0))]
+	if cid == "za_zady" and _taunted_victim(ha) == null:
+		return "U tanka (%s) není nepřítel." % ha.name
+	return ""
+
+
+## Hrdina, jehož schopností se kombo míří (aim = point), jinak "".
+func combo_aimer(cid: String) -> String:
+	var c := _combo(cid)
+	if c.is_empty() or String(c["aim"]) != "point":
+		return ""
+	var by := String(units_data["combos"][cid].get("aim_by", ""))
+	return c["a"] if by_id(c["a"]).ability == by else c["b"]
+
+
+func combo_target_problem(cid: String, target: Variant) -> String:
+	var aimer := combo_aimer(cid)
+	if aimer == "":
+		return ""
+	return ability_target_problem(aimer, target)
+
+
+## Spustí kombo: obě schopnosti najednou, po jednom použití z každé. Vrací false, když nejde.
+func use_combo(cid: String, target: Variant = null) -> bool:
+	if combo_problem(cid) != "" or combo_target_problem(cid, target) != "":
+		return false
+	var c := _combo(cid)
+	var cd: Dictionary = units_data["combos"][cid]
+	var ha := by_id(c["a"])
+	var hb := by_id(c["b"])
+	var aa := ability_of(ha.id)
+	var ab := ability_of(hb.id)
+	for h: Unit in [ha, hb]:
+		var conflict := ability_oath_conflict(h.id, null)
+		if conflict != "":
+			_break(h, conflict)
+		var ha_a := ability_of(h.id)
+		h.uses -= 1
+		h.ability_cd = float(ha_a.get("cooldown", 0.0))
+		abilities_used += 1
+		_after_ability(h)
+	var where: Vector2 = ha.pos
+	match cid:
+		"navnada":
+			ha.taunt_t = float(aa["duration"])
+			_volley(hb, ha.pos, float(cd.get("radius", 3.5)), ab, float(cd.get("dmg_mult", 1.5)))
+		"za_zady":
+			ha.taunt_t = float(aa["duration"])
+			var e := _taunted_victim(ha)
+			if e != null:
+				_shadow_strike(hb, e, float(cd.get("mult", 4.0)) * maxf(0.0, 1.0 + stat(hb, "moc")))
+				where = e.pos
+		"stit_a_kopi":
+			ha.taunt_t = float(aa["duration"])
+			_start_dash(hb, ha.pos, ab, float(cd.get("dmg_mult", 1.5)))
+		"posvecene_sipy":
+			where = target
+			_volley(ha, where, float(aa["radius"]), aa, float(cd.get("dmg_mult", 1.3)))
+			var bless := ab.duplicate()
+			bless["radius"] = float(cd.get("heal_radius", 4.0))
+			bless.erase("shield_t")
+			_bless(hb, where, bless, float(cd.get("heal_frac", 0.1)) * maxf(0.0, 1.0 + stat(hb, "moc")))
+		"kladivo":
+			where = target
+			_start_dash(ha, target, aa, 1.0)
+			ha.combo_strike = hb.id
+	events.append({"type": "ability", "id": ha.id, "key": ha.ability, "pos": where})
+	events.append({"type": "ability", "id": hb.id, "key": hb.ability, "pos": where})
+	events.append({"type": "combo", "id": cid, "pos": where})
+	_log("Kombo %s: %s a %s" % [cd["name"], ha.name, hb.name], true)
+	return true
+
+
+## Za zády: nepřítel u tanka (do dosahu Výzvy), přednostně ten, kdo na něj útočí.
+func _taunted_victim(tank: Unit) -> Unit:
+	var r := float(ability_of(tank.id).get("radius", 6.0))
+	var on_him: Array[Unit] = []
+	var near: Array[Unit] = []
+	for f in living(SIDE_FOE):
+		if f.asleep or f.fleeing or f.pos.distance_to(tank.pos) > r:
+			continue
+		near.append(f)
+		if f.target_id == tank.id:
+			on_him.append(f)
+	return _nearest(on_him if not on_him.is_empty() else near, tank.pos)
 
 
 # =============================================================== příkazy hráče
@@ -1063,6 +1393,8 @@ func order_problem(id: String, kind: String = "", target: Variant = null) -> Str
 	var u := by_id(id)
 	if u == null or u.side != SIDE_KNIGHT or not u.alive():
 		return "Neznámý hrdina."
+	if u.rage_t > 0.0:
+		return "%s zuří pro padlého druha a neposlouchá." % u.name
 	if bool(oath_of(id).get("ignores_orders", false)) and _grudge_target(u) != null:
 		return "%s drží přísahu pomsty a rozkaz neposlechne." % u.name
 	match kind:
@@ -1319,6 +1651,12 @@ func _watch_oaths(u: Unit, dt: float) -> void:
 
 ## Konec vyhrané bitvy: Přísaha předků chce, aby hrdina sám někoho zabil.
 func _end_oaths() -> void:
+	# Soupeři: kdo zabil víc, přinese rodu slávu navíc
+	for k in living(SIDE_KNIGHT):
+		var p := _partner(k)
+		if p != null and k.bond_type == "souperi" and k.kills > p.kills:
+			_gain_glory(float(_bond_def(k).get("rival_glory", 15)), k)
+			_log("Soupeři: %s zabil víc než %s" % [k.name, p.name], false)
 	for k in living(SIDE_KNIGHT):
 		if bool(oath_of(k.id).get("needs_kill", false)) and k.kills == 0:
 			_break(k, "v bitvě nikoho nezabil")
@@ -1536,9 +1874,10 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 	if not tg.alive():
 		return
 	if tg.side == SIDE_KNIGHT:
-		var guard := _warden_of(tg)
-		if guard != null:
-			var share := float(oath_of(guard.id).get("ward_share", 0.5))
+		var sb := _shield_bearer(tg)
+		if not sb.is_empty():
+			var guard: Unit = sb[0]
+			var share: float = sb[1]
 			guard.hp -= raw * share * _taken_mult(guard)
 			guard.hit = 0.18
 			raw *= 1.0 - share
@@ -1552,8 +1891,7 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 	var sw := _pas(tg, "druhy_dech")
 	if tg.side == SIDE_KNIGHT and tg.hp > 0.0 and not sw.is_empty() and not tg.second_wind_used and tg.hp < tg.maxhp * float(sw["at"]):
 		tg.second_wind_used = true
-		tg.hp = minf(tg.maxhp, tg.hp + tg.maxhp * float(sw["heal_frac"]))
-		events.append({"type": "heal", "id": tg.id})
+		_heal(tg, tg, tg.maxhp * float(sw["heal_frac"]))
 		_log("%s: Druhý dech" % tg.name, false)
 	if att != null and att.side == SIDE_KNIGHT and glory_hit:
 		_gain_glory(float(house["glory"]["per_hit"]), att)
@@ -1582,6 +1920,7 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 			_log("%s zvedl padlého: %s" % [k.name, tg.name], true)
 			return
 	_log("%s padl" % tg.name, true)
+	_grieve(tg)
 	var martyr := oath_of(tg.id)
 	if martyr.has("martyr_radius"):
 		for k in living(SIDE_KNIGHT):
@@ -1646,6 +1985,28 @@ func _knight_think(u: Unit, dt: float) -> void:
 	if u.dashing:
 		_dash(u, dt, all_foes)   # nájezd zasáhne každého v cestě
 		return
+	# žal Bratrů ve zbrani: zuří, jde na nejbližšího a neposlouchá
+	if u.rage_t > 0.0 and not foes.is_empty():
+		var rt := _nearest(foes, u.pos)
+		if rt != null:
+			_engage(u, rt, dt)
+			return
+	# Kopí a štít: tank pod hranicí zdraví, jezdec mu sám vyrazí na pomoc
+	if u.bond_type == "kopi" and _bond_side(u) == 0:
+		var tk := _partner(u)
+		if tk != null and not u.rescue_used and tk.hp < tk.maxhp * float(_bond_def(u).get("rescue_at", 0.25)):
+			u.rescue_used = true
+			u.rescue_t = float(_bond_def(u).get("rescue_t", 4.0))
+			_log("%s spěchá na pomoc: %s" % [u.name, tk.name], true)
+		if u.rescue_t > 0.0 and tk != null:
+			u.rescue_t -= dt
+			var foes_on: Array[Unit] = []
+			for f in foes:
+				if f.target_id == tk.id:
+					foes_on.append(f)
+			if not _fight_close(u, dt, foes_on):
+				_walk(u, tk.pos, dt, 2.0)
+			return
 	if has_oath(u.id):
 		var nf := _nearest(foes, u.pos)
 		if nf != null and u.pos.distance_to(nf.pos) <= u.reach + 0.3:
@@ -1783,6 +2144,8 @@ func _order_ally(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	var guard := _ord("ally_guard", 3.0)
 	var own := u.reach + _ord("on_way", 1.0)
 	var helps := u.heal <= 0.0 or not _needs_heal(u)
+	if u.bond_type == "souperi" and u.bond_with == a.id and a.hp < a.maxhp * float(_bond_def(u).get("no_help_below", 0.3)):
+		helps = false   # Soupeři: druhovi pod 30 % zdraví nepomůže
 	var dist := _ord("ally_dist_back", 4.0) if (u.ranged or u.heal > 0.0) else _ord("ally_dist", 2.0)
 	var gap := u.pos.distance_to(a.pos)
 	if not u.ranged and gap > dist + guard + _ord("ally_leash", 0.5):
@@ -1858,16 +2221,15 @@ func _in_combat(u: Unit) -> bool:
 func _priest_heal(u: Unit, dt: float) -> void:
 	if u.heal > 0.0:
 		u.heal_t -= dt
-		if u.heal_t <= 0.0 and _in_combat(u):
+		if u.heal_t <= 0.0 and u.mourn_t <= 0.0 and _in_combat(u):
 			var best: Unit = null
 			for k in living(SIDE_KNIGHT):
 				if k.hp < k.maxhp * 0.85 and k.pos.distance_to(u.pos) <= u.heal_range and not _no_heal(k) and not (k == u and _no_self_heal(u)):
 					if best == null or k.hp / k.maxhp < best.hp / best.maxhp:
 						best = k
 			if best != null:
-				best.hp = minf(best.maxhp, best.hp + u.heal)
+				_heal(u, best, u.heal)
 				u.heal_t = u.heal_cd
-				events.append({"type": "heal", "id": best.id})
 
 
 ## Zásah Nájezdem a přísaha: Rytířská výzva je splněná, když Nájezd zasáhne velitele (i když cestou srazí pěšáky);
@@ -1896,6 +2258,21 @@ func _dash(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		u.moving = false
 		if bool(oath_of(u.id).get("first_on_commander", false)) and not u.first_struck and not u.dash_hit.is_empty():
 			_break(u, "Nájezd nezasáhl velitele")
+		u.dash_mult = 1.0
+		if u.combo_strike != "":
+			# Kladivo a kovadlina: asasín skočí za prvního sraženého; pěšáka zabije, velitele zasáhne silně
+			var sa := by_id(u.combo_strike)
+			u.combo_strike = ""
+			var first: Unit = null
+			for id: String in u.dash_hit:
+				var hf := by_id(id)
+				if first == null and hf != null and hf.alive():
+					first = hf
+			if sa != null and sa.alive() and first != null:
+				var cm := float(units_data["combos"]["kladivo"].get("mult", 4.0)) * maxf(0.0, 1.0 + stat(sa, "moc"))
+				if not _is_commander(first):
+					cm = maxf(cm, first.hp / maxf(sa.dmg * _dmg_mult(sa, first) * _taken_mult(first), 0.01) + 1.0)
+				_shadow_strike(sa, first, cm)
 		# po Nájezdu dobojuje s nejbližším, koho srazil
 		var hit: Array[Unit] = []
 		for id: String in u.dash_hit:
@@ -1915,7 +2292,7 @@ func _dash(u: Unit, dt: float, foes: Array[Unit]) -> void:
 			u.dash_hit.append(f.id)
 			f.stun_t = float(a["stun"])
 			_dash_oath(u, f)
-			_hurt(u, f, float(a["dmg"]) * _dmg_mult(u, f, true))
+			_hurt(u, f, float(a["dmg"]) * u.dash_mult * _dmg_mult(u, f, true))
 
 
 func _foe_think(u: Unit, dt: float) -> void:
@@ -2379,6 +2756,9 @@ func step(dt: float) -> void:
 		u.hidden_t = maxf(0.0, u.hidden_t - dt)
 		u.shield_t = maxf(0.0, u.shield_t - dt)
 		u.rally_t = maxf(0.0, u.rally_t - dt)
+		u.rage_t = maxf(0.0, u.rage_t - dt)
+		u.mourn_t = maxf(0.0, u.mourn_t - dt)
+		u.mark_t = maxf(0.0, u.mark_t - dt)
 		if u.side == SIDE_KNIGHT:
 			_knight_think(u, dt)
 		else:

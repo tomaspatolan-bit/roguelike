@@ -37,6 +37,7 @@ func _init() -> void:
 	_test_oath(data)
 	_test_oaths_and_stats(data)
 	_test_interaction_ratio(data)
+	_test_bonds_and_combos(data)
 	_test_stand_firm(data)
 	var brod := Sim.load_data("brod_a_les")
 	_test_terrain(brod)
@@ -919,3 +920,117 @@ func _test_interaction_ratio(data: Dictionary) -> void:
 	var bp := 100.0 * bad / maxi(total, 1)
 	print("Interakce: %d kombinací, dobré %.0f %%, neutrální %.0f %%, špatné %.0f %%" % [total, gp, 100.0 - gp - bp, bp])
 	_check(total == 90 and gp >= 30.0 and gp <= 40.0 and bp >= 15.0 and bp <= 25.0, "poměr interakcí kolem 35/45/20")
+
+
+func _bond_pair(a: String, b: String, type: String, level: int) -> Dictionary:
+	return {a: {"with": b, "type": type, "level": level}, b: {"with": a, "type": type, "level": level}}
+
+
+## Pouta (efekty podle úrovně, žal) a komba (Q/E, spotřeba použití, efekty).
+func _test_bonds_and_combos(data: Dictionary) -> void:
+	print("Pouta a komba")
+	var st := _setup_with(data, {})
+	st["bonds"] = _bond_pair("tank", "lucistnik", "stitonos", 2)
+	st["bonds"].merge(_bond_pair("jezdec", "asasin", "bratri", 1))
+	var s := Sim.new(data, st, 91)
+	var tank := s.by_id("tank")
+	var luc := s.by_id("lucistnik")
+	var jez := s.by_id("jezdec")
+	var asa := s.by_id("asasin")
+	jez.pos = asa.pos + Vector2(1.0, 0.0)
+	_check(is_equal_approx(s.stat(jez, "utok"), 0.1), "Bratři ve zbrani (úr. 1): u sebe Útok +10 %")
+	jez.pos = asa.pos + Vector2(10.0, 0.0)
+	_check(is_equal_approx(s.stat(jez, "utok"), 0.0), "Bratři ve zbrani: daleko od sebe nic")
+	luc.pos = tank.pos + Vector2(1.0, 0.0)
+	var th := tank.hp
+	var lh := luc.hp
+	var foe := s.by_id("e0")
+	s._hurt(foe, luc, 100.0)
+	_check(tank.hp < th and absf((lh - luc.hp) - 100.0 * 0.7 * (1.0 - luc.armor)) < 0.01, "Štítonoš (úr. 2): tank bere 30 % zranění druha")
+	var cl := s.combos()
+	_check(cl.size() == 1 and String(cl[0]["id"]) == "navnada" and String(cl[0]["key"]) == "Q", "kombo jen od úrovně 2: Návnada na Q")
+	for f in s.living(Sim.SIDE_FOE):
+		_park(f)
+	var near: Array[Sim.Unit] = []
+	for i in 2:
+		var f := s.by_id("e%d" % i)
+		f.pos = tank.pos + Vector2(1.5 * (i + 1) - 2.0, 2.0)
+		near.append(f)
+	var hp0 := near[0].hp + near[1].hp
+	var tu := tank.uses
+	var lu := luc.uses
+	_check(s.combo_problem("navnada") == "" and s.use_combo("navnada"), "Návnada jde spustit")
+	_check(tank.taunt_t > 0.0 and tank.uses == tu - 1 and luc.uses == lu - 1 and near[0].hp + near[1].hp < hp0, "Návnada: Výzva + Salva kolem tanka, po jednom použití")
+	_check(s.combo_problem("navnada") != "", "po kombu se obě schopnosti nabíjejí")
+	tank.uses = 2
+	s._hurt(foe, luc, 99999.0)
+	_check(tank.uses == 0, "žal Štítonoše: tank přijde o použití schopnosti")
+	_check(s.combos().is_empty() or s.combo_problem("navnada") != "", "po smrti druha kombo nejde")
+	s._hurt(foe, jez, 99999.0)
+	_check(asa.rage_t > 3.9 and asa.rage_t < 4.1 and s.order_problem("asasin") != "", "žal Bratrů (úr. 1 poloviční): asasín 4 s zuří a neposlouchá")
+	# Kladivo a kovadlina: asasín dorazí pěšáka sraženého Nájezdem
+	var st2 := _setup_with(data, {})
+	st2["bonds"] = _bond_pair("jezdec", "asasin", "bratri", 2)
+	var s2 := Sim.new(data, st2, 92)
+	var j2 := s2.by_id("jezdec")
+	var pawn: Sim.Unit = null
+	for f in s2.living(Sim.SIDE_FOE):
+		if pawn == null and not f.leader and f.skill == "" and f.key == "lapka":
+			pawn = f
+		else:
+			_park(f)
+	pawn.pos = j2.pos + Vector2(0.0, 5.0)
+	pawn.home = pawn.pos
+	pawn.speed = 0.0
+	pawn.asleep = false
+	_check(s2.combos().size() == 1 and String(s2.combos()[0]["id"]) == "kladivo" and s2.combo_aimer("kladivo") == "jezdec", "Kladivo a kovadlina se míří Nájezdem")
+	_check(s2.use_combo("kladivo", pawn.pos + Vector2(0.0, 1.5)), "Kladivo a kovadlina jde spustit")
+	for i in 120:
+		s2.step(DT)
+		s2.events.clear()
+		if not pawn.alive():
+			break
+	_check(not pawn.alive(), "Kladivo a kovadlina: sražený pěšák padl")
+	# Zpovědník, Pokrevní bratrství, Lovecká dvojice, Kopí a štít, Soupeři
+	var st3 := _setup_with(data, {})
+	st3["bonds"] = _bond_pair("knez", "tank", "zpovednik", 3)
+	st3["bonds"].merge(_bond_pair("lucistnik", "asasin", "lovci", 2))
+	var s3 := Sim.new(data, st3, 93)
+	var k3 := s3.by_id("knez")
+	var t3 := s3.by_id("tank")
+	t3.hp = 100.0
+	s3._heal(k3, t3, 10.0)
+	_check(is_equal_approx(t3.hp, 117.5), "Zpovědník (úr. 3): kněz léčí druha o 75 % víc")
+	var a3 := s3.by_id("asasin")
+	var l3 := s3.by_id("lucistnik")
+	var e3 := s3.by_id("e1")
+	e3.pos = a3.pos + Vector2(0.0, 4.0)
+	e3.hp = 9999.0
+	s3.use_ability("asasin", e3.id)
+	_check(e3.mark_t > 0.0 and is_equal_approx(s3._dmg_mult(l3, e3), 2.0), "Lovecká dvojice (úr. 2): na cíl Úderu střílí lučištník ×2")
+	s3._hurt(s3.by_id("e0"), k3, 99999.0)
+	_check(is_equal_approx(s3.stat(t3, "utok"), -0.15), "žal na úrovni 3: druh do konce bitvy Síla −15 %")
+	var st4 := _setup_with(data, {})
+	st4["bonds"] = _bond_pair("jezdec", "tank", "kopi", 3)
+	st4["bonds"].merge(_bond_pair("lucistnik", "asasin", "krev", 1))
+	var s4 := Sim.new(data, st4, 94)
+	var j4 := s4.by_id("jezdec")
+	_check(j4.uses == 4, "Kopí a štít (úr. 3): jezdec +1 použití")
+	j4.ability_cd = 20.0
+	s4.use_ability("tank")
+	_check(is_zero_approx(j4.ability_cd), "Kopí a štít: po schopnosti tanka má jezdec Nájezd nabitý")
+	_check(s4.combos().size() == 1 and String(s4.combos()[0]["id"]) == "stit_a_kopi", "Štít a kopí je v kombech")
+	var l4 := s4.by_id("lucistnik")
+	var a4 := s4.by_id("asasin")
+	l4.hp = 50.0
+	a4.hp = 50.0
+	s4._heal(null, l4, 20.0)
+	_check(is_equal_approx(a4.hp, 55.0), "Pokrevní bratrství (úr. 1): léčení jednoho léčí druha z 25 %")
+	var st5 := _setup_with(data, {})
+	st5["bonds"] = _bond_pair("tank", "jezdec", "souperi", 1)
+	var s5 := Sim.new(data, st5, 95)
+	s5.by_id("tank").kills = 3
+	s5.by_id("jezdec").kills = 1
+	var g5 := s5.glory
+	s5._end_oaths()
+	_check(is_equal_approx(s5.glory, g5 + 15.0) and is_equal_approx(s5.stat(s5.by_id("tank"), "utok"), 0.1), "Soupeři: Útok +10 %, kdo zabil víc, přinese +15 slávy")

@@ -104,6 +104,12 @@ func _process(_delta: float) -> bool:
 ## Zapne pasivky přes battle.gd (stejně jako zaškrtnutí v menu) a zkontroluje rozestavení.
 func _enable_passives() -> void:
 	var sim: Variant = _sim()
+	# bez pout na zkoušku (trial_bonds), aby čísla pasivek nic nezkreslovalo
+	(scene.get("setup") as Dictionary)["bonds"] = {}
+	for k: Variant in sim.call("knights"):
+		k.set("bond_with", "")
+		k.set("bond_type", "")
+		k.set("bond_level", 0)
 	var pas: Dictionary = SETS[set_key]["passives"]
 	for id: String in pas:
 		for k: String in pas[id]:

@@ -33,12 +33,16 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 22. **Kamera** (`camera` v `units.json` výchozí, ve scénáři přepíše jednotlivé klíče): `target` [x, y] výchozí střed výřezu, `yaw`, `pitch` (°), `distance`, `zoom` [min, max], `bounds` [x0, x1, y0, y1] (kam smí střed výřezu; stejné hodnoty = tím směrem se nehýbe), `pan_speed`. Výchozí výřez má ukázat hrdiny nad kartami.
 
 23. **Výcvik** (`vycvik.json`): `title`, `steps` [{`done`, `text`, volitelně `trigger`, `wait_text`, `anchor`}]; klíče `done` viz `scena-bitvy.md` (invariant 16). Nový krok s existujícím klíčem = jen data, nový klíč = kód v `battle.gd`.
+25. **Pouta** (`bonds` v `units.json`): `name`, `who` [[skupina A], [skupina B]] (`"*"` = kdokoli), volitelně `successor` (jeden z dvojice je nástupce), `desc`, `grief_desc` a čísla pro úroveň 1/2/3 jako seznam (`stats`, `heal_bonus`, `share`, `mark_mult`, `recharge`, `extra_uses`, `heal_share`) nebo jedno číslo (`near_radius`, `rage_t`, `rage_utok`, `mourn_t`, `share_radius`, `mark_t`, `grief_utok`, `rescue_at`, `rescue_t`, `grief_hp`, `rival_glory`, `no_help_below`). `bond_rules`: `levels` (společná vítězství pro úroveň 1, 2, 3), `choices` (kolik typů se nabízí), `combo_level`, `grief_half`, `grief_sila`. Nový typ pouta = data; nový druh efektu = kód v simulaci.
+26. **Komba** (`combos` v `units.json`): `name`, `a`, `b` (schopnosti), `aim` (`none` / `point`), `aim_by`, `desc`, `max_gap` a čísla komba (`radius`, `dmg_mult`, `mult`, `heal_radius`, `heal_frac`). Nové kombo = záznam + větev v `use_combo`.
+27. **Pouta na zkoušku** (`trial_bonds` v `rod_vlka.json`): ve volné bitvě (ne v testech balancu), aby šla vyzkoušet komba.
 
 ## Úskalí
 - JSON nemá komentáře: popis patří do klíče `_info`.
 - Při exportu hry musí být `*.json` ve filtru exportovaných souborů (`include_filter` v `export_presets.cfg`, viz `testy.md`, Export).
 
 ## Historie významných změn
+- 07.11.2026: `bonds` (8 typů pout), `bond_rules`, `combos` (5 komb výchozích schopností), `trial_bonds` v rodu.
 - 07.11.2026: `stats`, `stat_weights`, `abilities` u hrdinů, `power` u schopností; pasivky převedené na vlastnosti (Milosrdenství = Moc +50 %, Rychlé ruce = Pohotovost +25 %, Veterán = Odolnost +15 %, Lovec a Mstitel podmíněný Útok); 18 přísah podle návrhu 06.11 (Pomsta = Krevní dluh asasína, Slib odříkání nahradil Slib chudoby kněze, Nikdy neustoupí je osobní přísaha tanka).
 - 30.10.2026: asasín má vlastní model, dvě dýky (`offhand_model`) a animace `A_Assassin_*`; starší `anim_attack`, `anim_ability`, `weapon` u něj pryč.
 - 30.10.2026: jezdec má koně (`mount_model`, `rider_offset`, `mount_anims`, `mount_walk_speed`), vlastní model jezdce, kopí a animace `A_Cavalier_*`; zástupná zvětšená postava ×1,08 v kódu pryč.
