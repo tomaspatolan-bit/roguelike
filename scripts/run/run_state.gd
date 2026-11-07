@@ -168,6 +168,12 @@ func is_battle_node(id: String = node_id) -> bool:
 
 # --- house queries ---
 
+## Lineage line of a successor: "Successor of Sir X" ("" for a hero of the first generation).
+func lineage(cls: String) -> String:
+	var p := String(heroes[cls].get("predecessor", ""))
+	return "Successor of %s" % p if p != "" else ""
+
+
 func hero_name(cls: String) -> String:
 	return heroes[cls]["name"]
 
@@ -388,9 +394,14 @@ func record_battle(res: Dictionary) -> void:
 	if not is_boss:
 		for cls: String in dead:
 			var nm := _successor_name(cls)
+			var pred := String(heroes[cls]["name"])
 			heroes[cls] = {"name": nm, "passives": [], "glory": 0.0, "hp": 1.0, "joined": current_floor(), "bond": {}, "stats": {}, "oath_boost": {},
-				"ability": String(units_data["knights"][cls].get("ability", ""))}
-			_note(sname, "%s takes the place of the fallen." % nm)
+				"ability": String(units_data["knights"][cls].get("ability", "")), "predecessor": pred}
+			_note(sname, "%s takes the place of the fallen %s." % [nm, pred])
+			for fi in range(fallen.size() - 1, -1, -1):
+				if fallen[fi]["cls"] == cls and fallen[fi]["name"] == pred:
+					fallen[fi]["successor"] = nm
+					break
 
 	# enemies who fled this battle may return later
 	if not sc.has("returnees"):

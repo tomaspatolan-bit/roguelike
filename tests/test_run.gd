@@ -685,6 +685,7 @@ func _test_abilities_run() -> void:
 	r2.choose(r2.available()[0])
 	r2.record_battle(_fake("win", ["jezdec"], [], 30.0))
 	_check(r2.ability_of("jezdec") == "najezd", "nástupce začíná schopností třídy")
+	_check(r2.lineage("jezdec") == "Successor of Sir Radek" and r2.lineage("tank") == "" and String(r2.fallen[-1].get("successor", "")) == r2.hero_name("jezdec"), "nástupce nese linii (Successor of …), padlý ví, kdo po něm nastoupil")
 	# the Smith: retraining for 40 glory; the Monk: the priest swaps from 2
 	var r3 := Run.new(54)
 	r3.glory = 60.0

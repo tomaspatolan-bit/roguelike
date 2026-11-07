@@ -7,6 +7,7 @@ extends CanvasLayer
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
 const Icon := preload("res://scripts/battle/ui_icon.gd")
+const UI := preload("res://scripts/ui/ui_theme.gd")
 
 signal knight_clicked(id: String)
 signal ability_pressed(id: String)
@@ -28,25 +29,26 @@ signal run_continue_pressed
 signal tutorial_skip_pressed
 signal tutorial_ok_pressed
 
-const INK := Color("#e7e9ec")
-const MUTED := Color("#9aa3ad")
-const PANEL_BG := Color("#1b1f24")
-const LINE := Color("#2f353c")
-const BANNER := Color("#d0433b")
-const GLORY := Color("#e2b84a")
-const OK := Color("#5bb36a")
-const BAD := Color("#ef6b62")
-const STEEL := Color("#8aa2e0")
-const CARD_W := 196.0
+# Royal Court Enamel (light, scripts/ui/ui_theme.gd); the names stay so run_main.gd can borrow them
+const INK := UI.TEXT
+const MUTED := UI.TEXT_MUTED
+const PANEL_BG := UI.BATTLE
+const LINE := UI.BORDER
+const BANNER := UI.OATH
+const GLORY := UI.GLORY
+const OK := UI.GOOD
+const BAD := UI.BAD
+const STEEL := UI.HOUSE
+const CARD_W := 200.0
 
-const ORDER_COL := Color(1.0, 0.92, 0.55)
-## Order icon by kind (placeholder).
-const ORDER_ICONS := {"": "hold", "point": "route", "group": "zarod", "ally": "hradba"}
+const ORDER_COL := UI.TEXT_2
+## Order icon by kind (no Oathline icon yet: simple vectors).
+const ORDER_ICONS := {"": "hold", "point": "route", "group": "map_battle", "ally": "class_tank"}
 
-## Ability icon by key (placeholder).
-const ABILITY_ICONS := {"vyzva": "hradba", "pozehnani": "heal", "salva": "lucistnik", "najezd": "charge", "uder": "asasin",
-	"hradba": "hradba", "uder_stitem": "hradba", "kruh": "heal", "svetlo": "heal", "mirena": "lucistnik", "ustup": "lucistnik",
-	"korouhev": "charge", "prujezd": "charge", "kour": "asasin", "noze": "asasin"}
+## Ability icon by key: the five base abilities have their own Oathline icon, the others borrow the closest one.
+const ABILITY_ICONS := {"vyzva": "ability_challenge", "pozehnani": "ability_blessing", "salva": "ability_volley", "najezd": "ability_charge", "uder": "ability_shadow_strike",
+	"hradba": "class_tank", "uder_stitem": "class_tank", "kruh": "ability_blessing", "svetlo": "ability_blessing", "mirena": "class_archer", "ustup": "ability_volley",
+	"korouhev": "status_commander", "prujezd": "ability_charge", "kour": "status_hidden", "noze": "class_assassin"}
 
 var root: Control
 var tutorial: PanelContainer        # tutorial panel (show_tutorial / hide_tutorial)
@@ -65,7 +67,10 @@ var bars_layer: Control
 var toast: PanelContainer
 var toast_label: Label
 var result_box: PanelContainer
-var oath_dialog: ConfirmationDialog
+var oath_dialog: PanelContainer      # oath confirmation (POWER / RESTRICTION / IF BROKEN), ask_oath
+var _oath_veil: ColorRect
+var _oath_body: VBoxContainer
+var _oath_keep_btn: Button
 var select_box: Panel              # box selection rectangle
 var scenario_choices: Array = []   # [[key, name], ...] for the battle picker
 var run_mode := false              # the battle is part of a run: no battle picker, passives read-only
@@ -80,6 +85,11 @@ var _hint: Label
 var _hint_t := 0.0
 var _pause_button: Button
 var _charge_button: Button
+var _morale_box: HBoxContainer       # command bar: enemy morale meter / All In! (states A–E)
+var _morale_meter: Control
+var _morale_note: Label
+var _morale_state := ""
+var _last_morale := ""               # survives panel rebuilds: the one-time reveal (state B) when morale breaks
 var _log_box: VBoxContainer
 var _log_open := true
 var _oath_break_cb: Callable
@@ -104,7 +114,7 @@ func _ready() -> void:
 	top_bar.anchor_right = 0.5
 	top_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	top_bar.offset_top = 10
-	top_bar.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.92), 10, 8, LINE, 1))
+	top_bar.add_theme_stylebox_override("panel", UI.panel_box(8, PANEL_BG))
 	root.add_child(top_bar)
 	top_row = HBoxContainer.new()
 	top_row.add_theme_constant_override("separation", 8)
@@ -114,7 +124,7 @@ func _ready() -> void:
 	info_card = PanelContainer.new()
 	info_card.position = Vector2(12, 12)
 	info_card.custom_minimum_size = Vector2(300, 0)
-	info_card.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.92), 10, 12, LINE, 1))
+	info_card.add_theme_stylebox_override("panel", UI.panel_box(12, PANEL_BG))
 	root.add_child(info_card)
 	info_box = VBoxContainer.new()
 	info_box.add_theme_constant_override("separation", 6)
@@ -143,15 +153,17 @@ func _ready() -> void:
 	log_panel.offset_top = 12
 	log_panel.offset_right = -12
 	log_panel.custom_minimum_size = Vector2(290, 0)
-	log_panel.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.85), 10, 10, LINE, 1))
+	log_panel.add_theme_stylebox_override("panel", UI.panel_box(10, Color(PANEL_BG, 0.94)))
 	root.add_child(log_panel)
 	var lv := VBoxContainer.new()
 	log_panel.add_child(lv)
 	var lh := Button.new()
 	lh.flat = true
 	lh.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	lh.add_theme_font_size_override("font_size", 12)
-	lh.add_theme_color_override("font_color", MUTED)
+	lh.add_theme_font_size_override("font_size", 11)
+	lh.add_theme_font_override("font", UI.font("ui", 700))
+	for k: String in ["font_color", "font_hover_color", "font_pressed_color"]:
+		lh.add_theme_color_override(k, MUTED)
 	lh.text = "BATTLE LOG  ▾"
 	lh.focus_mode = Control.FOCUS_NONE
 	lh.pressed.connect(func() -> void:
@@ -170,16 +182,17 @@ func _ready() -> void:
 	toast.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	toast.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	toast.offset_bottom = -200
-	toast.add_theme_stylebox_override("panel", _box(Color(0.08, 0.09, 0.11, 0.94), 8, 14, BANNER, 1))
+	toast.add_theme_stylebox_override("panel", UI.panel_box(14, UI.PANEL))
 	var th := HBoxContainer.new()
 	th.add_theme_constant_override("separation", 14)
 	toast.add_child(th)
-	toast_label = Label.new()
+	toast_label = UI.label("", 16, INK, false, "lore")
 	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast_label.custom_minimum_size = Vector2(380, 0)
 	th.add_child(toast_label)
 	var tb := Button.new()
 	tb.text = "Continue  [Space]"
+	UI.primary(tb, UI.OATH, 14)
 	tb.focus_mode = Control.FOCUS_NONE
 	tb.pressed.connect(func() -> void: continue_pressed.emit())
 	th.add_child(tb)
@@ -189,23 +202,26 @@ func _ready() -> void:
 	# tutorial: a card with the step, pinned with an arrow to what the step is about (point_tutorial)
 	_tut_arrow = Line2D.new()
 	_tut_arrow.width = 3.0
-	_tut_arrow.default_color = GLORY
+	_tut_arrow.default_color = UI.GILT
 	_tut_arrow.visible = false
 	root.add_child(_tut_arrow)
 	_tut_mark = Line2D.new()
 	_tut_mark.width = 3.0
-	_tut_mark.default_color = GLORY
+	_tut_mark.default_color = UI.GILT
 	_tut_mark.closed = true
 	for i in 24:
 		_tut_mark.add_point(Vector2.from_angle(TAU * i / 24.0) * 18.0)
 	_tut_mark.visible = false
 	root.add_child(_tut_mark)
 	tutorial = PanelContainer.new()
-	tutorial.add_theme_stylebox_override("panel", _box(Color(0.10, 0.11, 0.14, 0.95), 10, 14, GLORY, 2))
+	var tst := UI.box(UI.PANEL, UI.RADIUS, 14, UI.OUTLINE, 2, 3)
+	tst.border_width_top = 5
+	tst.border_color = UI.OUTLINE
+	tutorial.add_theme_stylebox_override("panel", tst)
 	var tv := VBoxContainer.new()
 	tv.add_theme_constant_override("separation", 8)
 	tutorial.add_child(tv)
-	_tut_title = _label("", 12, GLORY)
+	_tut_title = UI.eyebrow("", GLORY, 11)
 	tv.add_child(_tut_title)
 	_tut_text = _label("", 15, INK, true)
 	_tut_text.custom_minimum_size = Vector2(290, 0)
@@ -228,22 +244,22 @@ func _ready() -> void:
 	tutorial.visible = false
 	root.add_child(tutorial)
 
-	_hint = _label("", 15, Color.WHITE)
+	_hint = UI.label("", 16, UI.ON_DARK, false, "ui", 600)
 	_hint.anchor_left = 0.5
 	_hint.anchor_right = 0.5
 	_hint.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_hint.offset_top = 64
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
-	_hint.add_theme_constant_override("outline_size", 5)
+	_hint.add_theme_color_override("font_outline_color", Color(UI.OUTLINE, 0.9))
+	_hint.add_theme_constant_override("outline_size", 6)
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_hint)
 
 	select_box = Panel.new()
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(1.0, 0.92, 0.55, 0.12)
-	sb.border_color = Color(1.0, 0.92, 0.55, 0.9)
-	sb.set_border_width_all(1)
+	sb.bg_color = Color(UI.GILT, 0.12)
+	sb.border_color = UI.GILT
+	sb.set_border_width_all(2)
 	select_box.add_theme_stylebox_override("panel", sb)
 	select_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	select_box.visible = false
@@ -253,83 +269,71 @@ func _ready() -> void:
 	result_box.set_anchors_preset(Control.PRESET_CENTER)
 	result_box.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	result_box.grow_vertical = Control.GROW_DIRECTION_BOTH
-	result_box.custom_minimum_size = Vector2(420, 0)
+	result_box.custom_minimum_size = Vector2(460, 0)
+	result_box.add_theme_stylebox_override("panel", UI.panel_box(22, UI.PANEL))
 	result_box.visible = false
 	root.add_child(result_box)
 
-	oath_dialog = ConfirmationDialog.new()
-	oath_dialog.title = "Oath"
-	oath_dialog.ok_button_text = "Break the oath"
-	oath_dialog.cancel_button_text = "Cancel order"
-	oath_dialog.dialog_autowrap = true
-	oath_dialog.min_size = Vector2i(440, 0)
-	oath_dialog.confirmed.connect(func() -> void:
-		if _oath_break_cb.is_valid():
-			_oath_break_cb.call())
-	oath_dialog.canceled.connect(func() -> void:
-		if _oath_keep_cb.is_valid():
-			_oath_keep_cb.call())
-	add_child(oath_dialog)
+	# oath confirmation: a veil over the battlefield and an enamel card in the middle
+	_oath_veil = ColorRect.new()
+	_oath_veil.color = Color(UI.OUTLINE, 0.45)
+	_oath_veil.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_oath_veil.mouse_filter = Control.MOUSE_FILTER_STOP
+	_oath_veil.visible = false
+	root.add_child(_oath_veil)
+	oath_dialog = PanelContainer.new()
+	oath_dialog.set_anchors_preset(Control.PRESET_CENTER)
+	oath_dialog.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	oath_dialog.grow_vertical = Control.GROW_DIRECTION_BOTH
+	oath_dialog.custom_minimum_size = Vector2(480, 0)
+	var ost := UI.box(UI.PANEL, UI.RADIUS, 20, UI.OUTLINE, 2, 4)
+	ost.border_width_top = 6
+	ost.border_color = UI.OUTLINE
+	oath_dialog.add_theme_stylebox_override("panel", ost)
+	oath_dialog.visible = false
+	var ov := VBoxContainer.new()
+	ov.add_theme_constant_override("separation", 12)
+	oath_dialog.add_child(ov)
+	_oath_body = VBoxContainer.new()
+	_oath_body.add_theme_constant_override("separation", 10)
+	ov.add_child(_oath_body)
+	var orow := HBoxContainer.new()
+	orow.add_theme_constant_override("separation", 10)
+	orow.alignment = BoxContainer.ALIGNMENT_END
+	ov.add_child(orow)
+	_oath_keep_btn = Button.new()
+	_oath_keep_btn.text = "Keep the oath"
+	_oath_keep_btn.custom_minimum_size = Vector2(150, 40)
+	_oath_keep_btn.pressed.connect(func() -> void: _close_oath(_oath_keep_cb))
+	orow.add_child(_oath_keep_btn)
+	var obreak := UI.primary(Button.new(), UI.OATH, 15)
+	obreak.text = "Break the oath"
+	obreak.custom_minimum_size = Vector2(170, 40)
+	obreak.pressed.connect(func() -> void: _close_oath(_oath_break_cb))
+	orow.add_child(obreak)
+	root.add_child(oath_dialog)
 
 
 # ================================================================ theme and helpers
 
 func _box(bg: Color, radius: int, pad: int, border: Color = Color(0, 0, 0, 0), bw: int = 0) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = bg
-	s.set_corner_radius_all(radius)
-	s.set_content_margin_all(pad)
-	if bw > 0:
-		s.border_color = border
-		s.set_border_width_all(bw)
-	return s
+	return UI.box(bg, radius, pad, border, bw)
 
 
 func _make_theme() -> Theme:
-	var t := Theme.new()
-	var f := SystemFont.new()
-	f.font_names = PackedStringArray(["Segoe UI", "Noto Sans", "DejaVu Sans", "Arial"])
-	t.default_font = f
-	t.default_font_size = 15
-	t.set_color("font_color", "Label", INK)
-	t.set_stylebox("panel", "PanelContainer", _box(Color(PANEL_BG, 0.95), 10, 16, LINE, 1))
-	t.set_stylebox("normal", "Button", _box(Color("#252a31"), 7, 8, LINE, 1))
-	t.set_stylebox("hover", "Button", _box(Color("#2e343c"), 7, 8, MUTED, 1))
-	t.set_stylebox("pressed", "Button", _box(Color("#3a414b"), 7, 8, MUTED, 1))
-	t.set_stylebox("disabled", "Button", _box(Color("#1f2328"), 7, 8, LINE, 1))
-	t.set_stylebox("focus", "Button", _box(Color(0, 0, 0, 0), 7, 8, STEEL, 2))
-	t.set_color("font_color", "Button", INK)
-	t.set_color("font_disabled_color", "Button", Color(MUTED, 0.5))
-	return t
+	return UI.make_theme()
 
 
 func _label(text: String, size: int = 15, color: Color = INK, wrap: bool = false) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", color)
-	if wrap:
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	return l
+	return UI.label(text, size, color, wrap)
 
 
 func _primary(b: Button, col: Color = BANNER) -> Button:
-	b.add_theme_stylebox_override("normal", _box(col, 7, 10))
-	b.add_theme_stylebox_override("hover", _box(col.lightened(0.1), 7, 10))
-	b.add_theme_stylebox_override("pressed", _box(col.darkened(0.1), 7, 10))
-	b.add_theme_stylebox_override("disabled", _box(col.darkened(0.55), 7, 10))
-	b.add_theme_color_override("font_color", Color.WHITE)
-	b.add_theme_font_size_override("font_size", 16)
-	return b
+	return UI.primary(b, col)
 
 
 func _bar(fill: Color, h: int = 6) -> ProgressBar:
-	var p := ProgressBar.new()
-	p.show_percentage = false
-	p.custom_minimum_size = Vector2(0, h)
-	p.add_theme_stylebox_override("background", _box(LINE, 3, 0))
-	p.add_theme_stylebox_override("fill", _box(fill, 3, 0))
-	return p
+	return UI.bar(fill, h)
 
 
 ## Button with an icon and text (the caption is a Label inside so update_dynamic can change it).
@@ -339,8 +343,10 @@ func _add_keycap(b: Button, key: String) -> void:
 	var cap := PanelContainer.new()
 	cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	cap.add_theme_stylebox_override("panel", _box(Color(1, 1, 1, 0.08), 4, 2, MUTED, 1))
-	var l := _label(key, 11, INK)
+	var cst := UI.box(UI.RAISED, 3, 2, UI.OUTLINE, 1)
+	cst.border_width_bottom = 2
+	cap.add_theme_stylebox_override("panel", cst)
+	var l := UI.label(key, 11, INK, false, "ui", 700)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.custom_minimum_size = Vector2(12, 0)
@@ -362,7 +368,7 @@ func _icon_button(kind: String, text: String, icon_col: Color = INK) -> Button:
 	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(ic)
 	if text != "":
-		var l := _label(text, 13)
+		var l := UI.label(text, 13, INK, false, "ui", 600)
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(l)
@@ -383,6 +389,10 @@ func _clear() -> void:
 	_combo_buttons.clear()
 	_pause_button = null
 	_charge_button = null
+	_morale_box = null
+	_morale_meter = null
+	_morale_note = null
+	_morale_state = ""
 	_time_label = null
 
 
@@ -400,51 +410,51 @@ func _status_icons(sim: Sim, u: Sim.Unit, in_battle: bool) -> Array:
 			if pd.get("kind", "") == "oath":
 				out.append(["oath", GLORY, u.oath_broken, "Oath %s%s: %s" % [pd["name"], " (broken)" if u.oath_broken else "", pd["desc"]]])
 			else:
-				out.append(["glory", Color(STEEL, 0.9), false, "%s: %s" % [pd["name"], pd["desc"]]])
+				out.append(["stat_power", STEEL, false, "%s: %s" % [pd["name"], pd["desc"]]])
 		var bond := sim.bond_of(u.id)
 		if not bond.is_empty():
 			var mate := sim.by_id(String(bond["with"]))
-			out.append(["glory", GLORY, mate == null or not mate.alive(), "Bond %s · companion %s (level %d): %s Grief: %s" % [bond["name"], mate.name if mate != null else "?", int(bond["level"]), bond["desc"], bond["grief_desc"]]])
+			out.append(["status_bond", UI.BOND[clampi(int(bond["level"]) - 1, 0, 2)], mate == null or not mate.alive(), "Bond %s · companion %s (level %d): %s Grief: %s" % [bond["name"], mate.name if mate != null else "?", int(bond["level"]), bond["desc"], bond["grief_desc"]]])
 		var st: Dictionary = sim.stats_of(u.id)
 		var parts: Array = []
 		for sk: String in ["utok", "moc", "odolnost", "pohotovost"]:
 			if absf(float(st[sk])) > 0.001:
 				parts.append("%s %+d %%" % [sim.units_data["stats"][sk]["name"], roundi(float(st[sk]) * 100.0)])
 		if not parts.is_empty():
-			out.append(["glory", Color(GLORY, 0.7), false, "Stats: " + ", ".join(parts)])
+			out.append(["stat_attack", GLORY, false, "Stats: " + ", ".join(parts)])
 		if in_battle and u.alive():
 			if u.taunt_t > 0.0:
-				out.append(["hradba", STEEL, false, "Challenge: enemies attack him, half damage"])
+				out.append(["ability_challenge", STEEL, false, "Challenge: enemies attack him, half damage"])
 		if u.alive():
 			out.append([ORDER_ICONS.get("" if u.order_done else u.order, "hold"), ORDER_COL, false, sim.order_text(u.id)])
 	else:
 		if u.leader:
-			out.append(["glory", GLORY, false, "%s: commander. When he falls, the enemy breaks." % u.name])
+			out.append(["status_commander", BAD, false, "%s: commander. When he falls, the enemy breaks." % u.name])
 		if u.casting:
-			out.append(["desperate", BAD, false, "Winding up: a stun (Charge) interrupts him"])
+			out.append(["status_winding_up", BAD, false, "Winding up: a stun (Charge) interrupts him"])
 		if u.stun_t > 0.0:
-			out.append(["glory", STEEL, false, "Stunned"])
+			out.append(["status_stunned", STEEL, false, "Stunned"])
 		if u.fleeing:
-			out.append(["flee", MUTED, false, "Fleeing"])
+			out.append(["status_fleeing", MUTED, false, "Fleeing"])
 		elif u.desperate:
 			out.append(["desperate", BAD, false, "Desperate: attacks harder"])
 		elif u.asleep:
 			out.append(["hold", MUTED, false, "On watch: joins the fight when you come close or he hears fighting"])
 		for tr: String in u.traits:
 			if tr == "fanatik":
-				out.append(["fanatik", Color("#f08a3c"), false, "Fanatic: never breaks"])
+				out.append(["fanatik", Color("#B5541C"), false, "Fanatic: never breaks"])
 			elif tr == "zbabelec":
-				out.append(["zbabelec", Color("#c9c3a6"), false, "Coward: flees when morale breaks"])
+				out.append(["zbabelec", Color("#7A7058"), false, "Coward: flees when morale breaks"])
 		if u.vs_mounted > 1.0:
-			out.append(["jezdec", BAD, true, "Spear: 2× damage against cavalry"])
+			out.append(["class_cavalier", BAD, true, "Spear: 2× damage against cavalry"])
 	return out
 
 
-func _fill_icons(box: HBoxContainer, icons: Array, px: float) -> void:
+func _fill_icons(box: HBoxContainer, icons: Array, px: float, plate: bool = false) -> void:
 	for c in box.get_children():
 		c.queue_free()
 	for it: Array in icons:
-		var ic := Icon.make(it[0], it[1], px, it[3])
+		var ic := Icon.make(it[0], it[1], px, it[3], plate)
 		ic.set("crossed", it[2])
 		box.add_child(ic)
 
@@ -489,10 +499,10 @@ func _fill_info(sim: Sim, deploy: bool, scenario_id: String) -> void:
 			i += 1
 		pick.item_selected.connect(func(index: int) -> void: scenario_changed.emit(String(pick.get_item_metadata(index))))
 		info_box.add_child(pick)
-	info_box.add_child(_label("%s · %s" % [run_label if run_mode and run_label != "" else sc["stage_label"], sim.house["name"]], 12, MUTED))
-	info_box.add_child(_label(sc["name"], 24 if deploy else 20))
+	info_box.add_child(UI.eyebrow("%s · %s" % [run_label if run_mode and run_label != "" else sc["stage_label"], sim.house["name"]], MUTED, 11))
+	info_box.add_child(UI.title(String(sc["name"]), 22 if deploy else 18))
 	if deploy:
-		info_box.add_child(_label(sc["subtitle"], 13, MUTED, true))
+		info_box.add_child(UI.label(String(sc["subtitle"]), 15, UI.TEXT_2, true, "lore_i"))
 	var md: Dictionary = sim.units_data.get("battle_modes", {}).get(sim.mode, {})
 	if not md.is_empty():
 		info_box.add_child(_label("%s: %s" % [md.get("name", ""), md.get("desc", "")], 13, STEEL, true))
@@ -500,9 +510,9 @@ func _fill_info(sim: Sim, deploy: bool, scenario_id: String) -> void:
 		info_box.add_child(_label("Waves still to come: %d" % sim.waves_left, 13, GLORY))
 	var task: Dictionary = sc["optional_task"]
 	var tb := PanelContainer.new()
-	var st := _box(Color(GLORY, 0.10), 6, 8)
+	var st := UI.box(UI.INSET, 4, 8)
 	st.border_color = GLORY
-	st.border_width_left = 3
+	st.border_width_left = 4
 	tb.add_theme_stylebox_override("panel", st)
 	tb.add_child(_label("Task: %s Reward: %s." % [task["text"], task["reward"]], 13, INK, true))
 	info_box.add_child(tb)
@@ -519,8 +529,8 @@ func show_battle(sim: Sim, pause_phase: bool, selection: Array, speed: float, lo
 	_clear()
 	_fill_info(sim, pause_phase and sim.t == 0.0, scenario_id)   # before the start: battle picker and instructions
 
-	_time_label = _label("0:00", 16, INK)
-	_time_label.custom_minimum_size = Vector2(44, 0)
+	_time_label = UI.label("0:00", 16, INK, false, "ui", 700)
+	_time_label.custom_minimum_size = Vector2(48, 0)
 	_time_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	top_row.add_child(_time_label)
 
@@ -532,15 +542,10 @@ func show_battle(sim: Sim, pause_phase: bool, selection: Array, speed: float, lo
 		rb.pressed.connect(func() -> void: resume_pressed.emit())
 		top_row.add_child(rb)
 	else:
-		_pause_button = _icon_button("pause", "Pause", INK)
+		_pause_button = _icon_button("hud_pause", "Pause", INK)
 		_pause_button.tooltip_text = "Pause [Space]: stops time so you can give orders and use abilities calmly."
 		_pause_button.pressed.connect(func() -> void: pause_pressed.emit())
 		top_row.add_child(_pause_button)
-		if sim.foes_broken:
-			_charge_button = _primary(_icon_button("charge", "All In! [F]" if not sim.charging else "Fighting on", Color.WHITE))
-			_charge_button.tooltip_text = "One-time command: all heroes leave their posts and finish off the broken enemy."
-			_charge_button.pressed.connect(func() -> void: charge_pressed.emit())
-			top_row.add_child(_charge_button)
 		var group := ButtonGroup.new()
 		for v: float in [1.0, 2.0]:
 			var sp := Button.new()
@@ -549,13 +554,140 @@ func show_battle(sim: Sim, pause_phase: bool, selection: Array, speed: float, lo
 			sp.button_group = group
 			sp.button_pressed = is_equal_approx(speed, v)
 			sp.custom_minimum_size = Vector2(40, 36)
+			sp.add_theme_stylebox_override("pressed", UI.box(UI.IRON, UI.RADIUS, 8, UI.OUTLINE, 2))
+			sp.add_theme_stylebox_override("hover_pressed", UI.box(UI.IRON, UI.RADIUS, 8, UI.OUTLINE, 2))
+			sp.add_theme_color_override("font_hover_pressed_color", UI.ON_DARK)
+			sp.add_theme_color_override("font_pressed_color", UI.ON_DARK)
 			sp.pressed.connect(func() -> void: speed_changed.emit(v))
 			top_row.add_child(sp)
+	# enemy morale and the All In! command (states A–E), refreshed in update_dynamic
+	var sep := VSeparator.new()
+	sep.add_theme_stylebox_override("separator", UI.box(UI.BORDER, 0, 0))
+	sep.custom_minimum_size = Vector2(2, 0)
+	top_row.add_child(sep)
+	_morale_box = HBoxContainer.new()
+	_morale_box.add_theme_constant_override("separation", 8)
+	top_row.add_child(_morale_box)
+	_build_morale(sim)
 
 	_build_cards(sim, selection, sim.t > 0.0, order_id, aim_id)
 	set_log(log_lines)
 	update_dynamic(sim, pause_phase, false)
 	_no_focus(root)
+
+
+# ================================================================ enemy morale and All In! (states A–E)
+
+## Meter of enemy losses with a mark at the break threshold (state A).
+class MoraleMeter:
+	extends Control
+	var value := 0.0
+	var threshold := 0.7
+	var waves := false
+
+	func _draw() -> void:
+		var r := Rect2(Vector2.ZERO, size)
+		draw_rect(r, UI.IRON)
+		var fill := Rect2(Vector2(1, 1), Vector2((size.x - 2.0) * clampf(value / maxf(threshold, 0.01), 0.0, 1.0), size.y - 2.0))
+		draw_rect(fill, Color(UI.OATH, 0.45) if waves else UI.OATH)
+		draw_rect(r, UI.OUTLINE, false, 1.0)
+		# notches every quarter of the way to the break
+		for i in range(1, 4):
+			var x := size.x * i / 4.0
+			draw_line(Vector2(x, 1), Vector2(x, size.y - 1), Color(UI.ON_DARK, 0.25), 1.0)
+
+
+func _chip(text: String, col: Color, filled: bool = false) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", UI.box(col if filled else UI.RAISED, 3, 4, col, 1))
+	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	p.add_child(UI.label(text, 10, UI.ON_DARK if filled else col, false, "ui", 800))
+	return p
+
+
+## Rebuilds the morale part of the command bar for the current state.
+func _build_morale(sim: Sim) -> void:
+	if _morale_box == null:
+		return
+	for c in _morale_box.get_children():
+		c.queue_free()
+	_charge_button = null
+	_morale_meter = null
+	_morale_note = null
+	var ms := sim.morale_state()
+	var st := String(ms["state"])
+	_morale_state = st + ("|w" if ms["waves"] else "")
+	match st:
+		"steady":
+			var v := VBoxContainer.new()
+			v.add_theme_constant_override("separation", 3)
+			v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			var cap := HBoxContainer.new()
+			cap.add_theme_constant_override("separation", 6)
+			cap.add_child(UI.eyebrow("Enemy morale" if not ms["waves"] else "More waves coming", MUTED, 10))
+			_morale_note = UI.label("", 10, MUTED, false, "ui", 600)
+			cap.add_child(_morale_note)
+			v.add_child(cap)
+			var m := MoraleMeter.new()
+			m.custom_minimum_size = Vector2(150, 10)
+			m.threshold = float(ms["threshold"])
+			m.waves = bool(ms["waves"])
+			v.add_child(m)
+			_morale_meter = m
+			_morale_box.add_child(v)
+			var lock := Icon.make("hud_lock", MUTED, 18, "All In! unlocks when the enemy loses %d %% of its warriors%s." % [roundi(float(ms["threshold"]) * 100.0), " or its commander falls" if ms["leader"] else ""])
+			lock.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			_morale_box.add_child(lock)
+			_morale_box.tooltip_text = lock.tooltip_text
+		"broken":
+			_charge_button = _icon_button("hud_all_in", "All In!", UI.ON_DARK)
+			UI.primary(_charge_button, UI.OATH)
+			for l: Label in _charge_button.find_children("*", "Label", true, false):
+				l.add_theme_color_override("font_color", UI.ON_DARK)
+				l.add_theme_font_override("font", UI.font("title", 700))
+				l.add_theme_font_size_override("font_size", 15)
+			_add_keycap(_charge_button, "F")
+			_charge_button.custom_minimum_size.x += 10.0
+			_charge_button.tooltip_text = "One-time command: all heroes leave their posts and finish off the broken enemy."
+			_charge_button.pressed.connect(func() -> void: charge_pressed.emit())
+			_morale_box.add_child(_charge_button)
+			_morale_box.add_child(_chip("ONCE", UI.GLORY))
+			_morale_note = UI.label("", 12, MUTED, false, "ui", 600)
+			_morale_note.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			_morale_note.tooltip_text = "Without the command the heroes finish the fight on their own."
+			_morale_note.mouse_filter = Control.MOUSE_FILTER_PASS
+			_morale_box.add_child(_morale_note)
+			if _last_morale == "steady":
+				flash_hint("The enemy's morale is broken: All In! is ready (once). [F]")
+				var tw := _charge_button.create_tween().set_loops(3)
+				tw.tween_property(_charge_button, "modulate", Color(1.25, 1.15, 0.9), 0.25)
+				tw.tween_property(_charge_button, "modulate", Color.WHITE, 0.25)
+		"given", "auto":
+			var p := PanelContainer.new()
+			p.add_theme_stylebox_override("panel", UI.box(UI.INSET, UI.RADIUS, 6, UI.GILT if st == "given" else UI.BORDER, 2))
+			var h := HBoxContainer.new()
+			h.add_theme_constant_override("separation", 6)
+			h.add_child(Icon.make("hud_all_in", GLORY if st == "given" else MUTED, 18))
+			h.add_child(UI.label("All In! given" if st == "given" else "The heroes charged on their own", 13, INK if st == "given" else MUTED, false, "ui", 700))
+			p.add_child(h)
+			p.tooltip_text = "Every hero is finishing off the broken enemy."
+			_morale_box.add_child(p)
+	_last_morale = st
+	_no_focus(_morale_box)
+	_update_morale(sim, ms)
+
+
+func _update_morale(sim: Sim, ms: Dictionary = {}) -> void:
+	if ms.is_empty():
+		ms = sim.morale_state()
+	if _morale_meter != null:
+		var m := _morale_meter as MoraleMeter
+		m.value = float(ms["loss"])
+		m.queue_redraw()
+		if _morale_note != null:
+			_morale_note.text = "%d / %d %%" % [roundi(float(ms["loss"]) * 100.0), roundi(float(ms["threshold"]) * 100.0)]
+	elif _morale_note != null and float(ms["auto_in"]) >= 0.0:
+		_morale_note.text = "auto in %d s" % ceili(float(ms["auto_in"]))
 
 
 # ================================================================ hero cards
@@ -567,8 +699,25 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 		var sel := selection.has(u.id)
 		var card := PanelContainer.new()
 		card.custom_minimum_size = Vector2(CARD_W, 0)
-		var hc := u.color.lightened(0.3) if u.alive() else LINE
-		card.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.94), 9, 8, hc if sel else Color(hc, 0.7), 3 if sel else 2))
+		# enamel card: dark outline, a band of the hero's colour on top; selected = gilt frame and a marker above
+		var cst := UI.box(PANEL_BG if u.alive() else UI.INSET, UI.RADIUS, 8, UI.GILT if sel else UI.OUTLINE, 3 if sel else 2, 3)
+		card.add_theme_stylebox_override("panel", cst)
+		card.clip_contents = false
+		var band := ColorRect.new()   # strip of the hero's colour (as on the battlefield)
+		band.color = u.color if u.alive() else UI.BORDER
+		band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		band.custom_minimum_size = Vector2(0, 4)
+		if sel:
+			var mark := Polygon2D.new()
+			mark.polygon = PackedVector2Array([Vector2(-8, -15), Vector2(8, -15), Vector2(0, -5)])
+			mark.color = UI.GILT
+			var outline := Line2D.new()
+			outline.points = PackedVector2Array([Vector2(-8, -15), Vector2(8, -15), Vector2(0, -5), Vector2(-8, -15)])
+			outline.width = 1.5
+			outline.default_color = UI.OUTLINE
+			mark.add_child(outline)
+			card.resized.connect(func() -> void: mark.position = Vector2(card.size.x / 2.0, 0))
+			card.add_child(mark)
 		var id := u.id
 		card.gui_input.connect(func(ev: InputEvent) -> void:
 			if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
@@ -577,16 +726,17 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 		v.add_theme_constant_override("separation", 4)
 		card.add_child(v)
 
+		v.add_child(band)
 		var head := HBoxContainer.new()
 		head.add_theme_constant_override("separation", 6)
-		var cls := Icon.make(class_icon(u), u.color if u.alive() else MUTED, 26, u.role)
+		var cls := Icon.make(class_icon(u), UI.on_light(u.color) if u.alive() else MUTED, 26, u.role)
 		cls.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		head.add_child(cls)
 		var names := VBoxContainer.new()
 		names.add_theme_constant_override("separation", -2)
 		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		names.add_child(_label(u.name, 14, u.color.lightened(0.45) if u.alive() else MUTED))
-		names.add_child(_label(u.role + ("" if u.alive() else " · fallen"), 11, MUTED))
+		names.add_child(UI.label(u.name, 14, INK if u.alive() else MUTED, false, "ui", 700))
+		names.add_child(UI.eyebrow(u.role + ("" if u.alive() else " · fallen"), MUTED, 10))
 		head.add_child(names)
 		var icons := HBoxContainer.new()
 		icons.add_theme_constant_override("separation", 2)
@@ -594,7 +744,7 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 		head.add_child(icons)
 		v.add_child(head)
 
-		var hp := _bar(OK if u.alive() else LINE, 6)
+		var hp := _bar(OK if u.alive() else LINE, 8)
 		hp.max_value = u.maxhp
 		hp.value = maxf(0.0, u.hp)
 		v.add_child(hp)
@@ -612,7 +762,7 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 			ab.tooltip_text = String(a["desc"])
 			_add_keycap(ab, str(key))
 			if aim_id == u.id:
-				ab.add_theme_stylebox_override("normal", _box(Color("#3a3220"), 7, 8, GLORY, 2))
+				ab.add_theme_stylebox_override("normal", UI.box(Color("#F3E6C4"), UI.RADIUS, 8, UI.GILT, 3))
 				ab.tooltip_text += "\nClick the battlefield (left or right), Esc cancels."
 			ab.pressed.connect(func() -> void: ability_pressed.emit(id))
 			v.add_child(ab)
@@ -670,15 +820,16 @@ func _build_combos(sim: Sim) -> void:
 	if list.is_empty():
 		return
 	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", _box(Color(PANEL_BG, 0.94), 9, 8, Color(GLORY, 0.6), 2))
+	var cst := UI.box(PANEL_BG, UI.RADIUS, 8, UI.OUTLINE, 2, 3)
+	card.add_theme_stylebox_override("panel", cst)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 3)
 	card.add_child(v)
-	v.add_child(_label("Bond combos", 11, MUTED))
+	v.add_child(UI.eyebrow("Bond combos", UI.BOND[1], 10))
 	for c: Dictionary in list:
 		var a := sim.by_id(String(c["a"]))
 		var b := sim.by_id(String(c["b"]))
-		var btn := _icon_button("glory", String(c["name"]), GLORY)
+		var btn := _icon_button("status_bond", String(c["name"]), UI.BOND[1])
 		_add_keycap(btn, String(c["key"]))
 		btn.tooltip_text = "%s + %s: %s" % [a.name, b.name, c["desc"]]
 		btn.set_meta("tip", btn.tooltip_text)
@@ -793,6 +944,12 @@ func update_dynamic(sim: Sim, _pause_phase: bool, paused: bool) -> void:
 			_hint.text = ""
 	if _pause_button != null:
 		_pause_button.disabled = paused or sim.over != ""
+	if _morale_box != null:
+		var ms := sim.morale_state()
+		if String(ms["state"]) + ("|w" if ms["waves"] else "") != _morale_state:
+			_build_morale(sim)
+		else:
+			_update_morale(sim, ms)
 	if _charge_button != null:
 		_charge_button.disabled = not sim.can_charge() or paused
 	var in_battle := _time_label != null
@@ -817,21 +974,27 @@ func update_hp_bars(sim: Sim, cam: Camera3D, views: Dictionary, show_full: bool)
 			holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var icons := HBoxContainer.new()
 			icons.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			icons.add_theme_constant_override("separation", 1)
+			icons.add_theme_constant_override("separation", 2)
 			holder.add_child(icons)
+			# dark backplate with the outline; heroes get a strip of their colour under it (told apart above their heads too)
 			var bg := ColorRect.new()
-			bg.color = Color(0, 0, 0, 0.5)
-			bg.size = Vector2(36, 5)
-			bg.position = Vector2(-18, 0)
+			bg.color = UI.OUTLINE
+			bg.size = Vector2(38, 7)
+			bg.position = Vector2(-19, -1)
 			if u.side == Sim.SIDE_KNIGHT:
-				# frame in the hero's colour: heroes can be told apart above their heads too
-				bg.color = u.color.lightened(0.3)
-				bg.size = Vector2(40, 9)
+				bg.color = u.color
+				bg.size = Vector2(40, 11)
 				bg.position = Vector2(-20, -2)
+				var plate := ColorRect.new()
+				plate.color = UI.OUTLINE
+				plate.size = Vector2(38, 7)
+				plate.position = Vector2(1, 1)
+				plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				bg.add_child(plate)
 			bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			holder.add_child(bg)
 			var fill := ColorRect.new()
-			fill.color = OK if u.side == Sim.SIDE_KNIGHT else BAD
+			fill.color = Color("#5E9A52") if u.side == Sim.SIDE_KNIGHT else Color("#C8423A")
 			fill.size = Vector2(36, 5)
 			fill.position = Vector2(-18, 0)
 			fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -856,8 +1019,8 @@ func update_hp_bars(sim: Sim, cam: Camera3D, views: Dictionary, show_full: bool)
 		if sg != o["sig"]:
 			o["sig"] = sg
 			var box: HBoxContainer = o["icons"]
-			_fill_icons(box, icons, 15)
-			box.position = Vector2(-icons.size() * 8.0, -19)
+			_fill_icons(box, icons, 17, true)
+			box.position = Vector2(-icons.size() * 9.5, -22)
 
 
 func clear_hp_bars() -> void:
@@ -877,13 +1040,64 @@ func hide_toast() -> void:
 	toast.visible = false
 
 
+## Oath confirmation: the order would break an oath. Shows the oath's POWER, RESTRICTION and what breaking it costs.
 func ask_oath(knight_name: String, oath: Dictionary, why: String, on_break: Callable, on_keep: Callable, keep_text: String = "Cancel order") -> void:
 	_oath_break_cb = on_break
 	_oath_keep_cb = on_keep
-	oath_dialog.cancel_button_text = keep_text
+	_oath_keep_btn.text = keep_text
 	var cost := int(oath.get("break_glory_cost", 0))
-	oath_dialog.dialog_text = "%s has sworn the oath “%s” (%s) and this would break it: %s.\n\nIf you break it, the oath stops working, the squad loses %d glory and a broken oath is not passed on." % [knight_name, oath.get("name", ""), oath.get("desc", ""), why, cost]
-	oath_dialog.popup_centered()
+	for c in _oath_body.get_children():
+		c.queue_free()
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	head.add_child(Icon.make("status_oath", UI.OATH, 34))
+	var hv := VBoxContainer.new()
+	hv.add_theme_constant_override("separation", 0)
+	hv.add_child(UI.eyebrow("%s would break his oath" % knight_name, UI.OATH, 11))
+	hv.add_child(UI.title(String(oath.get("name", "")), 22))
+	head.add_child(hv)
+	_oath_body.add_child(head)
+	var why_l := UI.label("“%s”" % why.strip_edges().trim_suffix("."), 16, UI.TEXT_2, true, "lore_i")
+	why_l.custom_minimum_size = Vector2(440, 0)
+	_oath_body.add_child(why_l)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("v_separation", 8)
+	for row: Array in [["Power", String(oath.get("power", oath.get("desc", ""))), UI.GOOD],
+			["Restriction", String(oath.get("restriction", "")), UI.OATH],
+			["If broken", "The oath stops working, the house loses %d glory and a broken oath is not passed on." % cost, UI.TEXT]]:
+		if String(row[1]) == "":
+			continue
+		var k := UI.eyebrow(row[0], row[2], 11)
+		k.custom_minimum_size = Vector2(96, 0)
+		grid.add_child(k)
+		var val := UI.label(row[1], 14, INK, true)
+		val.custom_minimum_size = Vector2(330, 0)
+		grid.add_child(val)
+	var gp := PanelContainer.new()
+	gp.add_theme_stylebox_override("panel", UI.inset_box(12))
+	gp.add_child(grid)
+	_oath_body.add_child(gp)
+	_no_focus(oath_dialog)
+	_oath_veil.visible = true
+	oath_dialog.visible = true
+	oath_dialog.reset_size()
+
+
+func _close_oath(cb: Callable) -> void:
+	_oath_veil.visible = false
+	oath_dialog.visible = false
+	if cb.is_valid():
+		cb.call()
+
+
+func oath_open() -> bool:
+	return oath_dialog != null and oath_dialog.visible
+
+
+func oath_keep() -> void:
+	_close_oath(_oath_keep_cb)
 
 
 func show_result(sim: Sim, _setup: Dictionary) -> void:
@@ -893,8 +1107,8 @@ func show_result(sim: Sim, _setup: Dictionary) -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	result_box.add_child(v)
-	v.add_child(_label("Battle over · %d:%02d" % [int(sim.t) / 60, int(sim.t) % 60], 12, MUTED))
-	v.add_child(_label(String(sim.scenario.get("win_title", "Victory")) if win else "The squad has fallen", 26, OK if win else BAD))
+	v.add_child(UI.eyebrow("Battle over · %d:%02d" % [int(sim.t) / 60, int(sim.t) % 60], MUTED, 11))
+	v.add_child(UI.title(String(sim.scenario.get("win_title", "Victory")) if win else "The squad has fallen", 28, OK if win else BAD))
 	var fallen: Array[String] = []
 	var best_glory := ""
 	var best_g := 0.0
@@ -920,7 +1134,7 @@ func show_result(sim: Sim, _setup: Dictionary) -> void:
 		["Glory", str(int(sim.glory))],
 		["Most glory brought by", best_glory if best_glory != "" else "no one"],
 	]:
-		g.add_child(_label(pair[0], 14, MUTED))
+		g.add_child(UI.label(pair[0], 14, MUTED, false, "ui", 600))
 		g.add_child(_label(pair[1], 14))
 	v.add_child(g)
 	var row := HBoxContainer.new()

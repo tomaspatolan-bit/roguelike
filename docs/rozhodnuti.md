@@ -2,6 +2,12 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 07.11.2026 – Vzhled Royal Court Enamel ve hře, morálka nepřítele, linie nástupců
+- **UI je světlé „Royal Court Enamel“** podle Figmy (Tom schválil): světlé enamel panely s tmavým obrysem, slavnostní nadpisy (Cinzel), příběhový text (EB Garamond), UI (Inter), všechna písma OFL v `art/fonts/`. Barvy a styly jsou na jednom místě (`scripts/ui/ui_theme.gd`, hodnoty = proměnné Figmy), ikony z Figmy jako SVG v kódu. Bitevní HUD je světlý a kompaktní. Důvod: Tom chtěl royal téma, ne temné jako Darkest Dungeon.
+- **Morálka nepřítele je vidět** (z návrhu UI): v liště ukazatel ztrát nepřítele s hranicí zlomu (70 %), po zlomení jednorázové odhalení a tlačítko All In! se štítkem ONCE a odpočtem, za kolik sekund hrdinové dobojují sami; pak stav „dal hráč“ nebo „sami“. Pravidla se nemění, simulace jen vydává stav (`morale_state`). Důvod: All In! se dřív objevilo bez varování a hráč nevěděl, kdy přijde (pilíř Velíš rodu).
+- **Linie rodu:** nástupce nese „Successor of Sir X“ (soupiska, stránka rodu, výběr dědice přísahy), pamětní deska padlého ukáže, kdo po něm nastoupil. Padlí jsou jen pamětní deska, nehrají. Pilíře Smrt má váhu a Každý run je příběh rodu.
+- **Dialog přísahy ukazuje Power / Restriction / If broken:** každá přísaha má v datech krátkou větu síly a omezení (`power`, `restriction`), aby hráč při porušení viděl, co ztrácí (pilíř Přísaha má cenu).
+
 ## 07.11.2026 – Výměna schopností, zušlechtění, stránka rodu
 - **Každá třída má 3 schopnosti** (výchozí + 2 nové), hrdina dál jen jednu na klávese 1–5. Novou schopnost dá elita (jedna ze 4 nabídek je vždy výměna), Kovář (40 slávy, výběr ze 2) a Mnich (kněz, výběr ze 2). Nástupce začíná výchozí schopností třídy.
 - **Zušlechtění** (2 na schopnost, 30 celkem) patří jedné schopnosti: nabízí se jen pro tu, kterou hrdina má, a při výměně propadne. Karta nabídky výměny to řekne předem, spolu s tím, jak nová schopnost sedí k přísaze a jaké kombo s druhem získá nebo ztratí (05.11: hráč musí vědět, do čeho jde).

@@ -30,6 +30,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 - Limity testů počítej v čase bitvy, ne ve snímcích (monitor může mít 144 Hz).
 
 ## Historie významných změn
+- 07.11.2026: otázka přísahy je panel UI místo okna `ConfirmationDialog`: dokud je otevřená (`ui.oath_open()`), vstup do bojiště stojí, Esc přísahu zachová (`ui.oath_keep()`).
 - 07.11.2026: zóny ze simulace mají barvu podle druhu (`ZONE_COLORS`: oheň, kruh, světlo, kouř, hradba); efekt nových schopností je zástupný kruh, animace je zatím schopnost třídy. Ve volné bitvě jde vyměnit schopnost (`_on_ability_chosen`), vybrané schopnosti zůstanou i po změně bitvy.
 - 07.11.2026: texty a komentáře přeložené do angličtiny (`docs/glosar.md`).
 - 30.10.2026: druhá zbraň v ruce (`offhand_model`, asasín).

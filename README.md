@@ -2,9 +2,9 @@
 
 Taktický roguelike pro Steam ve středověku. Vedeš pět hrdinů jednoho rodu na výpravě. Hrdinové skládají přísahy, které dávají sílu za cenu, a kdo padne, zůstává padlý: jeho místo zaujme nástupce a přísahu po něm může převzít další hrdina.
 
-Hra je v angličtině, dokumentace česky. Engine: Godot 4.7. Návrh názvu a identity (Oathline a další) je ve Figmě a čeká na rozhodnutí.
+Hra je v angličtině, dokumentace česky. Engine: Godot 4.7. Návrh názvu a identity (Oathline a další) je ve Figmě a čeká na rozhodnutí. Vzhled obrazovek je světlý „Royal Court Enamel“ (Figma → hra, písma Cinzel, EB Garamond a Inter).
 
-Aktualizováno 07.11.2026 (krok 2.3d).
+Aktualizováno 07.11.2026 (krok 2.3d, nový vzhled UI).
 
 ## O co jde
 
@@ -31,7 +31,7 @@ Aktualizováno 07.11.2026 (krok 2.3d).
 
 Mapa hlídá, aby hráč měl vždy na výběr (nikdy tři klidné uzly za sebou, rozcestí nabízí různé typy).
 
-**Bitva:** reálný čas s pauzou (mezerník). Hrdiny posíláš pravým tlačítkem na místo, na skupinu nepřátel nebo ke spojenci; bez rozkazu drží místo. Nepřátelé jsou ve skupinkách, které se probouzejí postupně, a velitelé ohlašují silné schopnosti, které jde omráčením přerušit. Typy bitev: útok, střet, obrana (vlny). Po zlomení morálky nepřítele jde jednou zavelet Do boje!. Hrdina, který padne, zůstane padlý. Když padnou všichni, běh končí.
+**Bitva:** reálný čas s pauzou (mezerník). Hrdiny posíláš pravým tlačítkem na místo, na skupinu nepřátel nebo ke spojenci; bez rozkazu drží místo. Nepřátelé jsou ve skupinkách, které se probouzejí postupně, a velitelé ohlašují silné schopnosti, které jde omráčením přerušit. Typy bitev: útok, střet, obrana (vlny). Lišta nahoře ukazuje morálku nepřítele (kolik ztratil a kde se zlomí); po zlomení jde jednou zavelet All In!, jinak hrdinové po chvíli dobojují sami. Hrdina, který padne, zůstane padlý. Když padnou všichni, běh končí.
 
 ## Rod a hrdinové
 
@@ -42,13 +42,13 @@ Mapa hlídá, aby hráč měl vždy na výběr (nikdy tři klidné uzly za sebou
 - **Pasivky** a **vlastnosti** (Útok, Moc, Odolnost, Pohotovost; Síla = Útok i Moc).
 - **Pouto** s jiným hrdinou. Roste ze společně vyhraných bitev (úroveň 1 až 3, 8 typů). Od úrovně 2 dává **kombo** na Q a E, kdy se obě schopnosti spojí (15 komb). Když jeden padne, druhý nese žal.
 
-**Padlí a nástupci:** za padlého nastoupí nástupce bez pasivek; přísahu padlého může převzít jiný hrdina (osobní jen nástupce). **Sláva** je měna běhu (nejvýš 120): platí se jí za události, tábor a porušené přísahy.
+**Padlí a nástupci:** za padlého nastoupí nástupce bez pasivek („Successor of Sir X“, padlý má na stránce rodu pamětní desku); přísahu padlého může převzít jiný hrdina (osobní jen nástupce). **Sláva** je měna běhu (nejvýš 120): platí se jí za události, tábor a porušené přísahy.
 
 **Stránka rodu** (tlačítko House na každé obrazovce běhu) ukazuje všechno pohromadě: schopnosti, zušlechtění, přísahy a jak sedí, vlastnosti, pouta a komba.
 
 ## Kde je hra teď
 
-**Fáze 2: jeden celý běh.** Hotový je akt 1 s 8 bitvami (z toho 2 elity a boss), 12 událostmi a táborem, všechny systémy výše a 3D modely a animace všech pěti hrdinů. Nepřátelé, prostředí a vzhled obrazovek jsou zástupné; nový vzhled UI a ikon vzniká ve Figmě.
+**Fáze 2: jeden celý běh.** Hotový je akt 1 s 8 bitvami (z toho 2 elity a boss), 12 událostmi a táborem, všechny systémy výše a 3D modely a animace všech pěti hrdinů. Nepřátelé a prostředí jsou zástupné; obrazovky a ikony mají nový vzhled z Figmy.
 
 **Další kroky:** znamení rodu (relikvie běhu) a balanc běhu (2.3e), pak obsah podle playtestu, další rody (Medvěd, Sokol), ukládání a další akty. Plán je v `docs/plan.md`, aktuální stav v `docs/stav.md`, rozhodnutí v `docs/rozhodnuti.md`, anglické názvy v `docs/glosar.md`.
 
@@ -72,7 +72,7 @@ Mapa hlídá, aby hráč měl vždy na výběr (nikdy tři klidné uzly za sebou
 | Ohlášená schopnost velitele | červený kruh, který sílí; uhni, nebo velitele omrač |
 | Schopnost hrdiny | tlačítko na kartě hrdiny nebo klávesa v rámečku na tlačítku (**1–5**); cílená schopnost pak **pravé** (nebo levé) tlačítko na bojiště (**Esc** zruší) |
 | Kombo pouta | **Q** a **E** (panel „Bond combos“ vpravo od karet) |
-| Do boje! (po zlomení morálky nepřítele, jednou) | tlačítko nebo **F** |
+| All In! (po zlomení morálky nepřítele, jednou) | tlačítko v liště nebo **F** |
 | Pauza (čas stojí, rozkazy a schopnosti jdou dál) | tlačítko nebo **mezerník**, pokračovat **mezerník** nebo **Enter**; v rozestavení obrany mezerník spustí bitvu |
 | Výběr bitvy (volná bitva) | nahoře vlevo v úvodní pauze (obrana: v rozestavení) |
 | Posun kamery | **WASD**, šipky, nebo myš u okraje obrazovky (jen v hranicích mapy) |

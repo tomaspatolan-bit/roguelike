@@ -183,6 +183,7 @@ var foes_broken: bool = false
 var broken_t: float = -1.0         # when the enemy's morale broke
 var decided: String = ""        # "k" / "e": the side the battle is decided in favour of
 var charging: bool = false      # the player gave the All In! command (one-time)
+var charge_auto: bool = false   # the heroes charged on their own (auto_charge_after passed without the command)
 var _next_id: int = 0
 var ancestors: int = 0             # fallen ancestors of the house in the run (Oath of the Ancestors)
 var _rng := RandomNumberGenerator.new()
@@ -1890,6 +1891,37 @@ func can_charge() -> bool:
 	return over == "" and foes_broken and not charging
 
 
+## Enemy morale for the command bar (All In! states A–E): "state" = "steady" (A, meter fills),
+## "broken" (B/C, the command is ready), "given" (D, the player gave it), "auto" (E, the heroes went on their own);
+## "loss" = share of enemies lost, "threshold" = loss at which morale breaks, "waves" = more waves still coming
+## (the enemy cannot break yet), "leader" = a living commander (his fall breaks morale at once),
+## "auto_in" = seconds until the heroes charge on their own (broken state only).
+func morale_state() -> Dictionary:
+	var total := 0
+	var lost := 0
+	var leader := false
+	for u in units:
+		if u.side == SIDE_FOE:
+			total += 1
+			if not u.alive():
+				lost += 1
+			elif u.leader:
+				leader = true
+	total += pending.size()
+	var st := "steady"
+	if charge_auto:
+		st = "auto"
+	elif charging:
+		st = "given"
+	elif foes_broken:
+		st = "broken"
+	var auto_in := -1.0
+	if st == "broken" and broken_t >= 0.0:
+		auto_in = maxf(0.0, float(units_data["morale"].get("auto_charge_after", 25.0)) - (t - broken_t))
+	return {"state": st, "loss": float(lost) / total if total > 0 else 0.0, "threshold": float(_enemy_morale()["break_losses"]),
+		"waves": not pending.is_empty(), "leader": leader, "auto_in": auto_in}
+
+
 func charge_all() -> bool:
 	if not can_charge():
 		return false
@@ -3264,6 +3296,7 @@ func _check_decided() -> void:
 	# stalemate guard: when the player does not give All In! long after the morale break, the heroes finish the fight on their own
 	if foes_broken and not charging and broken_t >= 0.0 and t - broken_t > float(units_data["morale"].get("auto_charge_after", 25.0)):
 		charging = true
+		charge_auto = true
 		_log("The heroes finish off the rest of the enemies on their own", true)
 	if decided != "":
 		return

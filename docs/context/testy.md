@@ -40,8 +40,10 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 - Kontrola: exe se spustí (`--quit-after 600 --log-file …`) bez chyb, v souboru jsou JSONy. Pro testera ZIP s exe a návodem „Jak hrát.txt“ (ovládání, SmartScreen: Další informace → Přesto spustit).
 
 ## Historie významných změn
+- 07.11.2026: písma v `art/fonts/` potřebují před testy `--headless --import` (jinak UI spadne na systémové písmo, testy projdou). Složku snímků dávat absolutně (relativní `shots` skončí v repu). Nové kontroly: `morale_state` (stavy B, D, E), linie nástupce v běhu.
 - 07.11.2026: testy kroku 2.3d (schopnosti, komba, každá alternativní schopnost v bitvách, výměna v běhu, snímek stránky rodu).
 - 07.11.2026: testy kroku 2.3c; `screenshot_run` v táboře volí Výcvik a dokončuje volby po událostech.
+- 07.11.2026: třetí build dne `Knights_test_2026-11-07c.zip` (vzhled Royal Court Enamel, morálka nepřítele v liště, linie nástupců), nahradil build b ve větvi `testovaci-buildy`.
 - 07.11.2026: druhý build dne `Knights_test_2026-11-07b.zip` (commit e8f8882, krok 2.3d: výměna schopností, zušlechtění, 15 komb, stránka rodu), nahradil ranní ZIP ve větvi `testovaci-buildy`.
 - 07.11.2026: build pro testery `Knights_test_2026-11-07.zip` (commit 61e60a3, hra v angličtině, přísahy, pouta, komba) ve větvi `testovaci-buildy`, starý ZIP zůstává v její historii. V ZIPu `Knights/Knights.exe` a anglický `How to play.txt`. Export kopíruje ZIP do `C:\Users\sirko\Blender\Roguelike\builds`, odkud jde přenést do cloudu.
 - 07.11.2026: testy pout a komb; `passives_ingame` vypne pouta na zkoušku; `screenshot_run` a auto-běhy vybírají pouto.

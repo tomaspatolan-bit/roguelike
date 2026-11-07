@@ -641,7 +641,10 @@ func _test_morale(data: Dictionary) -> void:
 	print("Morálka: střelec utekl za %.1f s" % s.t)
 	var tank := s.by_id("tank")
 	_check(s.decided == "", "po zlomení morálky se automatické dobojování nespustí, rozhoduje hráč")
+	var ms := s.morale_state()
+	_check(ms["state"] == "broken" and float(ms["auto_in"]) >= 0.0 and float(ms["loss"]) >= float(ms["threshold"]) - 0.001, "morale_state: zlomená morálka, odpočet do samostatného útoku")
 	_check(s.can_charge() and s.charge_all() and not s.can_charge(), "povel Do boje! jde po zlomení morálky použít jen jednou")
+	_check(s.morale_state()["state"] == "given" and not s.charge_auto, "morale_state: povel dal hráč (stav D)")
 	var before := tank.pos
 	for i in 60:
 		s.step(DT)
@@ -649,6 +652,14 @@ func _test_morale(data: Dictionary) -> void:
 	_check(tank.pos.distance_to(before) > 0.5 or s.over != "", "po povelu Do boje! jde i tank s přísahou dobojovat")
 	var fresh := Sim.new(data, Sim.default_setup(data), 19)
 	_check(not fresh.can_charge(), "bez zlomené morálky povel Do boje! nejde")
+	var fm := fresh.morale_state()
+	_check(fm["state"] == "steady" and is_zero_approx(float(fm["loss"])) and is_equal_approx(float(fm["threshold"]), 0.7), "morale_state: před bojem měřák prázdný, hranice 70 %")
+	# without the command the heroes go on their own after auto_charge_after (state E)
+	var lazy := Sim.new(data, Sim.default_setup(data), 19)
+	lazy._break_morale()
+	lazy.t += float(lazy.units_data["morale"].get("auto_charge_after", 25.0)) + 1.0
+	lazy._check_decided()
+	_check(lazy.charging and lazy.charge_auto and lazy.morale_state()["state"] == "auto", "morale_state: bez povelu jdou hrdinové sami (stav E)")
 
 
 ## When the battle is decided, the heroes go on the attack.

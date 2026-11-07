@@ -808,6 +808,11 @@ func _order_move(u: Sim.Unit, target: Vector2) -> void:
 # ================================================================ vstup
 
 func _unhandled_input(event: InputEvent) -> void:
+	if ui.oath_open():
+		# the oath question is open: Esc keeps the oath, other keys wait for the answer
+		if event is InputEventKey and event.is_pressed() and (event as InputEventKey).keycode == KEY_ESCAPE:
+			ui.oath_keep()
+		return
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		match (event as InputEventKey).keycode:
 			KEY_A:

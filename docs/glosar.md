@@ -17,6 +17,8 @@ Tenhle soubor drží názvy jednotně. Nový název ve hře = zapsat sem.
 | akt, patro, uzel | act, floor, node |
 | bitva, elita, událost, tábor, boss | Battle, Elite, Event, Camp, Boss |
 | padlý, nástupce | fallen, successor |
+| nástupce po (linie) | Successor of Sir X |
+| sekce padlých na stránce rodu | The Fallen |
 | dědictví přísahy | oath legacy |
 | znamení rodu | relic |
 
@@ -54,6 +56,8 @@ Osobní jména zůstávají česká (s diakritikou), tituly se překládají: Si
 | Kouř | Smoke |
 | Vrhací nože | Throwing Knives |
 | Do boje! (povel) | All In! |
+| morálka nepřítele (ukazatel) | Enemy morale |
+| síla / omezení / když porušíš (dialog přísahy) | Power / Restriction / If broken |
 | zušlechtění | refinement |
 
 ## Vlastnosti

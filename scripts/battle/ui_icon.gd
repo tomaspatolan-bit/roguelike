@@ -1,21 +1,59 @@
 extends Control
-## A simple vector icon for the UI (drawn in _draw, no images).
-## Placeholder art: Tom will design the final icons (phase 3). Drawn into a 0..1 square and scaled to the control size.
+## A UI icon. Oathline icons (scripts/ui/icon_svg.gd, from Figma) are rasterised from SVG at runtime
+## and tinted with `color`; older kinds without an SVG yet are drawn as simple vectors in _draw.
+## `plate` draws a light round backplate with the dark outline (icons above units, over the battlefield).
+
+const Svg := preload("res://scripts/ui/icon_svg.gd")
+
+## Old icon kinds → Oathline icon (the code still uses the old names in places).
+const ALIAS := {
+	"tank": "class_tank", "knez": "class_priest", "lucistnik": "class_archer", "jezdec": "class_cavalier", "asasin": "class_assassin",
+	"oath": "status_oath", "hradba": "class_tank", "heal": "ability_blessing", "aura": "ability_blessing", "banner": "status_commander",
+	"zarod": "map_battle", "signal": "ability_challenge", "pause": "hud_pause", "play": "hud_play", "charge": "ability_charge",
+	"glory": "hud_glory", "flee": "status_fleeing", "desperate": "status_winding_up",
+}
+const PLATE_BG := Color("#FFFCF4")
+const PLATE_LINE := Color("#121418")
+
+static var _tex := {}   # "key:px" -> ImageTexture (white, tinted when drawn)
 
 var kind := ""
 var color := Color.WHITE
 var crossed := false   # struck through (broken oath, fallen hero)
+var plate := false
 
 
-static func make(icon_kind: String, icon_color: Color = Color.WHITE, px: float = 18.0, tip: String = "") -> Control:
+static func make(icon_kind: String, icon_color: Color = Color.WHITE, px: float = 18.0, tip: String = "", with_plate: bool = false) -> Control:
 	var ic: Variant = load("res://scripts/battle/ui_icon.gd").new()
 	ic.kind = icon_kind
 	ic.color = icon_color
+	ic.plate = with_plate
 	ic.custom_minimum_size = Vector2(px, px)
 	ic.size = Vector2(px, px)
 	ic.tooltip_text = tip
 	ic.mouse_filter = Control.MOUSE_FILTER_PASS if tip != "" else Control.MOUSE_FILTER_IGNORE
 	return ic
+
+
+## Oathline icon key for a kind ("" when it has no SVG yet).
+static func svg_key(icon_kind: String) -> String:
+	var k: String = ALIAS.get(icon_kind, icon_kind)
+	return k if Svg.PATHS.has(k) else ""
+
+
+## White texture of an Oathline icon at a pixel size (cached).
+static func texture(key: String, px: int) -> Texture2D:
+	var ck := "%s:%d" % [key, px]
+	if _tex.has(ck):
+		return _tex[ck]
+	var d: Array = Svg.PATHS[key]
+	var svg := '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#ffffff" fill-rule="%s" d="%s"/></svg>' % [d[1], d[0]]
+	var img := Image.new()
+	var tex: Texture2D = null
+	if img.load_svg_from_string(svg, maxf(0.25, px / 24.0)) == OK:
+		tex = ImageTexture.create_from_image(img)
+	_tex[ck] = tex
+	return tex
 
 
 func set_kind(icon_kind: String, icon_color: Color, is_crossed: bool = false) -> void:
@@ -51,6 +89,22 @@ func _ring(cx: float, cy: float, r: float, w: float = 0.1, c: Color = color) -> 
 
 
 func _draw() -> void:
+	var full := minf(size.x, size.y)
+	if plate:
+		draw_circle(Vector2(full, full) / 2.0, full / 2.0, PLATE_BG, true, -1.0, true)
+		draw_arc(Vector2(full, full) / 2.0, full / 2.0 - 0.75, 0.0, TAU, 24, PLATE_LINE, 1.5, true)
+	var k := svg_key(kind)
+	if crossed and k == "status_oath":
+		k = "status_oath_broken"
+	if k != "":
+		var inner := full * (0.66 if plate else 1.0)
+		var tex := texture(k, ceili(inner * 2.0))   # 2× for crisp scaling
+		if tex != null:
+			var off := (full - inner) / 2.0
+			draw_texture_rect(tex, Rect2(Vector2(off, off), Vector2(inner, inner)), false, color)
+			if crossed and k != "status_oath_broken":
+				_line(Vector2(0.12, 0.88), Vector2(0.88, 0.12), 0.12, Color("#A72D27"))
+			return
 	match kind:
 		"tank", "oath", "hradba":
 			# shield
@@ -136,4 +190,4 @@ func _draw() -> void:
 		_:
 			_circle(0.5, 0.5, 0.3)
 	if crossed:
-		_line(Vector2(0.1, 0.9), Vector2(0.9, 0.1), 0.14, Color(0.95, 0.3, 0.25))
+		_line(Vector2(0.1, 0.9), Vector2(0.9, 0.1), 0.14, Color("#A72D27"))
