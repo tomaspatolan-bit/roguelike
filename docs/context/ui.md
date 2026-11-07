@@ -25,7 +25,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 16. **Výcvik** (`show_tutorial`, `hide_tutorial`, signály `tutorial_skip_pressed`, `tutorial_ok_pressed`): karta přišpendlená šipkou a kroužkem k cíli kroku (`point_tutorial(bod)`: nad cílem, nebo pod ním v horní polovině obrazovky; bez cíle vpravo pod deníkem) s krokem („VÝCVIK · krok 2 z 7“), textem z dat, Přeskočit výcvik a u posledního kroku Rozumím. Nezakrývá hrdiny ani nepřátele u mostu.
 15. **Obdélník výběru** (`select_box`, `show_box`, `hide_box`): při tažení levým tlačítkem na zemi.
 
-17. **Figma** (soubor Roguelike, `https://www.figma.com/design/ac4cRXkaZhJ0qwnMuhiO6p`): stránka rodu jako obrazovka z komponent (Hero sheet, bloky, Combo card, Bond link, řádky), tokeny „Roguelike UI — Tokens“ s barvami hry, textové styly House/*. Tom tam navrhuje vzhled, Claude ho pak přenese do hry; když se změní obsah stránky ve hře, upravit i komponenty.
+17. **Figma** (soubor Roguelike, `https://www.figma.com/design/ac4cRXkaZhJ0qwnMuhiO6p`): cílový vzhled je **Royal Court Enamel** (světlé téma, od 07.11.2026): tokeny v kolekci „Oathline UI“, textové styly UI/*, stránky Oathline UI · Foundations / Components / Screens / Icons. Správa (mapa, odměny, události, tábor, stránka rodu, kronika) je světlá a slavnostnější, bitevní HUD světlý a kompaktní s tmavým obrysem. All In! je povel v liště (stavy A–E), ne schopnost. Padlí mají jen pamětní desku v sekci The Fallen. První tmavá verze zůstává na stránkách „v0“. Až se vzhled potvrdí, přenese se do `battle_ui.gd` a `run_main.gd`; když se změní obsah obrazovky ve hře, upravit i komponenty.
 
 ## Úskalí
 - Kořenový `Control` má `mouse_filter = IGNORE`, jinak spolkne kliky do scény.

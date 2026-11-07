@@ -35,3 +35,4 @@ podporuje aspoň jeden pilíř? kolik stojí? řeší problém, který jsme vid�
 | 07.11.2026 | Kombo pro Ústupovou palbu (jediná schopnost bez komba) a druhé pro Vrhací nože | Velíš rodu | čeká na playtest 2.3d |
 | 07.11.2026 | Vlastní animace a efekty 10 nových schopností (teď animace schopnosti třídy a kruh na zemi) | – | vizuál, s Tomem |
 | 07.11.2026 | Název hry a identita: Oathline (doporučeno), Kinsworn, Heirs of the Wolf, Vowkeepers, The Last Banner; logo a paleta ve Figmě | Každý run je příběh rodu | čeká na Toma (+ kontrola známky) |
+| 07.11.2026 | Ve hře ukazovat „Successor of …“ u nástupce a v bitvě stav morálky nepřítele (ukazatel ztrát místo skrytého All In!), podle UI návrhu Royal Court Enamel | Smrt má váhu, Velíš rodu | při přenosu UI do hry |
