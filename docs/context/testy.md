@@ -42,6 +42,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 ## Historie významných změn
 - 07.11.2026: testy kroku 2.3d (schopnosti, komba, každá alternativní schopnost v bitvách, výměna v běhu, snímek stránky rodu).
 - 07.11.2026: testy kroku 2.3c; `screenshot_run` v táboře volí Výcvik a dokončuje volby po událostech.
+- 07.11.2026: druhý build dne `Knights_test_2026-11-07b.zip` (commit e8f8882, krok 2.3d: výměna schopností, zušlechtění, 15 komb, stránka rodu), nahradil ranní ZIP ve větvi `testovaci-buildy`.
 - 07.11.2026: build pro testery `Knights_test_2026-11-07.zip` (commit 61e60a3, hra v angličtině, přísahy, pouta, komba) ve větvi `testovaci-buildy`, starý ZIP zůstává v její historii. V ZIPu `Knights/Knights.exe` a anglický `How to play.txt`. Export kopíruje ZIP do `C:\Users\sirko\Blender\Roguelike\builds`, odkud jde přenést do cloudu.
 - 07.11.2026: testy pout a komb; `passives_ingame` vypne pouta na zkoušku; `screenshot_run` a auto-běhy vybírají pouto.
 - 07.11.2026: testy vlastností a 18 přísah, test poměru interakcí; Přísaha pomsty se testuje na asasínovi, `passives_ingame` sada B bez Slibu odříkání.
