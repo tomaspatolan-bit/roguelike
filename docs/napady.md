@@ -34,3 +34,4 @@ podporuje aspoň jeden pilíř? kolik stojí? řeší problém, který jsme vid�
 | 30.10.2026 | Asasín: kápě je hranatá a vysoká (pod ní velká přilba tanka), v podřepu prolézají stehna krátkou tunikou zezadu | Velíš rodu | při finálním stylu (3.1), Tom 30.10.2026: zatím v pohodě |
 | 07.11.2026 | Kombo pro Ústupovou palbu (jediná schopnost bez komba) a druhé pro Vrhací nože | Velíš rodu | čeká na playtest 2.3d |
 | 07.11.2026 | Vlastní animace a efekty 10 nových schopností (teď animace schopnosti třídy a kruh na zemi) | – | vizuál, s Tomem |
+| 07.11.2026 | Název hry a identita: Oathline (doporučeno), Kinsworn, Heirs of the Wolf, Vowkeepers, The Last Banner; logo a paleta ve Figmě | Každý run je příběh rodu | čeká na Toma (+ kontrola známky) |

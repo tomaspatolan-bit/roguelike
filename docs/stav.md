@@ -52,6 +52,8 @@ Aktualizováno: 07.11.2026
 - Žádný zvuk.
 
 ## Čeká na Toma
+- **Vybrat název hry** (07.11.2026, Figma stránka „Brand · Oathline“): doporučuju **Oathline** (přísaha + rod), dál Kinsworn, Heirs of the Wolf, Vowkeepers, The Last Banner. Kontrola jen rychlým hledáním, před rozhodnutím ověřit ochrannou známku a Steam. Na stejné stránce logo (štít s linkou přísahy, zářezy = dědicové, nejspodnější zlomený = padlí, pečeť), paleta 8 barev (Night Ink, Iron, Parchment, Oath Red, Gilt, Wolf Steel, Moss, Ember; sada proměnných „Brand palette“) a písma (Cinzel, EB Garamond, Inter, všechna OFL).
+- **Seznam UI pro návrh** (Figma): „Inventory · Components (lo-fi)“ = 41 komponent podle obrazovek (P1 28, P2 10, P3 3, se stavy) a „Inventory · Icons“ = 128 ikon (P1 77, P2 44, P3 7); zušlechtění a komba ikony nepotřebují (skládají se z ikon schopností).
 - **Projít stránku rodu** (snímek `beh_00_dum.png`, ve hře tlačítko v soupisce): co na ní chybí, co je navíc? Ve Figmě (soubor Roguelike, https://www.figma.com/design/ac4cRXkaZhJ0qwnMuhiO6p) je stránka „House page“ složená z komponent na stránce „Components · House page“ (bloky karty hrdiny, karta komba, čára pouta, řádky), texty jako vlastnosti komponent, stavy jako varianty. Barvy hry jsou přidané do tokenů.
 - **Zkusit nové schopnosti ve volné bitvě** (menu Schopnost na kartě) a komba (pouta na zkoušku: tank + lučištník, jezdec + asasín).
 - **Vyzkoušet kameru** na každé mapě: je vidět, co potřebuješ? Nejsou hrdinové pod kartami? Sedí úhel (dá se změnit v datech scénáře)?
