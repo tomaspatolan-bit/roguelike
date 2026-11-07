@@ -2,6 +2,10 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 07.11.2026 – Pouta rostou vítězstvími, komba na Q a E
+- **Pouto se buduje společnými vítězstvími**, ne jako odměna z nabídky: dvojice, která bitvu vyhraje a oba přežijí, má +1 společné vítězství. 2 vítězství = úroveň 1 (hráč vybere typ pouta ze dvou), 4 = úroveň 2 (silnější efekt a kombo), 6 = úroveň 3 (pokrevní). Každý hrdina má nejvýš jedno pouto. Žal po padlém roste s úrovní. Nástupce začíná od nuly. Hostina v táboře dá vybrané dvojici +1 vítězství, Přísaha samotáře pouta zakazuje. Tom: vztah má vzniknout ze společně odbojovaných bitev.
+- **Kombo pouta nahrazuje souhru** jako samostatnou odměnu: od úrovně 2 spojí schopnosti obou hrdinů do jedné silnější akce, spouští se klávesou Q nebo E (nejvýš 2 komba naráz, 1–5 zůstávají jednotlivým schopnostem). Kombo spotřebuje po jednom použití z obou schopností. Cílení je buď kotvené na hrdinu (tank, nemíří se), nebo se míří jedna schopnost. 15 komb je v návrhu. Důvod: hráč chtěl vidět souhru přímo v boji; dvě klávesy navíc jsou mez, kterou ovládání unese (05.11 „žádný druhý slot“ platí dál pro jednotlivé schopnosti).
+
 ## 06.11.2026 – Osobní přísahy, přísahy rodu a vlastnosti hrdinů
 - **Přísahy jsou osobní pro třídu** (3 na třídu, navržené proti jejím třem schopnostem: jedna sedí k výchozí, jedna k alternativě, jedna se schválně tluče) **plus 3 přísahy rodu**, které sedí každému hrdinovi (Pod korouhví, Přísaha milosti, Přísaha předků). Tom: přísahy mají působit osobně, kněz s „Nikdy neustoupí“ je divný. Osobní přísahu padlého dědí jen nástupce, přísahu rodu kdokoli bez přísahy.
 - **Vlastnosti hrdinů:** Útok, Moc (síla schopnosti, léčení), Odolnost, Pohotovost a souhrnná Síla (Útok i Moc). Každá třída má jiné hlavní vlastnosti; bonus k vlastnosti, na které hrdinovi nezáleží, hra označí jako promrhaný. Přísahy rodu a znamení dávají Sílu, osobní přísahy a pasivky konkrétní vlastnost. Tom: „+ útok“ je knězi jedno, přísahy rodu mají být overall ability power.

@@ -1,8 +1,9 @@
 # Stav projektu
 
-Aktualizováno: 30.10.2026
+Aktualizováno: 07.11.2026
 
 ## Aktuální cíl
+**07.11.2026:** návrh powerupů uzavřen (dokument „Odměny a jádro běhu – návrh“, artefakt „Stavitel oddílu“): čtyři vrstvy schopností, vlastnosti hrdinů, osobní přísahy a přísahy rodu, pouta rostoucí vítězstvími a komba na Q/E. Další krok: stavba v pořadí 1) vlastnosti + přísahy + přepočet pasivek, 2) pouta s úrovněmi, žalem a komby, 3) nabídky, tábor, události, 4) výměna schopností a zušlechtění, 5) znamení a balanc.
 **Rozhodnuto 30.10.2026:** styl jako Bad North; polish až po bráně (jádro boje, odměny s vazbami, playtest mimo nás), pak vertical slice prvního aktu. Teď: zkouška stylu (2.0s) a odměny s vazbami (2.3, 2.4).
 **Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotové všechny tři typy bitev (útok, střet, obrana s Lesní vsí) a animace boje hrdinů. Hotové rozkazy pro hrdiny (2.2c). Další: karta stage a volitelné úkoly (2.2). Otevřené: playtest s hráčem mimo nás (1.8).
 
