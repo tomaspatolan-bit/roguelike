@@ -1,6 +1,6 @@
 extends RefCounted
-## Staví statické bojiště: světlo, prostředí, zem, řeka, most, stromy, kameny.
-## Převod souřadnic simulace na 3D: Vector3(x, výška, -y).
+## Builds the static battlefield: light, environment, ground, river, bridge, trees, rocks.
+## Converts simulation coordinates to 3D: Vector3(x, height, -y).
 
 static func to_world(p: Vector2, h: float = 0.0) -> Vector3:
 	return Vector3(p.x, h, -p.y)
@@ -52,7 +52,15 @@ static func cylinder(parent: Node3D, r_top: float, r_bottom: float, h: float, po
 
 
 static func build(root: Node3D, scenario: Dictionary) -> void:
-	# --- prostředí a světlo ---
+	# --- physics ground (falling bodies, ragdoll) ---
+	var floor_body := StaticBody3D.new()
+	floor_body.collision_layer = 1
+	floor_body.collision_mask = 0
+	var gs := CollisionShape3D.new()
+	gs.shape = WorldBoundaryShape3D.new()
+	floor_body.add_child(gs)
+	root.add_child(floor_body)
+	# --- environment and light ---
 	var env := Environment.new()
 	var sky_mat := ProceduralSkyMaterial.new()
 	sky_mat.sky_top_color = Color("#7f98b3")
@@ -83,7 +91,7 @@ static func build(root: Node3D, scenario: Dictionary) -> void:
 	sun.directional_shadow_max_distance = 70.0
 	root.add_child(sun)
 
-	# --- zem a řeka ---
+	# --- ground and river ---
 	var ground := MeshInstance3D.new()
 	var gm := PlaneMesh.new()
 	gm.size = Vector2(80, 80)
@@ -99,7 +107,7 @@ static func build(root: Node3D, scenario: Dictionary) -> void:
 	for y: float in [lo, hi]:
 		box(root, Vector3(80, 0.12, 0.35), to_world(Vector2(0, y), 0.02), mat(Color("#6b6f5a"), 0.95))
 
-	# --- přechody: most, lávka, brod ---
+	# --- crossings: bridge, footbridge, ford ---
 	var wood := mat(Color("#7a5230"), 0.9)
 	var stone := mat(Color("#8f8d89"), 0.9)
 	for c: Dictionary in river["crossings"]:
@@ -125,7 +133,7 @@ static func build(root: Node3D, scenario: Dictionary) -> void:
 			for y in [lo + 0.3, (lo + hi) / 2.0, hi - 0.3]:
 				cylinder(root, 0.16, 0.16, 0.3, to_world(Vector2(cx + sx * half, y), -0.13), stone, 8)
 
-	# --- les (stezka bez stromů) ---
+	# --- forest (trail without trees) ---
 	var leaf := mat(Color("#3f6b38"), 0.95)
 	var dark_leaf := mat(Color("#2f5a2c"), 0.95)
 	for f: Dictionary in scenario.get("forests", []):
@@ -154,7 +162,7 @@ static func build(root: Node3D, scenario: Dictionary) -> void:
 				xx += 1.7
 			yy += 1.7
 
-	# --- stromy a kameny okolo ---
+	# --- trees and rocks around ---
 	var trees: Array = scenario.get("trees", [[-12, -2, 4.5], [-14, 1, 4.0], [-10, 2, 5.0], [-15, -5, 4.2], [-11, 11, 4.6], [-14, 13, 4.0], [12, 13, 4.4], [16, 4, 4.2], [-18, 8, 4.8], [15, -9, 4.6], [-17, -10, 4.4]])
 	for t: Array in trees:
 		var p := Vector2(t[0], t[1])
@@ -165,6 +173,21 @@ static func build(root: Node3D, scenario: Dictionary) -> void:
 	for r: Array in rocks:
 		var sz: float = r[2]
 		box(root, Vector3(sz * 1.4, sz, sz * 1.2), to_world(Vector2(r[0], r[1]), sz * 0.35), stone, Vector3(0.2, deg_to_rad(r[3]), 0.1))
+
+	# --- village cottages (placeholder: log cabin and gable roof) [x, y, width, depth, rotation°] ---
+	var log_wall := mat(Color("#7a5a3c"))
+	var thatch := mat(Color("#b39352"))
+	for hz: Array in scenario.get("houses", []):
+		var w: float = hz[2]
+		var d: float = hz[3]
+		var rot := Vector3(0.0, deg_to_rad(float(hz[4])), 0.0)
+		var c := Vector2(hz[0], hz[1])
+		box(root, Vector3(w, 2.0, d), to_world(c, 1.0), log_wall, rot)
+		# roof: two slanted prisms
+		for sgn: float in [-1.0, 1.0]:
+			var roof := box(root, Vector3(w + 0.4, 0.18, d * 0.62), to_world(c, 2.55), thatch, rot)
+			roof.rotate_object_local(Vector3.RIGHT, sgn * deg_to_rad(38.0))
+			roof.translate_object_local(Vector3(0.0, 0.0, sgn * d * 0.24))
 
 
 static func build_banner() -> Node3D:
@@ -177,7 +200,7 @@ static func build_banner() -> Node3D:
 	return b
 
 
-## Plochý kruh na zemi (aura praporu, výběr jednotky).
+## A flat circle on the ground (selection ring, effects).
 static func ring(radius: float, width: float, color: Color) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var m := TorusMesh.new()

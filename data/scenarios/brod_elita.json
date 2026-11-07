@@ -1,0 +1,30 @@
+{
+  "_info": "Elite: the ford with a stronger garrison in three groups, a marksman in the camp. Terrain from base.",
+  "base": "brod_a_les",
+  "elite": true,
+  "alarm_radius": 6,
+  "mode": "utok",
+  "foe_hp": 2.1, "foe_dmg": 2.1,
+  "auto_plan": "attack",
+  "name": "The Black Ford Garrison",
+  "subtitle": "Elite · the garrison holds both fords and the camp · 4 footmen, 3 spearmen, 2 bowmen",
+  "win_title": "The Black Ford has fallen",
+  "optional_task": {"text": "Sir Radek must not fall.", "reward": "rare relic", "protect": "jezdec"},
+  "pods": [
+    {"name": "Left ford garrison", "wake": 7.0},
+    {"name": "Right ford garrison", "wake": 7.0},
+    {"name": "Headquarters beyond the forest", "wake": 8.0}
+  ],
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
+  "enemies": [
+    ["kopinik", -9.0, 10.2, {"pod": 0}],
+    ["kopinik", -7.4, 10.2, {"pod": 0}],
+    ["lapka", -8.2, 11.4, {"pod": 0}],
+    ["lapka", 7.4, 10.4, {"pod": 1}],
+    ["lapka", 8.8, 10.0, {"pod": 1}],
+    ["lapka", 10.2, 10.4, {"pod": 1}],
+    ["ostrostrelec", 0.0, 19.5, {"pod": 2}],
+    ["strelec", -2.0, 21.0, {"pod": 2}],
+    ["strelec", 2.0, 21.0, {"pod": 2}]
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "_info": "Ford variant: terrain and deployment from base. A patrol at the footbridge, brigands at the right ford, a camp with the burner beyond the forest.",
+  "base": "brod_a_les",
+  "alarm_radius": 6,
+  "mode": "utok",
+  "foe_hp": 2.0, "foe_dmg": 2.0,
+  "auto_plan": "attack",
+  "name": "Ford at Dawn",
+  "subtitle": "Brigands and spearmen at the Black Ford, the other way round this time · 6 footmen, 1 spearman, 1 bowman",
+  "win_title": "The Ford is ours",
+  "optional_task": {
+    "text": "Father Jan must not fall.",
+    "reward": "rare relic",
+    "protect": "knez"
+  },
+  "pods": [
+    {"name": "Patrol at the footbridge", "wake": 7.0},
+    {"name": "Brigands at the right ford", "wake": 7.0},
+    {"name": "Camp beyond the forest", "wake": 8.0}
+  ],
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
+  "enemies": [
+    ["lapka", -0.8, 10.4, {"pod": 0}],
+    ["strelec", 1.2, 11.2, {"pod": 0}],
+    ["lapka", 7.2, 10.4, {"pod": 1}],
+    ["lapka", 8.6, 10.0, {"pod": 1}],
+    ["lapka", 10.0, 10.4, {"pod": 1}],
+    ["palic", 0.0, 19.5, {"pod": 2}],
+    ["lapka", -1.6, 20.5, {"pod": 2}],
+    ["lapka", 1.6, 20.5, {"pod": 2}]
+  ]
+}

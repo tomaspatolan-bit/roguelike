@@ -1,10 +1,14 @@
 {
-  "_info": "Bitva Most přes řeku. Souřadnice v metrech: x doprava, y dopředu (k nepříteli). Řeka vede napříč mezi river.y0 a y1, přejít jde jen přechody (crossings: x0–x1, kind most/brod/lavka, speed = násobek rychlosti). forests = lesy (obdélník, speed, path = stezka x0–x1 bez zpomalení). deploy.<rytíř>.route = výchozí trasa. optional_task.protect = id hrdiny, nebo 'all' (nikdo nesmí padnout). enemy_morale = kdy se nepřítel zlomí (podíl ztrát) a kam prchá (y okraje bojiště).",
-  "name": "Most přes řeku",
-  "subtitle": "Lapkové z Hraběcího lesa · 11 pěšáků, 3 střelci",
-  "stage_label": "Akt 1 · Stage 2",
-  "win_title": "Vítězství u mostu",
+  "_info": "Battle The River Bridge. Coordinates in metres: x to the right, y forward (towards the enemy). The river runs across between river.y0 and y1 and can be crossed only at crossings (crossings: x0–x1, kind most = bridge / brod = ford / lavka = footbridge, speed = speed multiplier). forests = forests (rectangle, speed, path = trail x0–x1 without slowdown). optional_task.protect = hero id, or 'all' (no one may fall). enemy_morale = when the enemy breaks (share of losses) and where it flees (y of the field edge). pods = enemy groups (battle phases): name, wake (how many m from a hero it wakes), awake (awake from the start). An enemy joins a group with {\"pod\": n}. alarm_radius = how close to a group fighting must happen for it to join. foe_hp, foe_dmg = battle difficulty. auto_plan = only for the automatic commander in tests.",
+  "mode": "stret",
+  "foe_hp": 2.45, "foe_dmg": 2.45,
+  "name": "The River Bridge",
+  "subtitle": "Brigands of the Count's Forest · 6 footmen, 2 bowmen",
+  "auto_plan": "hold",
+  "stage_label": "Act 1",
+  "win_title": "Victory at the Bridge",
   "river": {"y0": 4.0, "y1": 8.0, "crossings": [{"x0": -1.25, "x1": 1.25, "kind": "most", "speed": 1.0}]},
+  "camera": {"target": [0, -1], "bounds": [-5, 5, -1, 12]},
   "deploy_zone": {"x0": -6, "x1": 6, "y0": -8.5, "y1": -3.5},
   "deploy": {
     "tank": {"pos": [0, -4.3]},
@@ -13,12 +17,22 @@
     "jezdec": {"pos": [4.2, -6.0]},
     "asasin": {"pos": [2.6, -5.0]}
   },
-  "optional_task": {"text": "Otec Jan nesmí padnout.", "reward": "vzácné znamení", "protect": "knez"},
-  "enemy_morale": {"break_losses": 0.7, "flee_y": 20.0},
+  "optional_task": {"text": "Father Jan must not fall.", "reward": "rare relic", "protect": "knez"},
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
+  "pods": [
+    {"name": "Brigands at the bridge", "awake": true},
+    {"name": "Bowmen on the bank", "wake": 9.0},
+    {"name": "Brigand camp", "wake": 8.0}
+  ],
+  "alarm_radius": 6,
   "enemies": [
-    ["lapka", -3.0, 11.0], ["lapka", -1.5, 10.5], ["lapka", 0.0, 11.2], ["lapka", 1.5, 10.6], ["lapka", 3.0, 11.0],
-    ["lapka", -2.0, 12.6], ["lapka", 2.0, 12.6], ["lapka", -4.5, 12.0], ["lapka", 4.5, 12.0],
-    ["lapka", -1.0, 13.4], ["lapka", 1.0, 13.4],
-    ["strelec", -2.0, 14.0], ["strelec", 0.0, 14.4], ["strelec", 2.0, 14.0]
+    ["lapka", -1.5, 11.0, {"pod": 0}],
+    ["lapka", 0.0, 11.6, {"pod": 0}],
+    ["lapka", 1.5, 11.0, {"pod": 0}],
+    ["strelec", -3.0, 13.5, {"pod": 1}],
+    ["strelec", 3.0, 13.5, {"pod": 1}],
+    ["lapka", -2.0, 22.0, {"pod": 2}],
+    ["palic", 0.0, 23.0, {"pod": 2}],
+    ["lapka", 2.0, 22.0, {"pod": 2}]
   ]
 }

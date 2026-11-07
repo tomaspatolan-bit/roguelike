@@ -1,8 +1,9 @@
 extends SceneTree
-## Projde zkušební běh přes obrazovky: start → bitva → tábor (dědictví, odměna) → … → kronika.
-## Bitvy se hrají automaticky (schopnosti podle rady), odměna se bere první.
-## Spuštění (s oknem, kvůli snímkům):
-##   godot --path . --script res://tests/screenshot_run.gd -- <složka pro snímky>
+## Goes through a run screen by screen: start → map → nodes (battle, elite, event, camp) → … → boss → chronicle.
+## Path: on each floor the first available node, but preferably a type not seen yet (so all screens show).
+## Battles play automatically (abilities by hint), the first reward and the first event option are taken.
+## Run (with a window, for screenshots):
+##   godot --path . --script res://tests/screenshot_run.gd -- <screenshot folder>
 
 var out_dir := ""
 var scene: Node
@@ -10,15 +11,45 @@ var frame := 0
 var wait := 0
 var shots := {}
 var battles := 0
+var seen := {}
+var step := 0
+var map_pending := false
+const Run := preload("res://scripts/run/run_state.gd")
 
+
+const TacticalCamera := preload("res://scripts/battle/orbit_camera.gd")
+const BattleScript := preload("res://scripts/battle/battle.gd")
 
 func _init() -> void:
+	TacticalCamera.edge_scroll_all = false   # mouse edge panning would change the screenshots
+	BattleScript.tutorial_mode = -1   # the tutorial would cover the screenshots
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
 		out_dir = args[0]
 		DirAccess.make_dir_recursive_absolute(out_dir)
 	scene = load("res://scenes/run/run.tscn").instantiate()
 	root.add_child(scene)
+
+
+## A house in mid-run for the house page: two bonds (one at level 2 with a ready combo), a swapped ability,
+## refinements, oaths, a fallen ancestor.
+func _house_demo() -> Run:
+	var r := Run.new(21)
+	r.heroes["tank"]["bond"] = {"with": "lucistnik", "type": "stitonos"}
+	r.heroes["lucistnik"]["bond"] = {"with": "tank", "type": "stitonos"}
+	r.pair_wins[r.pair_key("tank", "lucistnik")] = 4
+	r.heroes["jezdec"]["bond"] = {"with": "asasin", "type": "bratri"}
+	r.heroes["asasin"]["bond"] = {"with": "jezdec", "type": "bratri"}
+	r.pair_wins[r.pair_key("jezdec", "asasin")] = 2
+	r.heroes["tank"]["passives"] = ["nikdy_neustoupi", "hlasita_vyzva", "ochrance"]
+	r.heroes["knez"]["passives"] = ["chudoba", "milosrdenstvi"]
+	r.heroes["lucistnik"]["passives"] = ["ohniva_salva", "husta_salva"]
+	r.set_ability("asasin", "kour")
+	r.heroes["asasin"]["passives"] = ["stin", "husty_kour"]
+	r.heroes["jezdec"]["stats"] = {"utok": 0.15}
+	r.fallen.append({"cls": "knez", "name": "Father Jan", "stage": "The River Bridge", "passives": ["milosrdenstvi"], "glory": 20.0})
+	r.heroes["knez"]["name"] = "Brother Prokop"
+	return r
 
 
 func _shot(file_name: String) -> void:
@@ -33,7 +64,7 @@ func _shot(file_name: String) -> void:
 
 func _process(_delta: float) -> bool:
 	frame += 1
-	if frame > 60 * 60 * 6:
+	if frame > 60 * 60 * 12:
 		print("CHYBA: běh nedoběhl včas")
 		return true
 	if wait > 0:
@@ -41,10 +72,38 @@ func _process(_delta: float) -> bool:
 		return false
 	var run: Variant = scene.get("run")
 	var battle: Variant = scene.get("battle")
-	if frame == 20:
-		_shot("01_start.png")
+	# first the event screen (a random path may not have one): a fake run with an event node
+	if frame == 10:
+		_shot("00_start.png")
+		var r := Run.new(21)
+		for n: Dictionary in r.map["nodes"].values():
+			if n["type"] == "udalost":
+				r.node_id = n["id"]
+				break
+		scene.set("run", r)
+		scene.call("show_event")
+		return false
+	if frame == 16:
+		_shot("00_udalost.png")
+		var r2: Variant = scene.get("run")
+		scene.set("_chron_mark", (r2.get("chronicle") as Array).size())
+		r2.call("event_choose", 0)
+		scene.call("show_event_result")
+		return false
+	if frame == 22:
+		_shot("00_udalost_vysledek.png")
+		scene.set("run", _house_demo())
+		scene.call("show_house", Callable(scene, "show_map"))
+		return false
+	if frame == 30:
+		_shot("00_dum.png")
+		var hr: Variant = scene.get("run")
+		var hc: Array = hr.call("house_combos")
+		print("Stránka rodu: komb %d, připravených %d" % [hc.size(), hc.filter(func(c: Dictionary) -> bool: return bool(c["ready"])).size()])
 		scene.call("start_run")
-		wait = 30
+		wait = 20
+		return false
+	if frame < 30:
 		return false
 	if run == null:
 		return false
@@ -52,28 +111,76 @@ func _process(_delta: float) -> bool:
 		_drive_battle(battle)
 		return false
 	if String(run.get("over")) != "":
-		_shot("09_kronika.png")
-		print("Běh skončil: %s, bitev %d, záznamů v kronice %d" % [run.get("over"), battles, (run.get("chronicle") as Array).size()])
+		_shot("99_kronika.png")
+		print("Běh skončil: %s, bitev %d, uzlů %d, záznamů v kronice %d" % [run.get("over"), battles, (run.get("path") as Array).size(), (run.get("chronicle") as Array).size()])
+		print("Typy uzlů na cestě: %s" % [seen.keys()])
 		print("VÝSLEDEK: OK")
 		return true
-	# tábor
-	var n: int = run.get("stage")
-	if bool(run.call("has_legacy")):
-		_shot("%02d_tabor_dedictvi.png" % (n * 2))
-		var c: Array = run.call("legacy_candidates")
-		run.call("resolve_legacy", c[0] if not c.is_empty() else "")
-		scene.call("show_camp")
+	step += 1
+	var t: String = run.call("node_type")
+	# after the battle: legacy and reward
+	if run.call("is_battle_node") and not bool(run.call("node_finished")):
+		if bool(run.call("has_legacy")):
+			_shot("%02d_dedictvi.png" % step)
+			var c: Array = run.call("legacy_candidates")
+			run.call("resolve_legacy", c[0] if not c.is_empty() else "")
+			scene.call("show_after_battle")
+		elif not (run.call("bond_offer") as Dictionary).is_empty():
+			_shot("%02d_pouto.png" % step)
+			var ch: Array = run.call("bond_offer")["choices"]
+			run.call("choose_bond", ch[0] if not ch.is_empty() else "")
+			scene.call("show_after_battle")
+		else:
+			_shot("%02d_odmena_%s.png" % [step, t])
+			run.call("pick_offer", 0)
+			scene.call("show_after_battle")
 		wait = 10
 		return false
-	var offers: Array = run.call("offers")
-	if not offers.is_empty():
-		_shot("%02d_tabor_odmena.png" % (n * 2 + 1))
-		run.call("pick_offer", 0)
-		scene.call("show_camp")
+	if t == "udalost" and not bool(run.get("event_done")):
+		_shot("%02d_udalost.png" % step)
+		var opts: Array = run.call("event")["options"]
+		for i in opts.size():
+			if run.call("event_option_problem", i) == "":
+				run.call("event_choose", i)
+				break
+		scene.call("show_event_result")
 		wait = 10
 		return false
-	_shot("%02d_tabor_pred_bitvou.png" % (n * 2 + 1))
-	scene.call("_start_battle")
+	if (t == "udalost" or t == "tabor") and not bool(run.call("node_finished")):
+		_shot("%02d_volba_%s.png" % [step, t])
+		if not (run.call("bond_offer") as Dictionary).is_empty():
+			var ch: Array = run.call("bond_offer")["choices"]
+			run.call("choose_bond", ch[0] if not ch.is_empty() else "")
+		else:
+			run.call("pick_offer", 0)
+		scene.call("show_event_result" if t == "udalost" else "show_campfire")
+		wait = 10
+		return false
+	if t == "udalost":
+		_shot("%02d_udalost_vysledek.png" % step)
+	if t == "tabor" and not bool(run.get("camp_done")):
+		_shot("%02d_tabor.png" % step)
+		scene.set("_chron_mark", (run.get("chronicle") as Array).size())
+		run.call("camp_choose", "train", "tank")
+		scene.call("show_campfire")
+		wait = 10
+		return false
+	# map and the choice of the next node (screenshot only after drawing)
+	if not map_pending:
+		scene.call("show_map")
+		map_pending = true
+		wait = 6
+		return false
+	map_pending = false
+	_shot("%02d_mapa.png" % step)
+	var av: Array = run.call("available")
+	var pick: String = av[0]
+	for id: String in av:
+		if not seen.has(run.call("node_type", id)):
+			pick = id
+			break
+	seen[run.call("node_type", pick)] = true
+	scene.call("go_to", pick)
 	wait = 30
 	return false
 
@@ -83,7 +190,13 @@ func _drive_battle(battle: Node) -> void:
 	var phase: int = battle.get("phase")
 	if phase == 0:
 		_shot("b%d_rozestaveni.png" % (battles + 1))
+		(battle.get("setup") as Dictionary)["orders"] = (battle.get("sim") as Object).call("suggest_orders")
 		battle.call("_start_battle")
+		battle.set("speed", 4.0)
+		return
+	if phase == 2 and sim != null and float(sim.get("t")) == 0.0:
+		_shot("b%d_start.png" % (battles + 1))
+		battle.call("_toggle_pause")   # a battle without deployment starts paused
 		battle.set("speed", 4.0)
 		return
 	if sim == null:
@@ -91,6 +204,7 @@ func _drive_battle(battle: Node) -> void:
 	if String(sim.get("over")) == "":
 		if bool(battle.get("paused")):
 			battle.call("_resume_pause")
+		sim.call("auto_command")
 		for u: Variant in sim.call("living", "k"):
 			var h: Array = sim.call("ability_hint", u.get("id"))
 			if h[0]:

@@ -1,0 +1,28 @@
+{
+  "_info": "Bridge variant: terrain and deployment from base. Brigands at the bridge come at you at once, beyond the river a line of bowmen with the marksman, a camp at the back.",
+  "base": "most_pres_reku",
+  "mode": "stret",
+  "foe_hp": 2.5, "foe_dmg": 2.5,
+  "name": "Bridge Under Fire",
+  "subtitle": "Brigands with bowmen on the far bank · 5 footmen, 3 bowmen",
+  "auto_plan": "attack",
+  "win_title": "The Bridge is clear",
+  "optional_task": {"text": "Matěj must not fall.", "reward": "rare relic", "protect": "lucistnik"},
+  "pods": [
+    {"name": "Brigands at the bridge", "awake": true},
+    {"name": "Line of bowmen", "wake": 10.0},
+    {"name": "Brigand camp", "wake": 8.0}
+  ],
+  "alarm_radius": 6,
+  "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
+  "enemies": [
+    ["lapka", -1.0, 11.0, {"pod": 0}],
+    ["lapka", 1.0, 11.0, {"pod": 0}],
+    ["strelec", -4.0, 13.5, {"pod": 1}],
+    ["ostrostrelec", 0.0, 14.0, {"pod": 1}],
+    ["strelec", 4.0, 13.5, {"pod": 1}],
+    ["lapka", -2.0, 22.0, {"pod": 2}],
+    ["lapka", 0.0, 23.0, {"pod": 2}],
+    ["lapka", 2.0, 22.0, {"pod": 2}]
+  ]
+}

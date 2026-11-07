@@ -1,7 +1,7 @@
 shader_type spatial;
-// Rytíř s paletovou texturou. Každý díl má UV ve středu barevné buňky v řádku 0.
-// role_row posune UV o celé řádky, takže stejný model dostane barvu látky jiné role.
-// Řádky: 0 rod Vlka, 1 tank, 2 lučištník, 3 kněz, 4 jezdec, 5 praporečník.
+// Knight with a palette texture. Every part has its UV in the centre of a colour cell in row 0.
+// role_row shifts the UV by whole rows, so the same model gets the cloth colour of another role.
+// Rows: 0 House of the Wolf, 1 tank, 2 archer, 3 priest, 4 cavalier, 5 assassin.
 
 uniform sampler2D palette_albedo : source_color, filter_nearest, repeat_disable;
 uniform sampler2D palette_orm : hint_default_white, filter_nearest, repeat_disable;

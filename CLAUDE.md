@@ -1,6 +1,6 @@
 # Rytíři – instrukce pro Clauda
 
-Rytířský roguelike pro Steam. Tým: **Tom** (ředitel, designér, tester, art direction, business) a **Claude** (kód, data, simulace balancu, 3D v Blenderu, dokumentace). Engine **Godot 4.7** (GDScript). Texty ve hře i dokumentace jsou česky, identifikátory v kódu anglicky.
+Rytířský roguelike pro Steam. Tým: **Tom** (ředitel, designér, tester, art direction, business) a **Claude** (kód, data, simulace balancu, 3D v Blenderu, dokumentace). Engine **Godot 4.7** (GDScript). Texty ve hře, data a komentáře v kódu jsou anglicky (trh je anglický, rozhodnutí 07.11.2026); dokumentace, deník rozhodnutí, commity a naše komunikace česky. Identifikátory v kódu anglicky, klíče v datech zůstávají (`vyzva`, `knez`…). Anglické názvy drží `docs/glosar.md`.
 
 ## Na začátku každého sezení
 
@@ -24,15 +24,18 @@ Přečti `docs/stav.md` (co se teď dělá), `docs/plan.md` (kde jsme ve stepper
 | `scripts/battle/battle.gd`, `unit_view.gd`, `battlefield.gd`, `orbit_camera.gd`, `scenes/` | `docs/context/scena-bitvy.md`, `docs/context/simulace.md` (rozhraní) |
 | `scripts/battle/battle_ui.gd` | `docs/context/ui.md`, `docs/context/scena-bitvy.md` |
 | `art/`, Blender | `docs/context/grafika.md` |
-| `scripts/run/`, `scenes/run/`, `data/run_*.json` | `docs/context/beh.md`, `docs/context/simulace.md` (rozhraní) |
+| `scripts/run/`, `scenes/run/`, `data/akt_*.json`, `data/udalosti.json` | `docs/context/beh.md`, `docs/context/simulace.md` (rozhraní) |
 | `tests/` | `docs/context/testy.md` |
 | nová oblast | založ pro ni kontextový soubor podle vzoru ostatních a přidej ji sem |
 
 ## Ostatní dokumenty
 
+- `README.md` – popis hry pro člověka zvenku (o co jde, jak se hraje, kde je hra teď, ovládání). Aktualizuj po dokončeném kroku plánu.
 - `docs/plan.md` – stepper fází a kroků s kritérii „hotovo, když“.
 - `docs/playtesty.md` – Tomova zpětná vazba z hraní. Po každém playtestu z ní vyvoď úkoly.
 - `docs/napady.md` – parkoviště nápadů.
+- `docs/struktura-hry.md` – jak hráč postupuje hrou (běh, akty, patra, uzly), diagram.
+- `docs/glosar.md` – anglické názvy ve hře (rod, třídy, schopnosti, přísahy, pouta, bitvy). Nový název = zapsat sem.
 
 ## Pilíře (každá nová funkce musí aspoň jeden podporovat)
 
@@ -47,7 +50,7 @@ Přečti `docs/stav.md` (co se teď dělá), `docs/plan.md` (kde jsme ve stepper
 
 - `data/` – obsah jako JSON (jednotky, rod, scénáře). Nový obsah = nová data, ne nový kód.
 - `scripts/sim/battle_sim.gd` – logika bitvy bez grafiky. Musí jít spustit v testech bez okna.
-- `scripts/run/` – běh: `run_state.gd` (logika běhu bez grafiky), `run_main.gd` (start, tábor s odměnou, kronika; hlavní scéna `scenes/run/run.tscn`).
+- `scripts/run/` – běh: `run_state.gd` (logika běhu bez grafiky), `act_map.gd` (generátor mapy aktu), `run_main.gd` (start, mapa, po bitvě, událost, tábor, kronika; hlavní scéna `scenes/run/run.tscn`), `map_view.gd`.
 - `scripts/battle/` – scéna bitvy: `battle.gd` (fáze, vstup, propojení), `battle_ui.gd` (jen vykreslení, signály), `unit_view.gd`, `battlefield.gd`, `orbit_camera.gd`.
 - `art/knight/` – rytíř z Blenderu (`SK_Knight.glb`), paletové textury, shader `knight_palette.gdshader` (řádek palety = barva role).
 - `tests/` – `test_battle_sim.gd` (balanc a pravidla), `test_run.gd` (běh), `screenshot_battle.gd` a `screenshot_run.gd` (scény se načtou, odehrají se, uloží snímky), `passives_ingame.gd`.

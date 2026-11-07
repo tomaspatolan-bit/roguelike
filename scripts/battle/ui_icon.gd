@@ -1,21 +1,59 @@
 extends Control
-## Jednoduchá vektorová ikonka pro UI (kreslí se v _draw, bez obrázků).
-## Zástupná grafika: finální ikony navrhne Tom (fáze 3). Kreslí se do čtverce 0..1 a škáluje na velikost prvku.
+## A UI icon. Oathline icons (scripts/ui/icon_svg.gd, from Figma) are rasterised from SVG at runtime
+## and tinted with `color`; older kinds without an SVG yet are drawn as simple vectors in _draw.
+## `plate` draws a light round backplate with the dark outline (icons above units, over the battlefield).
+
+const Svg := preload("res://scripts/ui/icon_svg.gd")
+
+## Old icon kinds → Oathline icon (the code still uses the old names in places).
+const ALIAS := {
+	"tank": "class_tank", "knez": "class_priest", "lucistnik": "class_archer", "jezdec": "class_cavalier", "asasin": "class_assassin",
+	"oath": "status_oath", "hradba": "class_tank", "heal": "ability_blessing", "aura": "ability_blessing", "banner": "status_commander",
+	"zarod": "map_battle", "signal": "ability_challenge", "pause": "hud_pause", "play": "hud_play", "charge": "ability_charge",
+	"glory": "hud_glory", "flee": "status_fleeing", "desperate": "status_winding_up",
+}
+const PLATE_BG := Color("#FFFCF4")
+const PLATE_LINE := Color("#121418")
+
+static var _tex := {}   # "key:px" -> ImageTexture (white, tinted when drawn)
 
 var kind := ""
 var color := Color.WHITE
-var crossed := false   # přeškrtnutá (zlomená přísaha, padlý prapor)
+var crossed := false   # struck through (broken oath, fallen hero)
+var plate := false
 
 
-static func make(icon_kind: String, icon_color: Color = Color.WHITE, px: float = 18.0, tip: String = "") -> Control:
+static func make(icon_kind: String, icon_color: Color = Color.WHITE, px: float = 18.0, tip: String = "", with_plate: bool = false) -> Control:
 	var ic: Variant = load("res://scripts/battle/ui_icon.gd").new()
 	ic.kind = icon_kind
 	ic.color = icon_color
+	ic.plate = with_plate
 	ic.custom_minimum_size = Vector2(px, px)
 	ic.size = Vector2(px, px)
 	ic.tooltip_text = tip
 	ic.mouse_filter = Control.MOUSE_FILTER_PASS if tip != "" else Control.MOUSE_FILTER_IGNORE
 	return ic
+
+
+## Oathline icon key for a kind ("" when it has no SVG yet).
+static func svg_key(icon_kind: String) -> String:
+	var k: String = ALIAS.get(icon_kind, icon_kind)
+	return k if Svg.PATHS.has(k) else ""
+
+
+## White texture of an Oathline icon at a pixel size (cached).
+static func texture(key: String, px: int) -> Texture2D:
+	var ck := "%s:%d" % [key, px]
+	if _tex.has(ck):
+		return _tex[ck]
+	var d: Array = Svg.PATHS[key]
+	var svg := '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#ffffff" fill-rule="%s" d="%s"/></svg>' % [d[1], d[0]]
+	var img := Image.new()
+	var tex: Texture2D = null
+	if img.load_svg_from_string(svg, maxf(0.25, px / 24.0)) == OK:
+		tex = ImageTexture.create_from_image(img)
+	_tex[ck] = tex
+	return tex
 
 
 func set_kind(icon_kind: String, icon_color: Color, is_crossed: bool = false) -> void:
@@ -51,9 +89,25 @@ func _ring(cx: float, cy: float, r: float, w: float = 0.1, c: Color = color) -> 
 
 
 func _draw() -> void:
+	var full := minf(size.x, size.y)
+	if plate:
+		draw_circle(Vector2(full, full) / 2.0, full / 2.0, PLATE_BG, true, -1.0, true)
+		draw_arc(Vector2(full, full) / 2.0, full / 2.0 - 0.75, 0.0, TAU, 24, PLATE_LINE, 1.5, true)
+	var k := svg_key(kind)
+	if crossed and k == "status_oath":
+		k = "status_oath_broken"
+	if k != "":
+		var inner := full * (0.66 if plate else 1.0)
+		var tex := texture(k, ceili(inner * 2.0))   # 2× for crisp scaling
+		if tex != null:
+			var off := (full - inner) / 2.0
+			draw_texture_rect(tex, Rect2(Vector2(off, off), Vector2(inner, inner)), false, color)
+			if crossed and k != "status_oath_broken":
+				_line(Vector2(0.12, 0.88), Vector2(0.88, 0.12), 0.12, Color("#A72D27"))
+			return
 	match kind:
 		"tank", "oath", "hradba":
-			# štít
+			# shield
 			_poly([Vector2(0.15, 0.12), Vector2(0.85, 0.12), Vector2(0.85, 0.5), Vector2(0.5, 0.92), Vector2(0.15, 0.5)])
 			if kind == "oath":
 				_line(Vector2(0.32, 0.48), Vector2(0.46, 0.64), 0.1, Color(0.1, 0.1, 0.12))
@@ -73,7 +127,7 @@ func _draw() -> void:
 			_line(Vector2(0.2, 0.47), Vector2(0.22, 0.85), 0.16)
 			_line(Vector2(0.8, 0.47), Vector2(0.78, 0.85), 0.16)
 		"asasin":
-			# dýka
+			# dagger
 			_poly([Vector2(0.5, 0.05), Vector2(0.62, 0.55), Vector2(0.38, 0.55)])
 			_line(Vector2(0.25, 0.6), Vector2(0.75, 0.6), 0.1)
 			_line(Vector2(0.5, 0.6), Vector2(0.5, 0.92), 0.12)
@@ -86,7 +140,7 @@ func _draw() -> void:
 				var a := TAU * i / 8.0
 				_line(Vector2(0.5 + cos(a) * 0.3, 0.5 + sin(a) * 0.3), Vector2(0.5 + cos(a) * 0.45, 0.5 + sin(a) * 0.45), 0.08)
 		"zarod":
-			# zkřížené meče
+			# crossed swords
 			_line(Vector2(0.15, 0.15), Vector2(0.85, 0.85), 0.1)
 			_line(Vector2(0.85, 0.15), Vector2(0.15, 0.85), 0.1)
 			_line(Vector2(0.62, 0.78), Vector2(0.78, 0.62), 0.1)
@@ -98,6 +152,9 @@ func _draw() -> void:
 		"signal":
 			# roh
 			_poly([Vector2(0.1, 0.42), Vector2(0.3, 0.42), Vector2(0.85, 0.15), Vector2(0.85, 0.85), Vector2(0.3, 0.58), Vector2(0.1, 0.58)])
+		"pause":
+			_poly([Vector2(0.22, 0.15), Vector2(0.42, 0.15), Vector2(0.42, 0.85), Vector2(0.22, 0.85)])
+			_poly([Vector2(0.58, 0.15), Vector2(0.78, 0.15), Vector2(0.78, 0.85), Vector2(0.58, 0.85)])
 		"charge":
 			_poly([Vector2(0.1, 0.2), Vector2(0.45, 0.5), Vector2(0.1, 0.8)])
 			_poly([Vector2(0.5, 0.2), Vector2(0.85, 0.5), Vector2(0.5, 0.8)])
@@ -118,7 +175,7 @@ func _draw() -> void:
 		"fanatik":
 			_poly([Vector2(0.5, 0.05), Vector2(0.75, 0.45), Vector2(0.7, 0.8), Vector2(0.5, 0.95), Vector2(0.3, 0.8), Vector2(0.25, 0.45), Vector2(0.4, 0.55)])
 		"zbabelec":
-			# pírko
+			# feather
 			_poly([Vector2(0.8, 0.1), Vector2(0.55, 0.55), Vector2(0.3, 0.85), Vector2(0.45, 0.45)])
 			_line(Vector2(0.2, 0.92), Vector2(0.45, 0.6), 0.06)
 		"hold":
@@ -133,4 +190,4 @@ func _draw() -> void:
 		_:
 			_circle(0.5, 0.5, 0.3)
 	if crossed:
-		_line(Vector2(0.1, 0.9), Vector2(0.9, 0.1), 0.14, Color(0.95, 0.3, 0.25))
+		_line(Vector2(0.1, 0.9), Vector2(0.9, 0.1), 0.14, Color("#A72D27"))
