@@ -4,7 +4,8 @@ Hotové verze hry pro testery (Windows). Kód je ve větvi `faze2-mapa`.
 
 | Soubor | Datum | Commit | Novinky |
 | --- | --- | --- | --- |
-| `Knights_test_2026-11-07d.zip` | 07.11.2026 | e622e45 | Never Retreat platí až od střetu (pak tank neodejde z boje, ikona zámku, upozornění před rozkazem na nepřítele); jinak jako c |
+| `Knights_test_2026-11-07e.zip` | 07.11.2026 | f117e8e | znamení rodu (8 relikvií, elita a události), vzácnější sláva (bitva ~20–35), silnější Úder štítem a Ochranný kruh; jinak jako d |
+| ~~`Knights_test_2026-11-07d.zip`~~ (v historii větve) | 07.11.2026 | e622e45 | Never Retreat platí až od střetu (pak tank neodejde z boje, ikona zámku, upozornění před rozkazem na nepřítele); jinak jako c |
 | ~~`Knights_test_2026-11-07c.zip`~~ (v historii větve) | 07.11.2026 | 883e92f | nový vzhled UI „Royal Court Enamel“ (světlé obrazovky, písma, ikony), morálka nepřítele v liště a All In! jen jednou s odpočtem, dialog přísahy se silou a omezením, nástupci „Successor of …“ a pamětní deska padlých |
 | ~~`Knights_test_2026-11-07b.zip`~~ (v historii větve) | 07.11.2026 | e8f8882 | 3 schopnosti na třídu (výměna v elitě, u Kováře a Mnicha; ve volné bitvě menu Schopnost), 30 zušlechtění, všech 15 komb, stránka rodu (tlačítko House), chytrý shuffle mapy, tábor se 4 volbami, 12 událostí |
 | ~~`Knights_test_2026-11-07.zip`~~ (v historii větve) | 07.11.2026 | 61e60a3 | hra v angličtině; vlastnosti hrdinů, 18 přísah (rodu a osobní), pouta rostoucí společnými vítězstvími, komba pout na Q a E (ve volné bitvě pouta na zkoušku) |
