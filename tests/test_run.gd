@@ -1,7 +1,7 @@
 extends SceneTree
-## Testy běhu (mapa aktu) bez okna.
-## Spuštění: godot --headless --path . --script res://tests/test_run.gd
-## Konec s kódem 0 = vše prošlo, 1 = něco selhalo.
+## Run tests (act map) without a window.
+## Run: godot --headless --path . --script res://tests/test_run.gd
+## Exit code 0 = all passed, 1 = something failed.
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
 const Run := preload("res://scripts/run/run_state.gd")
@@ -42,7 +42,7 @@ func _fake(over: String, dead: Array, fled: Array, glory: float, hp: Dictionary 
 	return {"over": over, "t": 60.0, "dead": dead, "fled": fled, "glory": glory, "glory_by": {"tank": 12.0, "lucistnik": 30.0}, "oaths_broken": [], "task_ok": true, "hp": h}
 
 
-## Přesune běh na první uzel daného typu, který je po cestě dostupný (jinak vrátí false).
+## Moves the run to the first node of the given type reachable along the way (otherwise returns false).
 func _goto_type(r: Run, t: String) -> bool:
 	for id: String in r.available():
 		if r.node_type(id) == t:
@@ -50,7 +50,7 @@ func _goto_type(r: Run, t: String) -> bool:
 	return false
 
 
-## Mapa: patra, šířky, cesty, typy a obsah uzlů na 50 semínkách.
+## Map: floors, widths, paths, node types and contents on 50 seeds.
 func _test_map() -> void:
 	print("Mapa aktu")
 	var ok_shape := true
@@ -90,7 +90,7 @@ func _test_map() -> void:
 				for nx: String in n["next"]:
 					if nx != "boss" and (t == "elita" or t == "tabor") and r.node_type(nx) == t:
 						ok_types = false
-				# každý uzel (kromě prvního patra) má cestu dovnitř
+				# every node (except the first floor) has a path in
 				if f > 0:
 					var inc := 0
 					for a: Dictionary in floors[f - 1]:
@@ -115,7 +115,7 @@ func _test_map() -> void:
 	_check(r2.available().is_empty(), "z bitvy se nejde dál, dokud se neodehraje")
 
 
-## Pravidla běhu na podvržených výsledcích bitev.
+## Run rules on faked battle results.
 func _test_rules() -> void:
 	print("Pravidla běhu")
 	var r := Run.new(7)
@@ -126,7 +126,7 @@ func _test_rules() -> void:
 	_check(setup["names"]["tank"] == "Sir Bořek" and float(setup["glory"]) == 25.0, "setup nese jména a slávu")
 	_check(float(setup["hp"]["tank"]) == 1.0, "na začátku jsou všichni zdraví")
 
-	# bitva 1: padne Bořek (s přísahou), utečou 2 lapkové a střelec, lučištník zraněný
+	# battle 1: Bořek (with an oath) falls, 2 brigands and a bowman flee, the archer is wounded
 	r.record_battle(_fake("win", ["tank"], ["lapka", "lapka", "strelec"], 61.0, {"lucistnik": 0.3}))
 	_check(r.over == "", "po vítězství se jde dál")
 	_check(r.glory == 50.0, "sláva se přenáší, nejvýš carry_max (61 → 50)")
@@ -156,7 +156,7 @@ func _test_rules() -> void:
 	_check((r.heroes[o0["hero"]]["passives"] as Array).has(o0["passive"]), "vybraná odměna patří hrdinovi")
 	_check(r.offers().is_empty() and not r.available().is_empty(), "odměna se vybírá jednou, pak se jde dál")
 
-	# přísahu rodu zdědí kdokoli bez přísahy
+	# a house oath is inherited by anyone without an oath
 	var rr2 := Run.new(8)
 	rr2.heroes["knez"]["passives"] = ["milost"]
 	rr2.choose(rr2.available()[0])
@@ -165,7 +165,7 @@ func _test_rules() -> void:
 	var s2 := rr2.battle_setup(rr2.load_stage_data())
 	_check(int(s2["ancestors"]) == 1, "bitva ví, kolik předků padlo (Přísaha předků)")
 
-	# elita: 4 nabídky, 2 výběry
+	# elite: 4 offers, 2 picks
 	var re := Run.new(11)
 	var found := false
 	for s_i in 40:
@@ -184,7 +184,7 @@ func _test_rules() -> void:
 	re.pick_offer(0)
 	_check(re.offers().is_empty(), "po druhé volbě je hotovo")
 
-	# uprchlíci se vrátí u bosse
+	# fled enemies return at the boss
 	var rb := Run.new(13)
 	rb.fled = [{"key": "lapka", "stage": "x"}, {"key": "strelec", "stage": "y"}]
 	rb.node_id = "boss"
@@ -197,7 +197,7 @@ func _test_rules() -> void:
 	_check(rb.over == "win", "po bossovi je běh vyhraný")
 	_check(rb.returned.size() == 2 and rb.fled.is_empty(), "návrat uprchlíků je v kronice")
 
-	# zranění z bitvy se projeví v simulaci
+	# wounds from a battle show in the simulation
 	var rw := Run.new(14)
 	rw.choose(rw.available()[0])
 	rw.heroes["jezdec"]["hp"] = 0.4
@@ -205,13 +205,13 @@ func _test_rules() -> void:
 	var sw := Sim.new(dw, rw.battle_setup(dw), 1)
 	_check(is_equal_approx(sw.by_id("jezdec").hp, sw.by_id("jezdec").maxhp * 0.4), "zraněný hrdina jde do bitvy se zbytkem zdraví")
 
-	# prohra = padli všichni
+	# defeat = everyone fell
 	var r2 := Run.new(3)
 	r2.choose(r2.available()[0])
 	r2.record_battle(_fake("lose", ["tank", "knez", "lucistnik", "jezdec", "asasin"], [], 10.0))
 	_check(r2.over == "lose" and r2.offers().is_empty() and r2.available().is_empty(), "porážka (padli všichni) ukončí běh")
 
-	# porušená přísaha zmizí
+	# a broken oath disappears
 	var r3 := Run.new(4)
 	r3.choose(r3.available()[0])
 	var res := _fake("win", [], [], 30.0)
@@ -223,7 +223,7 @@ func _test_rules() -> void:
 func _test_events_and_camp() -> void:
 	print("Události a tábor")
 	var r := Run.new(21)
-	# podvrhneme uzel události
+	# we fake an event node
 	var ev_node := {}
 	for n: Dictionary in r.map["nodes"].values():
 		if n["type"] == "udalost":
@@ -255,20 +255,20 @@ func _test_events_and_camp() -> void:
 					oaths += 1
 			_check(oaths == 2, "[poutnik] někdo složil přísahu")
 
-	# almužna bez slávy nejde
+	# alms without glory are not possible
 	var rp := Run.new(21)
 	rp.node_id = ev_node["id"]
 	rp.map["nodes"][ev_node["id"]]["event"] = "poutnik"
 	rp.glory = 5.0
 	_check(rp.event_option_problem(1) != "", "almužna bez slávy nejde")
-	# pomoc přeživším = uprchlíci u bosse
+	# helping the survivors = fled enemies at the boss
 	var rv := Run.new(21)
 	rv.node_id = ev_node["id"]
 	rv.map["nodes"][ev_node["id"]]["event"] = "vypalena_ves"
 	rv.event_choose(1)
 	_check(rv.fled.size() == 3, "[vypalena_ves] žháři utečou a vrátí se u bosse")
 
-	# tábor
+	# camp
 	var rc := Run.new(22)
 	var camp := ""
 	for n: Dictionary in rc.map["nodes"].values():
@@ -309,7 +309,7 @@ func _auto(s: Sim) -> void:
 			s.use_ability(u.id, h[1])
 
 
-## Celé běhy: náhodná cesta mapou, auto-hraní se schopnostmi, náhodné odměny, události a tábory.
+## Whole runs: a random path through the map, auto-play with abilities, random rewards, events and camps.
 func _test_full_runs() -> void:
 	print("Celé běhy (%d)" % RUNS)
 	var wins := 0
@@ -386,7 +386,7 @@ func _test_full_runs() -> void:
 	_check(wins < RUNS, "běh není jistá výhra (%d/%d)" % [wins, RUNS])
 
 
-## Pouta: rostou společnými vítězstvími, vznik s výběrem typu, úroveň, smrt a nástupce.
+## Bonds: grow through shared victories, formed with a type choice, level, death and successor.
 func _test_bonds() -> void:
 	print("Pouta")
 	var r := Run.new(21)
@@ -422,7 +422,7 @@ func _test_bonds() -> void:
 	var mate := b if victim == a else a
 	r.record_battle(_fake("win", [victim], [], 30.0))
 	_check((r.heroes[mate]["bond"] as Dictionary).is_empty() and r.wins_of(victim, mate) == 0 and r.wins_of(victim, "jezdec" if victim != "jezdec" else "tank") == 0, "smrt: druh přijde o pouto, nástupce začíná od nuly")
-	# Přísaha samotáře pouto zakazuje
+	# the Loner's Oath forbids bonds
 	var rs := Run.new(22)
 	rs.heroes["lucistnik"]["passives"] = ["samotar"]
 	rs.choose(rs.available()[0])

@@ -1,19 +1,19 @@
 {
-  "_info": "Elita: brod se silnější posádkou ve třech skupinkách, v táboře ostrostřelec. Terén z base.",
+  "_info": "Elite: the ford with a stronger garrison in three groups, a marksman in the camp. Terrain from base.",
   "base": "brod_a_les",
   "elite": true,
   "alarm_radius": 6,
   "mode": "utok",
   "foe_hp": 2.1, "foe_dmg": 2.1,
   "auto_plan": "attack",
-  "name": "Posádka Černého brodu",
-  "subtitle": "Elita · posádka drží oba brody i tábor · 4 pěšáci, 3 kopiníci, 2 střelci",
-  "win_title": "Černý brod padl",
-  "optional_task": {"text": "Sir Radek nesmí padnout.", "reward": "vzácné znamení", "protect": "jezdec"},
+  "name": "The Black Ford Garrison",
+  "subtitle": "Elite · the garrison holds both fords and the camp · 4 footmen, 3 spearmen, 2 bowmen",
+  "win_title": "The Black Ford has fallen",
+  "optional_task": {"text": "Sir Radek must not fall.", "reward": "rare relic", "protect": "jezdec"},
   "pods": [
-    {"name": "Posádka levého brodu", "wake": 7.0},
-    {"name": "Posádka pravého brodu", "wake": 7.0},
-    {"name": "Velitelství za lesem", "wake": 8.0}
+    {"name": "Left ford garrison", "wake": 7.0},
+    {"name": "Right ford garrison", "wake": 7.0},
+    {"name": "Headquarters beyond the forest", "wake": 8.0}
   ],
   "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
   "enemies": [

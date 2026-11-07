@@ -37,6 +37,7 @@ Spojit bitvy do příběhu rodu na mapě aktu. Struktura hry: `docs/struktura-hr
 - Vzhled obrazovek a mapy je zástupný (půjčuje si téma z `battle_ui.gd`); finální UI navrhne Tom.
 
 ## Historie významných změn
+- 07.11.2026: texty a komentáře přeložené do angličtiny (`docs/glosar.md`).
 - 07.11.2026: pouta rostou společnými vítězstvími, obrazovka volby pouta po bitvě, pouto v soupisce.
 - 07.11.2026: osobní přísahu dědí jen nástupce, přísahu rodu kdokoli; setup bitvy nese počet padlých předků.
 - 29.10.2026: u Hejtmana se vrátí nejvýš 3 uprchlíci (auto-hraní vyhrávalo jen 3–4 běhy z 20, skoro vždy se prohrálo u bosse).

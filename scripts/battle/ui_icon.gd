@@ -1,10 +1,10 @@
 extends Control
-## Jednoduchá vektorová ikonka pro UI (kreslí se v _draw, bez obrázků).
-## Zástupná grafika: finální ikony navrhne Tom (fáze 3). Kreslí se do čtverce 0..1 a škáluje na velikost prvku.
+## A simple vector icon for the UI (drawn in _draw, no images).
+## Placeholder art: Tom will design the final icons (phase 3). Drawn into a 0..1 square and scaled to the control size.
 
 var kind := ""
 var color := Color.WHITE
-var crossed := false   # přeškrtnutá (zlomená přísaha, padlý prapor)
+var crossed := false   # struck through (broken oath, fallen hero)
 
 
 static func make(icon_kind: String, icon_color: Color = Color.WHITE, px: float = 18.0, tip: String = "") -> Control:
@@ -53,7 +53,7 @@ func _ring(cx: float, cy: float, r: float, w: float = 0.1, c: Color = color) -> 
 func _draw() -> void:
 	match kind:
 		"tank", "oath", "hradba":
-			# štít
+			# shield
 			_poly([Vector2(0.15, 0.12), Vector2(0.85, 0.12), Vector2(0.85, 0.5), Vector2(0.5, 0.92), Vector2(0.15, 0.5)])
 			if kind == "oath":
 				_line(Vector2(0.32, 0.48), Vector2(0.46, 0.64), 0.1, Color(0.1, 0.1, 0.12))
@@ -73,7 +73,7 @@ func _draw() -> void:
 			_line(Vector2(0.2, 0.47), Vector2(0.22, 0.85), 0.16)
 			_line(Vector2(0.8, 0.47), Vector2(0.78, 0.85), 0.16)
 		"asasin":
-			# dýka
+			# dagger
 			_poly([Vector2(0.5, 0.05), Vector2(0.62, 0.55), Vector2(0.38, 0.55)])
 			_line(Vector2(0.25, 0.6), Vector2(0.75, 0.6), 0.1)
 			_line(Vector2(0.5, 0.6), Vector2(0.5, 0.92), 0.12)
@@ -86,7 +86,7 @@ func _draw() -> void:
 				var a := TAU * i / 8.0
 				_line(Vector2(0.5 + cos(a) * 0.3, 0.5 + sin(a) * 0.3), Vector2(0.5 + cos(a) * 0.45, 0.5 + sin(a) * 0.45), 0.08)
 		"zarod":
-			# zkřížené meče
+			# crossed swords
 			_line(Vector2(0.15, 0.15), Vector2(0.85, 0.85), 0.1)
 			_line(Vector2(0.85, 0.15), Vector2(0.15, 0.85), 0.1)
 			_line(Vector2(0.62, 0.78), Vector2(0.78, 0.62), 0.1)
@@ -121,7 +121,7 @@ func _draw() -> void:
 		"fanatik":
 			_poly([Vector2(0.5, 0.05), Vector2(0.75, 0.45), Vector2(0.7, 0.8), Vector2(0.5, 0.95), Vector2(0.3, 0.8), Vector2(0.25, 0.45), Vector2(0.4, 0.55)])
 		"zbabelec":
-			# pírko
+			# feather
 			_poly([Vector2(0.8, 0.1), Vector2(0.55, 0.55), Vector2(0.3, 0.85), Vector2(0.45, 0.45)])
 			_line(Vector2(0.2, 0.92), Vector2(0.45, 0.6), 0.06)
 		"hold":

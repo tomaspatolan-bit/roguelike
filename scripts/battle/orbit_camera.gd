@@ -1,10 +1,10 @@
 extends Camera3D
-## Taktická kamera s pevným úhlem (rozhodnutí 30.10.2026): úhel a výchozí výřez určuje mapa,
-## hráč výřez jen posouvá (WASD, šipky, myš u okraje obrazovky) v hranicích mapy
-## a trochu přibližuje kolečkem. Otáčet nejde, pravé tlačítko patří rozkazům.
-## Nastavení: `camera` v units.json (výchozí) a ve scénáři (přepíše jednotlivé klíče), viz `configure`.
+## Tactical camera with a fixed angle (decision 30.10.2026): the map sets the angle and default view,
+## the player only pans the view (WASD, arrows, mouse at the screen edge) within the map bounds
+## and zooms a little with the wheel. No rotation, the right button belongs to orders.
+## Settings: `camera` in units.json (default) and in the scenario (overrides single keys), see `configure`.
 
-const EDGE_PX := 10.0        # jak blízko okraje okna musí být myš, aby se výřez posouval
+const EDGE_PX := 10.0        # how close to the window edge the mouse must be for the view to pan
 
 var target := Vector3(0, 0, -1.5)
 var yaw := deg_to_rad(25.0)
@@ -12,10 +12,10 @@ var pitch := deg_to_rad(50.0)
 var distance := 30.0
 var zoom_min := 24.0
 var zoom_max := 36.0
-var pan_speed := 0.6           # podíl vzdálenosti kamery za sekundu
-var bounds := Rect2(-30, -30, 60, 60)   # kde smí být střed výřezu (x, y simulace)
+var pan_speed := 0.6           # share of camera distance per second
+var bounds := Rect2(-30, -30, 60, 60)   # where the view centre may be (simulation x, y)
 var edge_scroll := true
-static var edge_scroll_all := true   # testy ho vypínají (myš může ležet u okraje okna a posouvat snímky)
+static var edge_scroll_all := true   # tests turn it off (the mouse may rest at the window edge and pan the screenshots)
 
 
 func _ready() -> void:
@@ -24,9 +24,9 @@ func _ready() -> void:
 	_apply()
 
 
-## Nastaví kameru podle mapy: výchozí hodnoty `defaults` (units.json `camera`) přepíše scénář `sc`.
-## Klíče: `target` [x, y], `yaw` a `pitch` (°), `distance`, `zoom` [min, max], `bounds` [x0, x1, y0, y1],
-## `pan_speed`. Stejné x0 a x1 (nebo y0 a y1) = výřez se tím směrem nehýbe.
+## Sets the camera by map: default values `defaults` (units.json `camera`) overridden by scenario `sc`.
+## Keys: `target` [x, y], `yaw` and `pitch` (°), `distance`, `zoom` [min, max], `bounds` [x0, x1, y0, y1],
+## `pan_speed`. Equal x0 and x1 (or y0 and y1) = the view does not move in that direction.
 func configure(defaults: Dictionary, sc: Dictionary) -> void:
 	var c := defaults.duplicate()
 	c.merge(sc, true)
@@ -59,7 +59,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	var move := Vector2.ZERO
-	if not Input.is_key_pressed(KEY_CTRL):   # Ctrl+A = vybrat všechny hrdiny, ne posun
+	if not Input.is_key_pressed(KEY_CTRL):   # Ctrl+A = select all heroes, not pan
 		if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
 			move.x -= 1.0
 		if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
@@ -76,7 +76,7 @@ func _process(delta: float) -> void:
 	_apply()
 
 
-## Myš u okraje okna posouvá výřez (jen když je okno aktivní a myš v něm).
+## The mouse at the window edge pans the view (only when the window is active and the mouse is in it).
 func _edge_move() -> Vector2:
 	if not DisplayServer.window_is_focused():
 		return Vector2.ZERO
@@ -106,7 +106,7 @@ func _back() -> Vector3:
 
 
 func _apply() -> void:
-	# hranice jsou v souřadnicích simulace (x, y); ve 3D je y = -z
+	# bounds are in simulation coordinates (x, y); in 3D y = -z
 	target.x = clampf(target.x, bounds.position.x, bounds.end.x)
 	target.z = -clampf(-target.z, bounds.position.y, bounds.end.y)
 	var offset := Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * distance
@@ -114,7 +114,7 @@ func _apply() -> void:
 	look_at(target, Vector3.UP)
 
 
-## Bod na zemi (y = 0) pod kurzorem, nebo null.
+## Point on the ground (y = 0) under the cursor, or null.
 func ground_point(screen_pos: Vector2) -> Variant:
 	var o := project_ray_origin(screen_pos)
 	var d := project_ray_normal(screen_pos)

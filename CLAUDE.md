@@ -1,6 +1,6 @@
 # Rytíři – instrukce pro Clauda
 
-Rytířský roguelike pro Steam. Tým: **Tom** (ředitel, designér, tester, art direction, business) a **Claude** (kód, data, simulace balancu, 3D v Blenderu, dokumentace). Engine **Godot 4.7** (GDScript). Texty ve hře i dokumentace jsou česky, identifikátory v kódu anglicky.
+Rytířský roguelike pro Steam. Tým: **Tom** (ředitel, designér, tester, art direction, business) a **Claude** (kód, data, simulace balancu, 3D v Blenderu, dokumentace). Engine **Godot 4.7** (GDScript). Texty ve hře, data a komentáře v kódu jsou anglicky (trh je anglický, rozhodnutí 07.11.2026); dokumentace, deník rozhodnutí, commity a naše komunikace česky. Identifikátory v kódu anglicky, klíče v datech zůstávají (`vyzva`, `knez`…). Anglické názvy drží `docs/glosar.md`.
 
 ## Na začátku každého sezení
 
@@ -34,6 +34,7 @@ Přečti `docs/stav.md` (co se teď dělá), `docs/plan.md` (kde jsme ve stepper
 - `docs/playtesty.md` – Tomova zpětná vazba z hraní. Po každém playtestu z ní vyvoď úkoly.
 - `docs/napady.md` – parkoviště nápadů.
 - `docs/struktura-hry.md` – jak hráč postupuje hrou (běh, akty, patra, uzly), diagram.
+- `docs/glosar.md` – anglické názvy ve hře (rod, třídy, schopnosti, přísahy, pouta, bitvy). Nový název = zapsat sem.
 
 ## Pilíře (každá nová funkce musí aspoň jeden podporovat)
 

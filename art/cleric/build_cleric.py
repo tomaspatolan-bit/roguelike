@@ -1,8 +1,8 @@
-# Kněz (Cleric): bitevní kněz řádu, staví se z herního rytíře SK_Knight (stejná kostra, paleta, styl).
-# Spuštění v Blenderu (Knight.blend): exec(open(r"<repo>/art/cleric/build_cleric.py", encoding="utf-8").read(), {"KIT": r"<repo>/art/tools/hero_kit.py"})
-# Výsledek: SK_Cleric (kolekce CLERIC_game) a zbraň SM_Cleric_Staff (hůl, kněz útočí na dálku).
-# Barvy: barva hrdiny (ROLE, u kněze slonovinová) na dlouhém šatu a plášti (ve hře je hrdina vidět hlavně zezadu),
-# navy řádu (sloupce NAVY) na štóle a znaku, zlato na koruně, kříži a lemech.
+# Priest (Cleric): the order's battle priest, built from the game knight SK_Knight (same skeleton, palette, style).
+# Run in Blender (Knight.blend): exec(open(r"<repo>/art/cleric/build_cleric.py", encoding="utf-8").read(), {"KIT": r"<repo>/art/tools/hero_kit.py"})
+# Result: SK_Cleric (collection CLERIC_game) and weapon SM_Cleric_Staff (staff, the priest attacks at range).
+# Colours: hero colour (ROLE, ivory for the priest) on the long robe and cloak (in the game the hero is seen mostly from behind),
+# the order's navy (NAVY columns) on the stole and emblem, gold on the crown, cross and trims.
 import math
 import bmesh
 from mathutils import Vector, Euler
@@ -21,22 +21,22 @@ to_delete = []
 for p in isl:
     bone = name_of.get(p["bone"], "")
     c, s = p["center"], p["size"]
-    # pryč: pochva s mečem, chochol a jeho objímka
+    # removed: sheath with sword, plume and its socket
     if bone == "weapon_scabbard":
         to_delete += p["verts"]
     elif bone == "head" and p["cell"] == CRIMSON:
         to_delete += p["verts"]
     elif bone == "head" and p["cell"] == GOLD and p["n"] == 18 and c.z > 1.74:
         to_delete += p["verts"]
-    # užší silueta: menší nárameníky
+    # narrower silhouette: smaller pauldrons
     elif bone.startswith("upperarm") and p["n"] == 74:
         side = 1 if c.x > 0 else -1
         for v in p["verts"]:
             v.co = c + (v.co - c) * 0.8 + Vector((-0.025 * side, 0, -0.01))
-    # zlatý pruh na hledí (kříž s průduchy)
+    # gold band on the visor (cross with breaths)
     elif bone == "head" and p["n"] == 8 and p["cell"] == STEEL and c.y < -0.15 and s.z > 0.2:
         B.set_cell(p["verts"], GOLD)
-    # dlouhý šat (přední a zadní díl tuniky): prodloužit pod kolena, mírně rozšířit
+    # long robe (front and back of the tunic): lengthen below the knees, widen slightly
     elif bone == "pelvis" and p["n"] == 126:
         for v in p["verts"]:
             if v.co.z < 0.66:
@@ -51,20 +51,20 @@ for p in isl:
                 return {"pelvis": 1.0 - k, "thigh_l": k / 2, "thigh_r": k / 2}
             return {"pelvis": 1.0 - k, ("thigh_l" if v.co.x > 0 else "thigh_r"): k}
         B.set_weights(p["verts"], robe_w)
-    # plášť zůstává v barvě hrdiny (ve hře je hrdina vidět hlavně zezadu); znak na hrudi v navy barvě řádu
+    # the cloak stays in the hero colour (in the game the hero is seen mostly from behind); chest emblem in the order's navy
     elif bone == "spine_02" and p["cell"] == ROLE_DARK and c.y < -0.19:
         B.set_cell(p["verts"], NAVY_DARK)
     elif bone == "spine_02" and p["cell"] == GOLD and p["n"] == 10:
-        to_delete += p["verts"]   # puklice znaku, místo ní kříž
+        to_delete += p["verts"]   # emblem boss, a cross instead
 B.delete(to_delete)
 
-# --- kříž na hrudi
+# --- cross on the chest
 W_CHEST = {"spine_02": 1.0}
 B.box((0, -0.216, 1.065), (0.024, 0.008, 0.12), GOLD, W_CHEST)
 B.box((0, -0.216, 1.085), (0.08, 0.008, 0.022), GOLD, W_CHEST)
-B.box((0, -0.221, 1.085), (0.016, 0.006, 0.016), CRIMSON, W_CHEST)   # rubín uprostřed kříže
+B.box((0, -0.221, 1.085), (0.016, 0.006, 0.016), CRIMSON, W_CHEST)   # ruby in the middle of the cross
 
-# --- štóla: dva navy pruhy přes šat se zlatými konci; pás leží přesně na přední ploše šatu (paprsek na šat)
+# --- stole: two navy bands over the robe with gold ends; the band lies exactly on the robe's front (ray onto the robe)
 from mathutils.bvhtree import BVHTree
 rf = [f for f in bm.faces if f.calc_center_median().y < -0.12 and 0.2 < f.calc_center_median().z < 1.3
       and cell_of(f.loops[0][B.uvl].uv) in (ROLE, ROLE_DARK)]
@@ -84,7 +84,7 @@ def stole_w(v):
 def strip(xc, zs, width, depth, cell):
     rows = []
     for z in zs:
-        xm = xc * (1.0 + max(0.0, 0.62 - z) * 0.45)          # šat se dole rozšiřuje, pás s ním
+        xm = xc * (1.0 + max(0.0, 0.62 - z) * 0.45)          # the robe widens at the bottom, the band with it
         y = on_robe(xm, z)
         rows.append([B.bm.verts.new((xm - width / 2, y, z)), B.bm.verts.new((xm + width / 2, y, z)),
                      B.bm.verts.new((xm + width / 2, y + depth, z)), B.bm.verts.new((xm - width / 2, y + depth, z))])
@@ -101,7 +101,7 @@ for sx in (1, -1):
     strip(x, [1.22, 1.10, 0.98, 0.86, 0.74, 0.62, 0.52, 0.42, 0.34], 0.048, 0.008, NAVY)
     strip(x, [0.345, 0.305], 0.062, 0.012, GOLD)
 
-# --- velký navy kříž na zádech pláště (znak řádu, ve hře vidět zezadu); leží na plášti a ohýbá se s ním
+# --- big navy cross on the back of the cloak (the order's emblem, seen from behind in the game); lies on the cloak and bends with it
 cf = [f for f in bm.faces if f.calc_center_median().y > 0.15 and 0.35 < f.calc_center_median().z < 1.35
       and cell_of(f.loops[0][B.uvl].uv) in (ROLE, ROLE_DARK) and any(name_of.get(g, "").startswith("cape") for g in f.verts[0][B.dl].keys())]
 cv = list({v for f in cf for v in f.verts})
@@ -136,14 +136,14 @@ def cape_quad_strip(rows, cell):
         if prev is not None:
             f = B.bm.faces.new((prev[0], a, b, prev[1]))
             f.normal_update()
-            if f.normal.y < 0:   # líc ven ze zad pláště
+            if f.normal.y < 0:   # face out of the back of the cloak
                 f.normal_flip()
         prev = (a, b)
     for f in {f for v in vs for f in v.link_faces}:
         for l in f.loops:
             l[B.uvl].uv = cell_uv(cell)
     return vs
-# svislé rameno kříže (pás po výšce pláště) a příčné rameno
+# vertical arm of the cross (a band along the cloak height) and the crossbar
 cape_quad_strip(cape_bar(-0.045, 0.045, 1.22, 0.55, 8), NAVY)
 cross_rows = []
 for k in range(7):
@@ -154,7 +154,7 @@ for k in range(7):
         cross_rows.append((pa, pb, w))
 cape_quad_strip(cross_rows, NAVY)
 
-# --- koruna na přilbě: zlaté zuby nad zlatým pruhem a kříž na temeni
+# --- crown on the helmet: gold teeth above a gold band and a cross on the crown
 W_HEAD = {"head": 1.0}
 for i in range(8):
     a = 2 * math.pi * i / 8 + math.pi / 8
@@ -166,7 +166,7 @@ B.box((0, 0, 1.80), (0.024, 0.024, 0.11), GOLD, W_HEAD)
 B.box((0, 0, 1.815), (0.075, 0.022, 0.022), GOLD, W_HEAD)
 B.cylinder((0, 0, 1.745), (0, 0, 1.765), 0.03, GOLD, W_HEAD, segs=8)
 
-# --- výbava na opasku: kniha modliteb (pravý bok), medailon (levý bok)
+# --- belt gear: prayer book (right hip), medallion (left hip)
 W_HIP_R = {"pelvis": 0.75, "thigh_r": 0.25}
 W_HIP_L = {"pelvis": 0.75, "thigh_l": 0.25}
 B.box((-0.255, -0.03, 0.885), (0.055, 0.11, 0.13), LEATHER, W_HIP_R)
@@ -181,7 +181,7 @@ bm.to_mesh(ob.data)
 bm.free()
 ob.data.update()
 
-# --- hůl (samostatný objekt; úchop v počátku, míří po +Z; Tom 30.10.2026: hůl a útok na dálku místo palcátu)
+# --- staff (separate object; grip at the origin, points along +Z; Tom 30.10.2026: a staff and ranged attack instead of a mace)
 staff = new_weapon("SM_Cleric_Staff", "CLERIC_game")
 for nm in ("SM_Cleric_Mace",):
     old = bpy.data.objects.get(nm)
@@ -190,13 +190,13 @@ for nm in ("SM_Cleric_Mace",):
 sb = bmesh.new()
 SB = Builder(staff, sb)
 W0 = {}
-SB.cylinder((0, 0, -0.62), (0, 0, -0.56), 0.026, GOLD, W0, r1=0.022, segs=8)        # kovaná pata
-SB.cylinder((0, 0, -0.56), (0, 0, 0.92), 0.02, LEATHER, W0, segs=8)                # dřevěná násada
-SB.cylinder((0, 0, -0.10), (0, 0, 0.12), 0.024, NAVY_DARK, W0, segs=8)             # omotávka v pěsti
-for z in (-0.12, 0.14, 0.55):                                                      # zlaté objímky
+SB.cylinder((0, 0, -0.62), (0, 0, -0.56), 0.026, GOLD, W0, r1=0.022, segs=8)        # iron-shod butt
+SB.cylinder((0, 0, -0.56), (0, 0, 0.92), 0.02, LEATHER, W0, segs=8)                # wooden shaft
+SB.cylinder((0, 0, -0.10), (0, 0, 0.12), 0.024, NAVY_DARK, W0, segs=8)             # wrap in the fist
+for z in (-0.12, 0.14, 0.55):                                                      # gold rings
     SB.cylinder((0, 0, z), (0, 0, z + 0.03), 0.027, GOLD, W0, segs=8)
-SB.cylinder((0, 0, 0.92), (0, 0, 0.98), 0.03, GOLD, W0, r1=0.022, segs=8)           # krček hlavice
-# hlavice: zlatý kruh (osmiboký prstenec) s křížem uvnitř a rubínem uprostřed, kolmo k násadě
+SB.cylinder((0, 0, 0.92), (0, 0, 0.98), 0.03, GOLD, W0, r1=0.022, segs=8)           # head neck
+# head: a gold ring (octagonal) with a cross inside and a ruby in the middle, perpendicular to the shaft
 ring_c = Vector((0, 0, 1.12))
 R0, R1 = 0.12, 0.095
 for i in range(8):
@@ -205,10 +205,10 @@ for i in range(8):
     pts = [ring_c + Vector((math.cos(a0) * R0, 0, math.sin(a0) * R0)), ring_c + Vector((math.cos(a1) * R0, 0, math.sin(a1) * R0)),
            ring_c + Vector((math.cos(a1) * R1, 0, math.sin(a1) * R1)), ring_c + Vector((math.cos(a0) * R1, 0, math.sin(a0) * R1))]
     SB.prism(pts, 0.03, Vector((0, 1, 0)), GOLD, W0)
-SB.box(ring_c, (0.024, 0.026, 0.2), GOLD, W0)                                      # kříž v kruhu
+SB.box(ring_c, (0.024, 0.026, 0.2), GOLD, W0)                                      # cross in the ring
 SB.box(ring_c + Vector((0, 0, 0.025)), (0.2, 0.026, 0.024), GOLD, W0)
-SB.box(ring_c + Vector((0, 0, 0.025)), (0.042, 0.04, 0.042), CRIMSON, W0, rot=Euler((0, math.pi / 4, 0)))   # rubín
-SB.box(ring_c + Vector((0, 0, 0.145)), (0.03, 0.03, 0.05), GOLD, W0, taper=(0.2, 0.2))   # hrot nahoře
+SB.box(ring_c + Vector((0, 0, 0.025)), (0.042, 0.04, 0.042), CRIMSON, W0, rot=Euler((0, math.pi / 4, 0)))   # ruby
+SB.box(ring_c + Vector((0, 0, 0.145)), (0.03, 0.03, 0.05), GOLD, W0, taper=(0.2, 0.2))   # spike on top
 sb.normal_update()
 sb.to_mesh(staff.data)
 sb.free()

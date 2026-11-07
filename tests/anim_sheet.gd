@@ -1,7 +1,7 @@
 extends SceneTree
-## Řada pěti hrdinů (každá třída se svou zbraní) a jejich animace v daných okamžicích.
-## Kontrola vzhledu animací bez bitvy. Spuštění (s oknem):
-##   godot --path . --script res://tests/anim_sheet.gd -- <složka>
+## A row of five heroes (each class with its weapon) and their animations at given moments.
+## Checks how the animations look without a battle. Run (with a window):
+##   godot --path . --script res://tests/anim_sheet.gd -- <folder>
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
 const UnitView := preload("res://scripts/battle/unit_view.gd")
@@ -10,7 +10,7 @@ const Field := preload("res://scripts/battle/battlefield.gd")
 var out_dir := ""
 var views: Array = []
 var frame := 0
-var plan: Array = []   # [název snímku, druh animace, podíl délky]
+var plan: Array = []   # [shot name, animation kind, fraction of length]
 
 
 func _init() -> void:
@@ -40,7 +40,7 @@ func _init() -> void:
 		v.setup(u)
 		world.add_child(v)
 		v.position = Vector3(-4.0 + i * 2.0, 0, 0)
-		v.rotation.y = deg_to_rad(-60)   # bokem ke kameře, ať je vidět máchnutí
+		v.rotation.y = deg_to_rad(-60)   # side-on to the camera so the swing is visible
 		views.append(v)
 		i += 1
 	var cam := Camera3D.new()

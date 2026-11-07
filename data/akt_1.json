@@ -1,6 +1,6 @@
 {
-  "_info": "Akt 1 běhu. Mapa: floors pater, na každém width_min–width_max uzlů, nahoře boss. Typ uzlu: bitva, elita, udalost, tabor (boss je vždy nahoře). first_floor/last_floor = typ celého patra (první patro samé bitvy, poslední před bossem tábor). weights = váhy typů na ostatních patrech, elite_from = nejnižší patro s elitou. battles/elites = klíče scénářů (bere se postupně z promíchaného seznamu), boss = scénář bosse, events = klíče z udalosti.json. regen = kolik zdraví (podíl) si hrdina doléčí po bitvě sám, camp_heal = kolik doléčí tábor. Elita: elite_offers nabídek, elite_picks výběrů.",
-  "name": "Hraběcí les",
+  "_info": "Act 1 of the run. Map: floors floors, width_min–width_max nodes on each, the boss at the top. Node type: bitva (battle), elita (elite), udalost (event), tabor (camp) (the boss is always at the top). first_floor/last_floor = type of the whole floor (first floor all battles, the last before the boss a camp). weights = type weights on the other floors, elite_from = lowest floor with an elite. battles/elites = scenario keys (taken in turn from a shuffled list), boss = boss scenario, events = keys from udalosti.json. regen = how much health (share) a hero heals on his own after a battle, camp_heal = how much the camp heals. Elite: elite_offers offers, elite_picks picks.",
+  "name": "The Count's Forest",
   "floors": 7,
   "width_min": 2,
   "width_max": 3,

@@ -1,36 +1,36 @@
 {
-  "_info": "Události na mapě aktu. options[].effects: glory (+/- sláva; záporná = cena, bez dost slávy volba nejde), heal / wound {who: all|random|wounded, frac}, gift {kind: passive|oath} (náhodná pasivka/přísaha náhodnému hrdinovi, kterému sedí), fled {key: počet} (nepřátelé, kteří se vrátí u bosse). text = co se zapíše do kroniky.",
+  "_info": "Events on the act map. options[].effects: glory (+/- glory; negative = cost, the option is unavailable without enough glory), heal / wound {who: all|random|wounded, frac}, gift {kind: passive|oath} (a random passive/oath for a random hero it fits), fled {key: count} (enemies who return at the boss). text = what is written to the chronicle.",
   "poutnik": {
-    "name": "Poutník u cesty",
-    "text": "U rozcestí sedí starý poutník v otrhaném plášti. Tvrdí, že kdysi sloužil hraběti, a nabízí, že vyslechne přísahu toho, kdo se odváží.",
+    "name": "The Pilgrim by the Road",
+    "text": "An old pilgrim in a ragged cloak sits at the crossroads. He claims he once served the Count, and offers to hear the oath of anyone who dares.",
     "options": [
-      {"label": "Složit přísahu před poutníkem", "hint": "Hrdina bez přísahy složí náhodnou přísahu.", "effects": [{"gift": "oath"}], "text": "Před poutníkem u rozcestí byla složena přísaha."},
-      {"label": "Dát mu almužnu (15 slávy)", "hint": "Poutník rod požehná: všichni se doléčí o 25 %.", "effects": [{"glory": -15}, {"heal": {"who": "all", "frac": 0.25}}], "text": "Rod dal poutníkovi almužnu a ten jej požehnal."},
-      {"label": "Jet dál", "hint": "Nic se nestane.", "effects": [], "text": ""}
+      {"label": "Swear an oath before the pilgrim", "hint": "A hero without an oath swears a random oath.", "effects": [{"gift": "oath"}], "text": "An oath was sworn before the pilgrim at the crossroads."},
+      {"label": "Give him alms (15 glory)", "hint": "The pilgrim blesses the house: everyone heals 25 %.", "effects": [{"glory": -15}, {"heal": {"who": "all", "frac": 0.25}}], "text": "The house gave the pilgrim alms and he blessed it."},
+      {"label": "Ride on", "hint": "Nothing happens.", "effects": [], "text": ""}
     ]
   },
   "vypalena_ves": {
-    "name": "Vypálená ves",
-    "text": "Ze vsi zbyly jen doutnající trámy. Lapkové, kteří ji zapálili, utíkají k lesu s kořistí.",
+    "name": "The Burned Village",
+    "text": "Only smouldering beams are left of the village. The brigands who set it alight are running for the forest with their loot.",
     "options": [
-      {"label": "Pronásledovat žháře", "hint": "+30 slávy, jeden hrdina utrží zranění (40 % zdraví).", "effects": [{"glory": 30}, {"wound": {"who": "random", "frac": 0.4}}], "text": "Rod dostihl žháře z vypálené vsi."},
-      {"label": "Pomoci přeživším", "hint": "Nic nezískáš, ale 3 lapkové utečou a vrátí se v boji s Hejtmanem.", "effects": [{"fled": {"lapka": 3}}], "text": "Rod pomáhal přeživším ve vypálené vsi, žháři zmizeli v lese."}
+      {"label": "Pursue the arsonists", "hint": "+30 glory, one hero is wounded (40 % health).", "effects": [{"glory": 30}, {"wound": {"who": "random", "frac": 0.4}}], "text": "The house caught the arsonists of the burned village."},
+      {"label": "Help the survivors", "hint": "You gain nothing, but 3 brigands escape and return in the fight with the Captain.", "effects": [{"fled": {"lapka": 3}}], "text": "The house helped the survivors of the burned village; the arsonists vanished into the forest."}
     ]
   },
   "zajatec": {
-    "name": "Zajatý lapka",
-    "text": "Hlídka chytila mladého lapku. Prosí o život a nabízí, že prozradí, kde jeho druzi schovali léčivé byliny.",
+    "name": "The Captured Brigand",
+    "text": "The watch has caught a young brigand. He begs for his life and offers to reveal where his fellows hid healing herbs.",
     "options": [
-      {"label": "Popravit ho", "hint": "+10 slávy.", "effects": [{"glory": 10}], "text": "Zajatý lapka byl popraven."},
-      {"label": "Propustit ho za byliny", "hint": "Všichni se doléčí o 20 %, ale lapka se vrátí v boji s Hejtmanem.", "effects": [{"heal": {"who": "all", "frac": 0.2}}, {"fled": {"lapka": 1}}], "text": "Zajatý lapka prozradil skrýš bylin a byl propuštěn."}
+      {"label": "Execute him", "hint": "+10 glory.", "effects": [{"glory": 10}], "text": "The captured brigand was executed."},
+      {"label": "Release him for the herbs", "hint": "Everyone heals 20 %, but the brigand returns in the fight with the Captain.", "effects": [{"heal": {"who": "all", "frac": 0.2}}, {"fled": {"lapka": 1}}], "text": "The captured brigand revealed the herb cache and was released."}
     ]
   },
   "kaple": {
-    "name": "Lesní kaple",
-    "text": "V hloubi lesa stojí opuštěná kaple. Na oltáři leží stříbrný relikviář, kolem něj zvláštní ticho.",
+    "name": "The Forest Chapel",
+    "text": "Deep in the forest stands an abandoned chapel. A silver reliquary lies on the altar, a strange silence around it.",
     "options": [
-      {"label": "Pomodlit se", "hint": "Zranění se doléčí o 30 %.", "effects": [{"heal": {"who": "wounded", "frac": 0.3}}], "text": "Rod se pomodlil v lesní kapli."},
-      {"label": "Vzít relikviář", "hint": "Jeden hrdina získá náhodnou pasivku, všichni ztratí 15 % zdraví.", "effects": [{"gift": "passive"}, {"wound": {"who": "all", "frac": 0.15}}], "text": "Rod si odnesl relikviář z lesní kaple."}
+      {"label": "Pray", "hint": "Wounds heal by 30 %.", "effects": [{"heal": {"who": "wounded", "frac": 0.3}}], "text": "The house prayed in the forest chapel."},
+      {"label": "Take the reliquary", "hint": "One hero gains a random passive, everyone loses 15 % health.", "effects": [{"gift": "passive"}, {"wound": {"who": "all", "frac": 0.15}}], "text": "The house carried off the reliquary from the forest chapel."}
     ]
   }
 }

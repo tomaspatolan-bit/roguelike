@@ -1,6 +1,6 @@
-# Pomocné funkce pro stavbu hrdinů v Blenderu (spouští se v Blenderu přes exec, viz build_*.py).
-# Hrdina = jedna síť s paletovými UV (střed buňky v řádku 0) a tuhými vahami na kosti kostry Armature.
-# Paleta (art/knight/T_Knight_Palette_D.png, 16 sloupců × 8 řádků; řádek = role, viz knight_palette.gdshader):
+# Helper functions for building heroes in Blender (run in Blender via exec, see build_*.py).
+# A hero = one mesh with palette UVs (cell centre in row 0) and rigid weights to the bones of the Armature skeleton.
+# Palette (art/knight/T_Knight_Palette_D.png, 16 columns × 8 rows; row = role, see knight_palette.gdshader):
 STEEL, STEEL_DARK, GOLD, ROLE, ROLE_DARK, CRIMSON, LEATHER, CHAIN, VOID, NAVY, NAVY_DARK = range(11)
 
 import bpy, bmesh, math
@@ -9,7 +9,7 @@ from collections import Counter
 
 
 def cell_uv(c):
-    """UV středu buňky sloupce c v řádku 0 (shader řádek posune podle role)."""
+    """UV of the centre of the cell in column c, row 0 (the shader shifts the row by role)."""
     return Vector(((c + 0.5) / 16.0, 7.5 / 8.0))
 
 
@@ -18,7 +18,7 @@ def cell_of(uv):
 
 
 def islands(bm):
-    """Souvislé díly sítě: [{verts, center, lo, hi, bone, cell, n}]."""
+    """Connected mesh parts: [{verts, center, lo, hi, bone, cell, n}]."""
     bm.verts.ensure_lookup_table()
     uvl = bm.loops.layers.uv.active
     dl = bm.verts.layers.deform.active
@@ -60,7 +60,7 @@ def islands(bm):
 
 
 class Builder:
-    """Přidává díly do bmesh hrdiny se správnými UV a vahami."""
+    """Adds parts to the hero bmesh with correct UVs and weights."""
 
     def __init__(self, obj, bm):
         self.obj = obj
@@ -78,7 +78,7 @@ class Builder:
         return self.obj.vertex_groups[gi].name
 
     def set_weights(self, verts, weights):
-        """weights: {kost: váha} nebo funkce v -> {kost: váha}."""
+        """weights: {bone: weight} or a function v -> {bone: weight}."""
         for v in verts:
             w = weights(v) if callable(weights) else weights
             d = v[self.dl]
@@ -102,7 +102,7 @@ class Builder:
 
     def _finish(self, geom_verts, cell, weights):
         faces = {f for v in geom_verts for f in v.link_faces}
-        # uzavřený díl: normály ven (kontrola kvality 30.10.2026 našla obrácené pásy štóly)
+        # closed part: normals outward (a quality check on 30.10.2026 found inverted stole bands)
         bmesh.ops.recalc_face_normals(self.bm, faces=list(faces))
         uv = cell_uv(cell)
         for f in faces:
@@ -113,7 +113,7 @@ class Builder:
         return geom_verts
 
     def box(self, center, size, cell, weights, rot=None, taper=None):
-        """Kvádr. rot = Euler (rad) nebo Matrix; taper = (sx, sy) zúžení horní stěny."""
+        """Box. rot = Euler (rad) or Matrix; taper = (sx, sy) narrowing of the top face."""
         res = bmesh.ops.create_cube(self.bm, size=1.0)
         vs = res["verts"]
         for v in vs:
@@ -128,7 +128,7 @@ class Builder:
         return self._finish(vs, cell, weights)
 
     def cylinder(self, p0, p1, r0, cell, weights, r1=None, segs=8, caps=True):
-        """Válec (nebo komolý kužel) z bodu p0 do p1."""
+        """Cylinder (or truncated cone) from point p0 to p1."""
         p0, p1 = Vector(p0), Vector(p1)
         r1 = r0 if r1 is None else r1
         axis = (p1 - p0)
@@ -149,7 +149,7 @@ class Builder:
         return self._finish(ring0 + ring1, cell, weights)
 
     def prism(self, pts, depth, normal, cell, weights):
-        """Plochý hranol z obrysu pts (body v rovině) vytažený o depth po normal."""
+        """Flat prism from outline pts (points in a plane) extruded by depth along normal."""
         n = Vector(normal).normalized() * depth / 2
         front = [self.bm.verts.new(Vector(p) - n) for p in pts]
         back = [self.bm.verts.new(Vector(p) + n) for p in pts]
@@ -163,7 +163,7 @@ class Builder:
 
 
 def new_object_from(src_name, name, collection):
-    """Kopie skinned sítě (stejná kostra a modifikátor) do kolekce."""
+    """Copy of a skinned mesh (same skeleton and modifier) into a collection."""
     src = bpy.data.objects[src_name]
     old = bpy.data.objects.get(name)
     if old is not None:
@@ -186,7 +186,7 @@ def new_object_from(src_name, name, collection):
 
 
 def new_weapon(name, collection):
-    """Prázdná síť zbraně (vlastní objekt, úchop v počátku, zbraň míří po +Z = v Godotu po ose Y kosti ruky)."""
+    """Empty weapon mesh (own object, grip at the origin, the weapon points along +Z = in Godot along the hand bone Y axis)."""
     old = bpy.data.objects.get(name)
     if old is not None:
         me_old = old.data

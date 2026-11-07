@@ -1,9 +1,9 @@
-# Animace koně (A_Horse_*) na kostře Armature_Horse. Spouští se v Blenderu po build_horse.py:
+# Horse animations (A_Horse_*) on the Armature_Horse skeleton. Run in Blender after build_horse.py:
 # exec(open(r"<repo>/art/cavalier/anims_horse.py", encoding="utf-8").read(), {})
-# Konvence kostry (ověřeno 30.10.2026): upperleg_* rotace X kladná = noha dozadu (záporná = vykročí dopředu),
-# lowerleg_f X kladná = ohyb předního kolene, lowerleg_b X záporná = ohyb hlezna, neck X kladná = hlava dolů,
-# tail Z = švihnutí do strany, root Y = převalení na bok (kladné doleva), root.loc ve světových osách.
-# Klid a klus jsou smyčky; cval (Nájezd) smyčka; zásah a smrt jednorázové. 24 fps.
+# Skeleton conventions (verified 30.10.2026): upperleg_* X rotation positive = leg back (negative = steps forward),
+# lowerleg_f X positive = front knee bend, lowerleg_b X negative = hock bend, neck X positive = head down,
+# tail Z = swish to the side, root Y = rolling onto the side (positive to the left), root.loc in world axes.
+# Idle and trot are loops; gallop (Charge) a loop; hit and death one-shot. 24 fps.
 import bpy
 
 arm = bpy.data.objects["Armature_Horse"]
@@ -15,7 +15,7 @@ def _curves(action):
 
 
 def make_action(name, keys, cyclic=False):
-    """keys: {snímek: {kost: (rx, ry, rz)} nebo {"kost.loc": (x, y, z)}}. Kanály chybějící ve snímku = 0."""
+    """keys: {frame: {bone: (rx, ry, rz)} or {"bone.loc": (x, y, z)}}. Channels missing in a frame = 0."""
     old = bpy.data.actions.get(name)
     if old is not None:
         bpy.data.actions.remove(old)
@@ -23,7 +23,7 @@ def make_action(name, keys, cyclic=False):
     act.use_fake_user = True
     arm.animation_data_create()
     arm.animation_data.action = act
-    chans = {"root.loc"} | {b.name for b in arm.pose.bones}    # vždy všechny kosti (export se vzorkováním)
+    chans = {"root.loc"} | {b.name for b in arm.pose.bones}    # always all bones (export with sampling)
     for pose in keys.values():
         chans |= set(pose.keys())
     for f in sorted(keys):
@@ -58,14 +58,14 @@ def merged(*poses):
     return out
 
 
-# --- klid: dýchání, hlava pomalu kývá, ocas švihá
+# --- idle: breathing, the head nods slowly, the tail swishes
 idle = {}
 for f, k, t in ((1, 0.0, 0.0), (21, 0.6, 1.0), (41, 1.0, -0.6), (61, 0.0, 0.0)):
     idle[f] = {"spine": (0.02 * k, 0, 0), "neck": (0.06 * k - 0.03, 0, 0.04 * t), "head": (-0.04 * k, 0, 0),
                "tail": (0.05 * k, 0, 0.25 * t), "root.loc": (0, 0, 0.008 * k)}
 make_action("A_Horse_Idle", idle)
 
-# --- klus (chůze ve hře): diagonální dvojice, 16 snímků na krok
+# --- trot (walking in the game): diagonal pairs, 16 frames per step
 FLEX_F, FLEX_B = 0.95, -0.75
 def trot(a_up, a_low, b_up, b_low, bob, nod):
     p = {}
@@ -83,7 +83,7 @@ make_action("A_Horse_Walk", {
     17: trot(-0.35, 0.0, 0.35, 0.1, -0.02, 0.05),
 }, cyclic=True)
 
-# --- cval (Nájezd): 12 snímků, sebrání, odraz zadních, natažení předních, dopad
+# --- gallop (Charge): 12 frames, gather, hind push-off, front reach, landing
 def gal(fu, fl, bu, bl, bob, pitch, nod, lead=0.12):
     p = {}
     for s, d in (("l", lead), ("r", -lead)):
@@ -102,7 +102,7 @@ make_action("A_Horse_Gallop", {
     13: gal(0.35, 0.3, -0.45, 0.2, -0.02, 0.0, -0.1),
 }, cyclic=True)
 
-# --- zásah: hlava vzhůru, kůň uhne
+# --- hit: head up, the horse shies
 make_action("A_Horse_Hit", {
     1: {},
     4: {"neck": (-0.35, 0, 0.1), "head": (-0.2, 0, 0), "root": (0, 0.06, 0), "root.loc": (0.04, 0.03, 0),
@@ -110,7 +110,7 @@ make_action("A_Horse_Hit", {
     12: {},
 })
 
-# --- smrt: přední nohy podklesnou, kůň se převalí na bok a zůstane ležet
+# --- death: front legs buckle, the horse rolls onto its side and stays down
 make_action("A_Horse_Death", {
     1: {},
     8: merged(leg("f", "l", 0.45, 1.3), leg("f", "r", 0.45, 1.3), {"neck": (-0.3, 0, 0), "root.loc": (0, 0, -0.25),

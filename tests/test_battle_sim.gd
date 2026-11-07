@@ -1,7 +1,7 @@
 extends SceneTree
-## Testy simulace bitvy bez okna.
-## Spuštění: godot --headless --path . --script res://tests/test_battle_sim.gd
-## Konec s kódem 0 = vše prošlo, 1 = něco selhalo.
+## Battle simulation tests without a window.
+## Run: godot --headless --path . --script res://tests/test_battle_sim.gd
+## Exit code 0 = all passed, 1 = something failed.
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
 const RUNS := 40
@@ -54,8 +54,8 @@ func _init() -> void:
 		quit(1)
 
 
-## Balanc scénáře: bez schopností většinou prohra, se schopnostmi většinou výhra, 30–180 s, žádný pat.
-## Automatický velitel (auto_command) vede oddíl skupinku po skupince jako hráč.
+## Scenario balance: without abilities mostly a loss, with abilities mostly a win, 30–180 s, no stalemate.
+## The automatic commander (auto_command) leads the squad group by group like a player.
 func _balance(sid: String) -> void:
 	var data := Sim.load_data(sid)
 	var without := _run_batch(data, false)
@@ -63,7 +63,7 @@ func _balance(sid: String) -> void:
 	print("[%s] Bez schopností: výhry %d/%d, průměrná délka %.0f s" % [sid, without["wins"], RUNS, without["avg_t"]])
 	print("[%s] Se schopnostmi: výhry %d/%d, průměrná délka %.0f s, přeživší %.1f, úkol splněn %d×, sláva od: %s" % [sid, with_ab["wins"], RUNS, with_ab["avg_t"], with_ab["avg_alive"], with_ab["task"], with_ab["glory_by"]])
 	_check(without["wins"] <= RUNS / 4, "[%s] bez schopností by se měla bitva většinou prohrát" % sid)
-	# elita je těžší: se schopnostmi stačí polovina výher (čerstvý oddíl bez pasivek)
+	# an elite is harder: with abilities half the wins is enough (a fresh squad without passives)
 	var need: int = RUNS / 2 if bool(data["scenario"].get("elite", false)) else RUNS * 3 / 4
 	_check(with_ab["wins"] >= need, "[%s] se schopnostmi by se měla bitva většinou vyhrát (%d/%d, potřeba %d)" % [sid, with_ab["wins"], RUNS, need])
 	_check(with_ab["avg_t"] > 30.0 and with_ab["avg_t"] < 180.0, "[%s] bitva by měla trvat 30–180 s" % sid)
@@ -75,14 +75,14 @@ func _check(cond: bool, msg: String) -> void:
 		failures.append(msg)
 
 
-## Rozestavení pro automatické hraní: rozkazy od jednoduchého velitele (suggest_orders).
+## Deployment for auto-play: orders from the simple commander (suggest_orders).
 func _new_sim(data: Dictionary, seed: int) -> Sim:
 	var s := Sim.new(data, Sim.default_setup(data), seed)
 	s.auto_command()
 	return s
 
 
-## Automatické hraní: každý hrdina použije schopnost, když ji rada (ability_hint) doporučí.
+## Auto-play: each hero uses his ability when the hint (ability_hint) recommends it.
 func _auto_abilities(s: Sim) -> void:
 	for u in s.living(Sim.SIDE_KNIGHT):
 		var h: Array = s.ability_hint(u.id)
@@ -118,7 +118,7 @@ func _run_batch(data: Dictionary, abilities: bool) -> Dictionary:
 	return {"wins": wins, "avg_t": total_t / RUNS, "avg_alive": float(alive) / maxi(wins, 1), "task": task, "stuck": stuck, "glory_by": glory_by}
 
 
-## Každá schopnost dělá, co slibuje, a ubírá použití.
+## Each ability does what it promises and takes a use.
 func _test_abilities(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 51)
 	var tank := s.by_id("tank")
@@ -175,13 +175,13 @@ func _test_abilities(data: Dictionary) -> void:
 	_check(asasin.focus_id == victim.id or not victim.alive(), "po Úderu ze stínu dobojuje s cílem (nevrací se hned k rozkazu)")
 
 
-## Pevný počet použití a nabíjení; sláva schopnosti nekupuje.
+## Fixed number of uses and recharge; glory does not buy abilities.
 func _test_ability_limits(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 54)
 	var tank := s.by_id("tank")
 	_check(tank.uses == 3 and s.by_id("knez").uses == 3 and s.by_id("jezdec").uses == 3 and s.by_id("lucistnik").uses == 3 and s.by_id("asasin").uses == 3, "každá schopnost má 3 použití za bitvu")
 	s.glory = 100.0
-	_check(s.use_ability("tank") and not s.can_use_ability("tank") and s.ability_problem("tank").contains("nabíjí"), "po použití se Výzva nabíjí")
+	_check(s.use_ability("tank") and not s.can_use_ability("tank") and s.ability_problem("tank").contains("recharging"), "po použití se Výzva nabíjí")
 	var cd: float = s.ability_of("tank").get("cooldown", 0.0)
 	while s.t < cd + 0.5:
 		s.step(DT)
@@ -190,16 +190,16 @@ func _test_ability_limits(data: Dictionary) -> void:
 	tank.uses = 0
 	tank.ability_cd = 0.0
 	var g := s.glory
-	_check(not s.use_ability("tank") and is_equal_approx(s.glory, g) and s.ability_problem("tank").contains("vyčerpaná"), "bez použití schopnost nejde (ani za slávu)")
+	_check(not s.use_ability("tank") and is_equal_approx(s.glory, g) and s.ability_problem("tank").contains("spent"), "bez použití schopnost nejde (ani za slávu)")
 
 
-## Na hrdinu útočí nejvýš melee_slots pěších najednou, ostatní čekají stranou; těla se nepřekrývají.
+## At most melee_slots melee enemies attack a hero at once, the others wait aside; bodies do not overlap.
 func _test_slots(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 70)
 	var tank := s.by_id("tank")
 	for k in s.knights():
 		if k != tank:
-			k.pos = Vector2(-20.0 + k.pos.x, -20.0)   # ostatní daleko, ať jsou všichni na tanka
+			k.pos = Vector2(-20.0 + k.pos.x, -20.0)   # the others far away so everyone goes for the tank
 			k.home = k.pos
 	var n := 0
 	for f in s.units:
@@ -225,7 +225,7 @@ func _test_slots(data: Dictionary) -> void:
 	_check(overlap >= 0.8, "nepřátelé se do sebe nezanoří (nejmenší odstup %.2f součtu poloměrů)" % overlap)
 
 
-## Kněz samočinně léčí jen v boji (mezi skupinkami nic nedoplní).
+## The priest heals on his own only in combat (nothing refills between groups).
 func _test_priest_combat(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 71)
 	for f in s.units:
@@ -247,14 +247,14 @@ func _test_priest_combat(data: Dictionary) -> void:
 	_check(tank.hp > tank.maxhp * 0.5, "v boji kněz léčí")
 
 
-## Obrana: vlny přicházejí postupně, bitva neskončí, dokud nepřijdou všechny, hrdina bez rozkazu drží místo.
+## Defense: waves arrive one by one, the battle does not end until all have come, a hero without orders holds his place.
 func _test_waves() -> void:
 	var data := Sim.load_data("lesni_ves")
 	var s := Sim.new(data, Sim.default_setup(data), 9)
 	var first := s.living(Sim.SIDE_FOE).size()
 	_check(s.mode == "obrana" and s.pending.size() > 0 and s.waves_left == 2, "obrana: na začátku je jen první vlna, další dvě čekají")
 	_check(s.groups.size() >= 4, "skupiny jsou i pro vlny, které ještě nepřišly (%d)" % s.groups.size())
-	# první vlna zmizí: bitva nekončí, protože přijdou další
+	# the first wave vanishes: the battle does not end because more are coming
 	for f in s.living(Sim.SIDE_FOE):
 		f.hp = 0.0
 	s.step(DT)
@@ -275,7 +275,7 @@ func _test_waves() -> void:
 	_check(far <= hr * 2.0 + 2.0, "hrdina bez rozkazu nevybíhá dál než pár metrů od místa (%.1f m)" % far)
 
 
-## Útok: s rozkazy na skupiny dojde ke kontaktu brzy (nikdo nestojí).
+## Assault: with orders at groups contact happens soon (no one stands idle).
 func _test_mode(sid: String) -> void:
 	var data := Sim.load_data(sid)
 	var s := _new_sim(data, 3)
@@ -299,7 +299,7 @@ func _nearest_foe_dist(s: Sim, p: Vector2) -> float:
 	return best
 
 
-## Nikdo nekmitá: hrdina v klidu nestřídá krok a stání pořád dokola (změna do 0,5 s po předchozí); kněz léčí.
+## No one jitters: a resting hero does not keep alternating step and stand (a change within 0.5 s of the previous one); the priest heals.
 func _test_calm(sid: String) -> void:
 	var data := Sim.load_data(sid)
 	var s := _new_sim(data, 7)
@@ -316,9 +316,9 @@ func _test_calm(sid: String) -> void:
 		s.auto_command()
 		_auto_abilities(s)
 		for u in s.living(Sim.SIDE_KNIGHT):
-			var calm := s.t - u.combat_t > 1.5   # v boji se za pohyblivým cílem rozbíhat smí
+			var calm := s.t - u.combat_t > 1.5   # in combat chasing a moving target is allowed
 			if last.has(u.id) and last[u.id] != u.moving:
-				# kmitání = rozjezd a zastavení rychle po sobě; jít za pohybujícím se spojencem smí
+				# jitter = starting and stopping in quick succession; following a moving ally is allowed
 				if calm and s.t - float(last_t.get(u.id, -10.0)) < 0.5:
 					toggles[u.id] = int(toggles.get(u.id, 0)) + 1
 				last_t[u.id] = s.t
@@ -331,7 +331,7 @@ func _test_calm(sid: String) -> void:
 	_check(heals > 0, "[%s] kněz u spojence léčí" % sid)
 
 
-## Skupiny nepřátel: Most má pěší a střelce zvlášť, název s počtem, nepřítel zná svou skupinu.
+## Enemy groups: the Bridge has melee and bowmen separately, a name with a count, the enemy knows its group.
 func _test_groups(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 55)
 	var archer := s.by_id("e3")
@@ -341,23 +341,23 @@ func _test_groups(data: Dictionary) -> void:
 	for g in s.groups.size():
 		names.append(s.group_name(g))
 	print("Skupiny (Most): %s" % [names])
-	_check(names.has("Lapkové u mostu (3)") and names.has("Střelci na břehu (2)") and names.has("Tábor lapků (3)"), "Most: skupinky ze scénáře jsou skupiny pro rozkazy")
+	_check(names.has("Brigands at the bridge (3)") and names.has("Bowmen on the bank (2)") and names.has("Brigand camp (3)"), "Most: skupinky ze scénáře jsou skupiny pro rozkazy")
 	lapka.hp = 0.0
-	_check(s.group_name(s.group_of("e1")) == "Lapkové u mostu (2)", "počet ve skupině ubývá s padlými")
+	_check(s.group_name(s.group_of("e1")) == "Brigands at the bridge (2)", "počet ve skupině ubývá s padlými")
 
 
-## Rozkazy: na místo, na skupinu, ke spojenci, bez rozkazu; přísaha pomsty neposlouchá.
+## Orders: to a place, at a group, with an ally, none; Blood Debt does not obey.
 func _test_orders(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 57)
 	for id: String in ["e0", "e1", "e2"]:
-		_park(s.by_id(id))   # lapkové u mostu by asasína cestou napadli (bránil by se)
+		_park(s.by_id(id))   # the brigands at the bridge would attack the assassin on the way (he would defend himself)
 	_check(s.unordered().size() == 5, "na začátku jsou všichni bez rozkazu")
 	var jezdec := s.by_id("jezdec")
 	var spot := jezdec.pos + Vector2(-3.0, 0.0)
 	_check(not s.set_order("jezdec", "point", Vector2(-4.0, 6.0)) and s.order_problem("jezdec", "point", Vector2(-4.0, 6.0)) != "", "na místo ve vodě rozkaz nejde")
-	_check(s.set_order("jezdec", "point", spot) and s.order_text("jezdec") == "Na místo", "rozkaz na místo")
+	_check(s.set_order("jezdec", "point", spot) and s.order_text("jezdec") == "To a place", "rozkaz na místo")
 	_check(not s.set_order("knez", "ally", "knez") and not s.set_order("knez", "ally", "e0"), "ke spojenci jen k jinému hrdinovi")
-	_check(s.set_order("knez", "ally", "tank") and s.order_text("knez") == "Se spojencem: Sir Bořek", "rozkaz ke spojenci")
+	_check(s.set_order("knez", "ally", "tank") and s.order_text("knez") == "With ally: Sir Bořek", "rozkaz ke spojenci")
 	_check(not s.set_order("asasin", "group", 99), "na neznámou skupinu rozkaz nejde")
 	var shooters := s.group_of("e3")
 	_check(s.set_order("asasin", "group", "e4") and s.by_id("asasin").order_group == shooters, "rozkaz na skupinu podle nepřítele")
@@ -378,28 +378,28 @@ func _test_orders(data: Dictionary) -> void:
 	_check(hit_shooter or not asasin.alive(), "na skupinu: asasín jde po střelcích")
 	_check(tank.pos.distance_to(tank_home) < 9.0, "tank bez rozkazu drží místo (%.1f m)" % tank.pos.distance_to(tank_home))
 
-	# bez rozkazu: vzdáleného nepřítele nechá, blízkého napadne
+	# without an order: leaves a distant enemy alone, attacks a near one
 	var s2 := Sim.new(data, Sim.default_setup(data), 58)
 	for u in s2.units:
 		if u.side == Sim.SIDE_FOE and u.id != "e0" and u.id != "e1":
 			_park(u)
-	s2.by_id("lucistnik").hp = 0.0   # střelec by vzdáleného zasáhl a ten by se rozběhl
+	s2.by_id("lucistnik").hp = 0.0   # a ranged hero would hit the distant one and he would start running
 	var t2 := s2.by_id("tank")
 	var far := s2.by_id("e0")
 	var near := s2.by_id("e1")
 	for f in [far, near]:
 		f.speed = 0.0
-		f.asleep = false   # stojí (rychlost 0); spícího by hrdina sám nenapadl
+		f.asleep = false   # stands still (speed 0); a hero would not attack a sleeping one on his own
 	far.pos = t2.pos + Vector2(0.0, 8.0)
 	near.pos = t2.pos + Vector2(2.5, 1.0)
-	far.home = far.pos   # poplach po zásahu blízkého (do alarm_radius od jeho místa) vzdáleného nesmí uvolnit
+	far.home = far.pos   # the alarm after hitting the near one (within alarm_radius of its spot) must not release the distant one
 	near.home = near.pos
 	for i in 120:
 		s2.step(DT)
 		s2.events.clear()
 	_check(near.hp < near.maxhp and far.pos.distance_to(t2.pos) > 5.0, "bez rozkazu: bojuje s tím, kdo přijde blízko, a za vzdáleným nejde (blízký %.0f/%.0f, vzdálený %.1f m, tank %s, rozhodnuto %s)" % [near.hp, near.maxhp, far.pos.distance_to(t2.pos), t2.pos, s2.decided])
 
-	# rozkaz na místo stáhne hrdinu z boje (cestou nebojuje)
+	# an order to a place pulls the hero out of combat (no fighting on the way)
 	var s6 := Sim.new(data, Sim.default_setup(data), 65)
 	for u in s6.units:
 		if u.side == Sim.SIDE_FOE and u.id != "e0":
@@ -422,7 +422,7 @@ func _test_orders(data: Dictionary) -> void:
 		s6.events.clear()
 	_check(fighting and j6.pos.distance_to(away) < 1.5, "rozkaz na místo stáhne hrdinu z boje (%.1f m od cíle)" % j6.pos.distance_to(away))
 
-	# kdo jde, obejde hrdinu, který mu stojí v cestě (nejde skrz něj)
+	# whoever walks goes around a hero standing in his way (not through him)
 	var s7 := Sim.new(data, Sim.default_setup(data), 66)
 	for u in s7.units:
 		if u.side == Sim.SIDE_FOE:
@@ -441,15 +441,15 @@ func _test_orders(data: Dictionary) -> void:
 		closest = minf(closest, a7.pos.distance_to(t7.pos))
 	_check(a7.pos.distance_to(goal) < 1.0 and closest >= (a7.radius + t7.radius) * 0.85, "hrdina obejde spojence v cestě (nejblíž %.2f m, došel %.1f m od cíle)" % [closest, a7.pos.distance_to(goal)])
 
-	# skupina padne: rozkaz je splněn, hrdina drží místo
+	# the group falls: the order is done, the hero holds his place
 	var s3 := Sim.new(data, Sim.default_setup(data), 59)
 	s3.set_order("jezdec", "group", "e3")
 	for f in s3.group_members(s3.group_of("e3")):
 		f.hp = 0.0
 	s3.step(DT)
-	_check(s3.by_id("jezdec").order_done and s3.order_text("jezdec") == "Skupina padla, drží místo", "po pádu skupiny drží místo")
+	_check(s3.by_id("jezdec").order_done and s3.order_text("jezdec") == "Group fell, holds place", "po pádu skupiny drží místo")
 
-	# rada automatického velitele dá rozkaz všem
+	# the automatic commander's hint gives everyone an order
 	var s4 := Sim.new(data, Sim.default_setup(data), 60)
 	var plan := s4.suggest_orders()
 	_check(plan.size() == 5 and String(plan["knez"][0]) == "ally", "automatický velitel rozhodne o všech (%s)" % [plan])
@@ -458,12 +458,12 @@ func _test_orders(data: Dictionary) -> void:
 	var first := tk4.order_group
 	for f in s4.living(Sim.SIDE_FOE):
 		if not f.asleep:
-			f.hp = 0.0   # bdělá skupinka padla
+			f.hp = 0.0   # the awake group has fallen
 	s4.step(DT)
 	s4.auto_command()
 	_check(tk4.order == "group" and tk4.order_group != first, "po pádu skupinky jde automatický velitel na další")
 
-	# přísaha pomsty: dokud žije viník, jde po něm a rozkaz neplatí
+	# Blood Debt: while the culprit lives, he goes after him and orders do not apply
 	var s5 := Sim.new(data, Sim.default_setup(data), 64)
 	s5.set_passive("asasin", "pomsta", true)
 	var culprit := s5.by_id("e3")
@@ -476,7 +476,7 @@ func _test_orders(data: Dictionary) -> void:
 	_check(tk.pos.distance_to(culprit.pos) < d0 - 2.0 or s5.t - tk.combat_t < 0.5, "přísaha pomsty: jde po viníkovi")
 
 
-## Tank s přísahou Nikdy neustoupí sám necouvne.
+## A tank with Never Retreat does not back off on his own.
 func _test_stand_firm(data: Dictionary) -> void:
 	var max_back := 0.0
 	for i in 10:
@@ -494,7 +494,7 @@ func _test_stand_firm(data: Dictionary) -> void:
 	_check(max_back < 1.0, "tank s přísahou nesmí couvnout (odsun tlačenicí do 1 m je tolerovaný)")
 
 
-## Brody zpomalí, lávka a brody vedou přes řeku, les zpomalí všechny kromě asasína, stezka ne.
+## Fords slow, the footbridge and fords cross the river, the forest slows everyone except the assassin, the trail does not.
 func _test_terrain(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 29)
 	var tank := s.by_id("tank")
@@ -503,14 +503,14 @@ func _test_terrain(data: Dictionary) -> void:
 	_check(s._in_water(Vector2(-3.0, 6.5)) and not s._in_water(Vector2(0.0, 6.5)) and not s._in_water(Vector2(8.0, 6.5)), "voda mimo brody a lávku")
 	_check(s.terrain_speed(tank, Vector2(3.0, 12.0)) < 1.0 and is_equal_approx(s.terrain_speed(asasin, Vector2(3.0, 12.0)), 1.0), "les zpomalí, asasína ne")
 	_check(is_equal_approx(s.terrain_speed(tank, Vector2(0.0, 12.0)), 1.0), "stezka lesem nezpomaluje")
-	# rytíř z levé strany dojde přes řeku na druhý břeh a nikdy nevstoupí do vody
+	# a knight from the left side crosses the river to the other bank and never steps into the water
 	for u in s.units:
 		if u.side == Sim.SIDE_FOE:
 			u.hp = 0.0
 	s.by_id("e0").hp = 120.0
 	s.by_id("e0").pos = Vector2(-8.0, 20.0)
 	s.by_id("e0").speed = 0.0
-	s.charging = true   # všichni jdou na nepřítele
+	s.charging = true   # everyone goes at the enemy
 	var wet := false
 	for i in 900:
 		s.step(DT)
@@ -522,8 +522,8 @@ func _test_terrain(data: Dictionary) -> void:
 	_check(tank.pos.y > 9.0 and not wet, "rytíř přejde řeku brodem a nevstoupí do vody (y = %.1f)" % tank.pos.y)
 
 
-## Rozkaz na místo za zády: rytíř s přísahou Nikdy neustoupí nejde dál od nepřítele (drží, kde stojí).
-## Nepřítel odstavený daleko (stojí, drží, nikoho nenapadne): test se týká jen ostatních.
+## An order to a place behind him: a knight with Never Retreat does not move away from the enemy (holds where he stands).
+## An enemy parked far away (stands, holds, attacks no one): the test concerns only the others.
 func _park(u: Sim.Unit) -> void:
 	u.pos = Vector2(u.pos.x, 60.0)
 	u.home = u.pos
@@ -552,7 +552,7 @@ func _test_retreat_order(data: Dictionary) -> void:
 	_check(tank.pos.distance_to(back) < 1.0, "po porušení přísahy rozkaz dozadu poslechne")
 
 
-## Kopiníci jsou proti jízdě silnější a nezlomí se; Zbabělec uteče, i když je pěšák.
+## Spearmen are stronger against cavalry and do not break; a Coward flees even as a footman.
 func _test_spears_and_traits(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 37)
 	var spear := s.by_id("e2")
@@ -568,7 +568,7 @@ func _test_spears_and_traits(data: Dictionary) -> void:
 	s._attack(spear, tank)
 	var hit_t := t0 - tank.hp
 	_check(hit_j > hit_t * 1.5, "kopiník zraní jezdce víc než tanka (%.1f vs %.1f)" % [hit_j, hit_t])
-	# naživu zůstane kopiník (Fanatik), lapka se Zbabělcem a jeden střelec (5 z 8 ztrát, práh 0,6)
+	# alive remain a spearman (Fanatic), a brigand with Coward and one bowman (5 of 8 losses, threshold 0.6)
 	s.scenario["enemy_morale"]["break_losses"] = 0.6
 	s.by_id("e5").traits.append("zbabelec")
 	for i in s.living(Sim.SIDE_FOE).size():
@@ -588,7 +588,7 @@ func _test_spears_and_traits(data: Dictionary) -> void:
 	_check(not s.task_ok, "úkol Nikdo nepadne selže, když padne kdokoli")
 
 
-## Skupinky (fáze bitvy) na Brodu: spí, dokud se nepřiblížíš; probudí je přiblížení, zásah a hluk boje.
+## Groups (battle phases) at the Ford: asleep until you approach; approach, a hit and the noise of battle wake them.
 func _test_pods(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 43)
 	var lapka := s.by_id("e0")
@@ -606,7 +606,7 @@ func _test_pods(data: Dictionary) -> void:
 	s._hurt(s.by_id("lucistnik"), spear, 1.0)
 	s.step(DT)
 	_check(not s.by_id("e2").asleep, "zásah probudí celou skupinku")
-	# hluk boje: bdělý nepřítel bojuje kousek od tábora
+	# noise of battle: an awake enemy fights near the camp
 	var camp := s.by_id("e4")
 	lapka.pos = camp.home + Vector2(0.0, -4.0)
 	lapka.combat_t = s.t
@@ -614,11 +614,11 @@ func _test_pods(data: Dictionary) -> void:
 	_check(not camp.asleep, "boj u tábora probudí tábor (poplach)")
 
 
-## Po ztrátě 70 % se nepřítel zlomí: střelci prchnou z bojiště, pěšáci zoufale dobojují.
+## After losing 70 % the enemy breaks: bowmen flee the battlefield, footmen fight on desperately.
 func _test_morale(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 19)
 	for i in [0, 1, 2, 3, 5, 6]:
-		s.by_id("e%d" % i).hp = 0.0   # 6 z 8 ztrát = 75 %
+		s.by_id("e%d" % i).hp = 0.0   # 6 of 8 losses = 75 %
 	s.step(DT)
 	var lapka := s.by_id("e7")
 	var strelec := s.by_id("e4")
@@ -644,18 +644,18 @@ func _test_morale(data: Dictionary) -> void:
 	_check(not fresh.can_charge(), "bez zlomené morálky povel Do boje! nejde")
 
 
-## Když je bitva rozhodnutá, hrdinové jdou do útoku.
+## When the battle is decided, the heroes go on the attack.
 func _test_decided(data: Dictionary) -> void:
-	# pojistka sama: scénář, kde se morálka nezlomí (kopie dat, ostatní testy se nezmění)
+	# the guard by itself: a scenario where morale does not break (a copy of the data, other tests unchanged)
 	var d2 := data.duplicate(true)
 	d2["scenario"]["enemy_morale"]["break_losses"] = 1.1
 	var s := Sim.new(d2, Sim.default_setup(d2), 23)
 	for f in s.living(Sim.SIDE_FOE):
 		if not f.ranged:
-			f.hp = 0.0   # zbudou jen střelci
-	s.by_id("e3").hp = 0.0   # zbude jeden střelec (silnější nepřátelé: dva by byli moc)
+			f.hp = 0.0   # only bowmen remain
+	s.by_id("e3").hp = 0.0   # one bowman remains (stronger enemies: two would be too many)
 	for f in s.living(Sim.SIDE_FOE):
-		f.asleep = false   # rozhoduje se jen o bdělých nepřátelích
+		f.asleep = false   # only awake enemies count for the decision
 	s.step(DT)
 	var ev := false
 	for e in s.events:
@@ -670,7 +670,7 @@ func _test_decided(data: Dictionary) -> void:
 	_check(luc.pos.distance_to(before) > 1.0 or s.over == "win", "v rozhodnuté bitvě jdou hrdinové dobojovat")
 
 
-## Rozkaz od nepřítele je ústup; porušení přísahy stojí slávu.
+## An order away from the enemy is a retreat; breaking an oath costs glory.
 func _test_oath(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 3)
 	var tank := s.by_id("tank")
@@ -681,7 +681,7 @@ func _test_oath(data: Dictionary) -> void:
 	_check(not s.has_oath("tank") and s.oaths_broken() == 1 and is_equal_approx(s.glory, 30.0), "porušení přísahy stojí 20 slávy")
 
 
-## Asasín si z dosažitelných nepřátel vybírá střelce.
+## The assassin picks bowmen among the reachable enemies.
 func _test_target_priority(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 13)
 	var asasin := s.by_id("asasin")
@@ -693,7 +693,7 @@ func _test_target_priority(data: Dictionary) -> void:
 
 
 
-## Pasivky a přísahy: pravidla přidávání a jejich efekty.
+## Passives and oaths: rules for adding them and their effects.
 func _test_passives(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 61)
 	var tank := s.by_id("tank")
@@ -701,7 +701,7 @@ func _test_passives(data: Dictionary) -> void:
 	var luc := s.by_id("lucistnik")
 	var jezdec := s.by_id("jezdec")
 	var asasin := s.by_id("asasin")
-	_check(s.has_oath("tank") and s.oath_of("tank")["name"] == "Nikdy neustoupí", "tank má na zkoušku přísahu z rodu")
+	_check(s.has_oath("tank") and s.oath_of("tank")["name"] == "Never Retreat", "tank má na zkoušku přísahu z rodu")
 	_check(not s.set_passive("tank", "rychle_ruce", true), "pasivka jiné třídy nejde")
 	_check(not s.set_passive("tank", "ochrana", true), "hrdina má nejvýš jednu přísahu")
 	_check(not s.set_passive("tank", "pomsta", true), "osobní přísaha jiné třídy nejde")
@@ -772,7 +772,7 @@ func _test_passives(data: Dictionary) -> void:
 	_check(a3.hidden_t > 0.0 and not s3._visible_knights().has(a3), "Úkryt: po úderu ho nikdo necílí")
 
 
-## Vlastnosti hrdinů a nové přísahy (rod i osobní): bonusy, omezení a porušení.
+## Hero stats and the new oaths (house and personal): bonuses, restrictions and breaking.
 func _test_oaths_and_stats(data: Dictionary) -> void:
 	print("Přísahy a vlastnosti")
 	var s := Sim.new(data, _setup_with(data, {"knez": ["milost"], "tank": ["stit"], "lucistnik": ["bdelost"]}), 71)
@@ -793,7 +793,7 @@ func _test_oaths_and_stats(data: Dictionary) -> void:
 	_check(luc.pos.distance_to(y0) < 0.01, "bdělý lučištník se v bitvě nepohne")
 	s.set_order("lucistnik", "point", luc.pos + Vector2(2, 0))
 	_check(not s.has_oath("lucistnik") and luc.oath_broken, "rozkaz v bitvě bdělost porušil")
-	# milost: Salva do prchajícího přísahu poruší, sám prchající necílí
+	# mercy: a Volley into a fleeing enemy breaks the oath, he does not target the fleeing himself
 	var s2 := Sim.new(data, _setup_with(data, {"lucistnik": ["milost"]}), 72)
 	var l2 := s2.by_id("lucistnik")
 	var f2 := s2.by_id("e0")
@@ -806,7 +806,7 @@ func _test_oaths_and_stats(data: Dictionary) -> void:
 	f2.speed = 0.0
 	s2.use_ability("lucistnik", f2.pos)
 	_check(l2.oath_broken, "Salva do prchajícího Přísahu milosti poruší")
-	# předků: bonus za padlé předky, bez zabití se po výhře poruší
+	# ancestors: bonus for fallen ancestors, breaks after a win without a kill
 	var st3 := _setup_with(data, {"jezdec": ["predku"]})
 	st3["ancestors"] = 2
 	var s3 := Sim.new(data, st3, 73)
@@ -814,7 +814,7 @@ func _test_oaths_and_stats(data: Dictionary) -> void:
 	_check(is_equal_approx(s3.stat(j3, "utok"), 0.2) and is_equal_approx(j3.maxhp, 285.0 * 1.2), "Přísaha předků: +10 % Síla a Odolnost za předka")
 	s3._end_oaths()
 	_check(j3.oath_broken, "Přísaha předků: bez zabití se poruší")
-	# pod korouhví: sám déle než 5 s
+	# under the banner: alone for more than 5 s
 	var s4 := Sim.new(data, _setup_with(data, {"asasin": ["pod_korouhvi"]}), 74)
 	var a4 := s4.by_id("asasin")
 	_check(is_equal_approx(s4.stat(a4, "utok"), 0.2), "Pod korouhví: u oddílu Síla +20 %")
@@ -823,7 +823,7 @@ func _test_oaths_and_stats(data: Dictionary) -> void:
 	for i in int(6.0 / DT):
 		s4._watch_oaths(a4, DT)
 	_check(a4.oath_broken, "Pod korouhví: sám déle než 5 s přísahu poruší")
-	# Přísaha mlčení: 3 rozkazy v bitvě, čtvrtý poruší
+	# Oath of Silence: 3 orders in battle, the fourth breaks it
 	var s5 := Sim.new(data, _setup_with(data, {"asasin": ["prisaha_mlceni"], "knez": ["slib_mlceni"]}), 75)
 	s5.step(DT)
 	s5.events.clear()
@@ -832,7 +832,7 @@ func _test_oaths_and_stats(data: Dictionary) -> void:
 		s5.set_order("asasin", "point", a5.pos + Vector2(0.5 * (i + 1), 0))
 	_check(s5.has_oath("asasin") and s5.order_oath_conflict("asasin", "point", a5.pos) != "", "Přísaha mlčení: po 3 rozkazech čtvrtý poruší")
 	_check(s5.order_oath_conflict("knez", "ally", "tank") != "", "Slib mlčení: v bitvě rozkaz poruší")
-	# stín: na útočníka neútočí, na nečekajícího dvojnásob
+	# shadow: does not attack an attacker, double against the unaware
 	var s6 := Sim.new(data, _setup_with(data, {"asasin": ["stin"]}), 76)
 	var a6 := s6.by_id("asasin")
 	var e6 := s6.by_id("e1")
@@ -840,7 +840,7 @@ func _test_oaths_and_stats(data: Dictionary) -> void:
 	_check(is_equal_approx(s6._dmg_mult(a6, e6), 2.0), "Přísaha stínu: Útok ×2 na nečekajícího")
 	e6.target_id = "asasin"
 	_check(s6._choose_target(a6, [e6] as Array[Sim.Unit]) == null and s6.ability_oath_conflict("asasin", e6.id) != "", "Přísaha stínu: na útočníka neútočí, Úder by ji porušil")
-	# ochrana: tank bere za kněze půlku zranění, když kněz padne, poruší ji
+	# protection: the tank takes half the priest's damage, breaks it when the priest falls
 	var s7 := Sim.new(data, _setup_with(data, {"tank": ["ochrana"]}), 77)
 	var t7 := s7.by_id("tank")
 	var k7 := s7.by_id("knez")
@@ -852,7 +852,7 @@ func _test_oaths_and_stats(data: Dictionary) -> void:
 	_check(t7.hp < th and kh - k7.hp < 40.0 * (1.0 - k7.armor) * 0.6, "Přísaha ochrany: tank bere polovinu zranění")
 	s7._hurt(s7.by_id("e0"), k7, 99999.0)
 	_check(t7.oath_broken, "Přísaha ochrany: chráněný padl, přísaha porušena")
-	# mučedník: když padne, vyléčí hrdiny u sebe
+	# martyr: when he falls, heals the heroes near him
 	var s8 := Sim.new(data, _setup_with(data, {"knez": ["mucednik"]}), 78)
 	var k8 := s8.by_id("knez")
 	var l8 := s8.by_id("lucistnik")
@@ -861,7 +861,7 @@ func _test_oaths_and_stats(data: Dictionary) -> void:
 	l8.hp = 10.0
 	s8._hurt(s8.by_id("e0"), k8, 99999.0)
 	_check(is_equal_approx(l8.hp, l8.maxhp), "Přísaha mučedníka: smrt kněze vyléčí druhy")
-	# lovecká čest, rytířská výzva, korouhve
+	# Hunter's Honor, Knightly Challenge, Oath of the Standard
 	var s9 := Sim.new(data, _setup_with(data, {"lucistnik": ["lovecka_cest"], "jezdec": ["rytirska_vyzva"]}), 79)
 	var e9: Sim.Unit = null
 	for f in s9.living(Sim.SIDE_FOE):
@@ -883,7 +883,7 @@ func _test_oaths_and_stats(data: Dictionary) -> void:
 	_check(is_equal_approx(s11.stats_of("tank")["odolnost"], 0.15), "Veterán = Odolnost +15 %")
 
 
-## Setup s danými pasivkami (ostatní hrdinové bez pasivek, tank bez přísahy na zkoušku).
+## Setup with given passives (other heroes without passives, the tank without the trial oath).
 func _setup_with(data: Dictionary, pas: Dictionary) -> Dictionary:
 	var st := Sim.default_setup(data)
 	var all := {}
@@ -893,8 +893,8 @@ func _setup_with(data: Dictionary, pas: Dictionary) -> Dictionary:
 	return st
 
 
-## Poměr interakcí schopnost × přísaha: zhruba 35 % dobrých, 45 % neutrálních, 20 % špatných
-## (rozhodnutí 07.11.2026). Přísahy rodu proti všem schopnostem, osobní proti schopnostem své třídy.
+## Ratio of ability × oath interactions: roughly 35 % good, 45 % neutral, 20 % bad
+## (decision 07.11.2026). House oaths against all abilities, personal ones against their class's abilities.
 func _test_interaction_ratio(data: Dictionary) -> void:
 	var knights: Dictionary = data["units"]["knights"]
 	var all_ab: Array = []
@@ -926,7 +926,7 @@ func _bond_pair(a: String, b: String, type: String, level: int) -> Dictionary:
 	return {a: {"with": b, "type": type, "level": level}, b: {"with": a, "type": type, "level": level}}
 
 
-## Pouta (efekty podle úrovně, žal) a komba (Q/E, spotřeba použití, efekty).
+## Bonds (effects by level, grief) and combos (Q/E, use consumption, effects).
 func _test_bonds_and_combos(data: Dictionary) -> void:
 	print("Pouta a komba")
 	var st := _setup_with(data, {})
@@ -968,7 +968,7 @@ func _test_bonds_and_combos(data: Dictionary) -> void:
 	_check(s.combos().is_empty() or s.combo_problem("navnada") != "", "po smrti druha kombo nejde")
 	s._hurt(foe, jez, 99999.0)
 	_check(asa.rage_t > 3.9 and asa.rage_t < 4.1 and s.order_problem("asasin") != "", "žal Bratrů (úr. 1 poloviční): asasín 4 s zuří a neposlouchá")
-	# Kladivo a kovadlina: asasín dorazí pěšáka sraženého Nájezdem
+	# Hammer and Anvil: the assassin finishes off a footman knocked down by the Charge
 	var st2 := _setup_with(data, {})
 	st2["bonds"] = _bond_pair("jezdec", "asasin", "bratri", 2)
 	var s2 := Sim.new(data, st2, 92)
@@ -991,7 +991,7 @@ func _test_bonds_and_combos(data: Dictionary) -> void:
 		if not pawn.alive():
 			break
 	_check(not pawn.alive(), "Kladivo a kovadlina: sražený pěšák padl")
-	# Zpovědník, Pokrevní bratrství, Lovecká dvojice, Kopí a štít, Soupeři
+	# Confessor, Blood Brothers, Hunting Pair, Lance and Shield, Rivals
 	var st3 := _setup_with(data, {})
 	st3["bonds"] = _bond_pair("knez", "tank", "zpovednik", 3)
 	st3["bonds"].merge(_bond_pair("lucistnik", "asasin", "lovci", 2))

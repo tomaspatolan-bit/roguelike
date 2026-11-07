@@ -1,14 +1,14 @@
 class_name BattleSim
 extends RefCounted
-## Logika jedné bitvy bez grafiky. Dá se spustit v testech bez okna.
+## Logic of a single battle without graphics. Can run in tests without a window.
 ##
-## Souřadnice: Vector2(x, y), x doprava, y dopředu (k nepříteli), 1 jednotka = 1 m.
-## Scéna to převádí na 3D jako Vector3(x, výška, -y).
-## Data (statistiky, schopnosti, rod, scénář) přicházejí z JSON souborů ve složce data/.
+## Coordinates: Vector2(x, y), x to the right, y forward (towards the enemy), 1 unit = 1 m.
+## The scene converts it to 3D as Vector3(x, height, -y).
+## Data (stats, abilities, house, scenario) come from JSON files in the data/ folder.
 ##
-## Hráč velí hrdinům rozkazy: na místo, na skupinu nepřátel, ke spojenci; bez rozkazu hrdina drží místo.
-## Rozkazy se dávají kdykoli (bitva běží v reálném čase, hráč ji může pozastavit). Každý hrdina má
-## jednu schopnost s počtem použití za bitvu. Sláva je společná rezerva rodu, platí se z ní použití navíc.
+## The player commands heroes with orders: to a place, at an enemy group, with an ally; without an order a hero holds his place.
+## Orders can be given at any time (the battle runs in real time, the player can pause it). Each hero has
+## one ability with a number of uses per battle. Glory is the house's shared reserve.
 
 const SIDE_KNIGHT := "k"
 const SIDE_FOE := "e"
@@ -39,86 +39,86 @@ class Unit:
 	var color: Color = Color.WHITE
 	var pos: Vector2
 	var home: Vector2
-	var ability: String = ""      # klíč schopnosti (hrdinové)
-	var uses: int = 0             # zbývající použití schopnosti v této bitvě
-	var order: String = ""        # rozkaz hrdiny: "" (žádný: drží místo), "point", "group", "ally"
-	var order_pos: Vector2        # point: kam jít
-	var order_group: int = -1     # group: na kterou skupinu nepřátel
-	var order_ally: String = ""   # ally: s kým zůstat
-	var order_done: bool = false  # rozkaz splněn (došel, skupina padla, spojenec padl): drží místo `home`
-	var regroup: bool = false     # vrací se ke spojenci (zatoulal se), dokud k němu nedojde
-	var focus_id: String = ""     # po Úderu ze stínu a Nájezdu dobojuje s cílem, než se vrátí k rozkazu
-	var focus_t: float = 0.0      # jak dlouho ještě (s)
-	var group: int = -1           # nepřítel: skupina (pro rozkaz na skupinu)
+	var ability: String = ""      # ability key (heroes)
+	var uses: int = 0             # remaining ability uses in this battle
+	var order: String = ""        # hero order: "" (none: holds place), "point", "group", "ally"
+	var order_pos: Vector2        # point: where to go
+	var order_group: int = -1     # group: which enemy group
+	var order_ally: String = ""   # ally: whom to stay with
+	var order_done: bool = false  # order done (arrived, group fell, ally fell): holds place `home`
+	var regroup: bool = false     # returning to the ally (strayed) until he reaches him
+	var focus_id: String = ""     # after Shadow Strike and Charge keeps fighting the target before returning to the order
+	var focus_t: float = 0.0      # how much longer (s)
+	var group: int = -1           # enemy: group (for the group order)
 	var t: float = 0.0
 	var heal_t: float = 0.0
 	var atk: float = 0.0
 	var hit: float = 0.0
 	var face: Vector2 = Vector2(0, 1)
 	var moving: bool = false
-	var combat_t: float = -INF    # kdy naposledy útočil nebo dostal zásah
-	var taunt_t: float = 0.0      # Výzva: dokud běží, nepřátelé v dosahu útočí na něj
-	var stun_t: float = 0.0       # omráčení: nic nedělá
-	var dashing: bool = false     # Nájezd: jede k dash_to a srazí, koho potká
+	var combat_t: float = -INF    # when he last attacked or was hit
+	var taunt_t: float = 0.0      # Challenge: while running, enemies in range attack him
+	var stun_t: float = 0.0       # stun: does nothing
+	var dashing: bool = false     # Charge: rides to dash_to and knocks down whoever he meets
 	var dash_to: Vector2
 	var dash_hit: Array = []
-	var dash_t: float = 0.0       # Nájezd skončí nejpozději po tolika s (cíl může zabírat nepřítel)
+	var dash_t: float = 0.0       # Charge ends after this many s at the latest (the target spot may be taken by an enemy)
 	var glory_earned: float = 0.0
-	var passives: Array = []      # klíče pasivek a přísah (units.json "passives")
-	var base: Dictionary = {}     # data třídy, ze kterých se přepočítávají statistiky
+	var passives: Array = []      # passive and oath keys (units.json "passives")
+	var base: Dictionary = {}     # class data the stats are recalculated from
 	var oath_broken: bool = false
 	var second_wind_used: bool = false
-	var revive_used: bool = false # kněz: Poslední pomazání už použil
-	var primed: bool = false      # jezdec: rozjetý výpad (Rozběh)
-	var struck: Dictionary = {}   # asasín: na koho už udeřil (Ze stínu)
-	var hidden_t: float = 0.0     # Úkryt: nikdo ho necílí
-	var shield_t: float = 0.0     # Požehnaná zbroj: menší zranění
+	var revive_used: bool = false # priest: already used Last Rites
+	var primed: bool = false      # cavalier: lunge under way (Running Start)
+	var struck: Dictionary = {}   # assassin: whom he has already struck (From the Shadows)
+	var hidden_t: float = 0.0     # Vanish: no one targets him
+	var shield_t: float = 0.0     # Blessed Armor: less damage taken
 	var shield: float = 1.0
-	var avenger: bool = false     # Mstitel: padl spojenec
-	var kills: int = 0            # kolik nepřátel zabil (Přísaha předků)
-	var orders_given: int = 0     # rozkazy dané v bitvě (Přísaha mlčení)
-	var moved_t: float = -INF     # kdy se naposledy hýbal (Nikdy nestojí)
-	var idle_t: float = 0.0       # jak dlouho stojí bez boje (Nikdy nestojí)
-	var alone_t: float = 0.0      # jak dlouho je bez spojenců (Pod korouhví)
-	var away_t: float = 0.0       # jak dlouho je daleko od tanka (Přísaha korouhve)
-	var first_struck: bool = false  # už zasáhl první ranou (Rytířská výzva)
-	var ward: String = ""         # koho chrání (Přísaha ochrany)
-	var bond_with: String = ""    # pouto: s kým (id hrdiny)
-	var bond_type: String = ""    # pouto: typ (units.json bonds)
-	var bond_level: int = 0       # pouto: úroveň 1–3
-	var student: bool = false     # Učitel a žák: tento hrdina je žák
-	var rage_t: float = 0.0       # žal Bratrů ve zbrani: zuří (silnější, neposlouchá rozkazy)
-	var mourn_t: float = 0.0      # žal Zpovědníka: kněz neléčí
-	var grief: Dictionary = {}    # postihy žalu do konce bitvy {vlastnost: podíl}
-	var marked_by: String = ""    # nepřítel: cíl Lovecké dvojice (id lučištníka)
+	var avenger: bool = false     # Avenger: an ally fell
+	var kills: int = 0            # how many enemies he killed (Oath of the Ancestors)
+	var orders_given: int = 0     # orders given during the battle (Oath of Silence)
+	var moved_t: float = -INF     # when he last moved (Never Stand Still)
+	var idle_t: float = 0.0       # how long he has stood without fighting (Never Stand Still)
+	var alone_t: float = 0.0      # how long he has been without allies (Under the Banner)
+	var away_t: float = 0.0       # how long he has been far from the tank (Oath of the Standard)
+	var first_struck: bool = false  # has already landed his first blow (Knightly Challenge)
+	var ward: String = ""         # whom he protects (Oath of Protection)
+	var bond_with: String = ""    # bond: with whom (hero id)
+	var bond_type: String = ""    # bond: type (units.json bonds)
+	var bond_level: int = 0       # bond: level 1–3
+	var student: bool = false     # Master and Pupil: this hero is the pupil
+	var rage_t: float = 0.0       # Brothers in Arms grief: rages (stronger, ignores orders)
+	var mourn_t: float = 0.0      # Confessor grief: the priest does not heal
+	var grief: Dictionary = {}    # grief penalties until the end of the battle {stat: fraction}
+	var marked_by: String = ""    # enemy: target of the Hunting Pair (archer id)
 	var mark_t: float = 0.0
-	var rescue_used: bool = false # Kopí a štít: jezdec už vyrazil tankovi na pomoc
+	var rescue_used: bool = false # Lance and Shield: the cavalier has already ridden to the tank's aid
 	var rescue_t: float = 0.0
-	var dash_mult: float = 1.0    # kombo: silnější Nájezd
-	var combo_strike: String = "" # kombo Kladivo a kovadlina: kdo skočí za prvního sraženého
-	var target_id: String = ""    # nepřítel: na koho právě útočí
-	var leader: bool = false      # vůdce nepřátel: když padne, zlomí se morálka
-	var ability_cd: float = 0.0   # nabíjení schopnosti (s), než jde použít znovu
+	var dash_mult: float = 1.0    # combo: stronger Charge
+	var combo_strike: String = "" # Hammer and Anvil combo: who leaps behind the first one knocked down
+	var target_id: String = ""    # enemy: whom he is attacking right now
+	var leader: bool = false      # enemy leader: when he falls, morale breaks
+	var ability_cd: float = 0.0   # ability recharge (s) before it can be used again
 	var mounted: bool = false
-	var vs_mounted: float = 1.0   # násobek poškození proti jízdě
-	var ignores: Array = []       # druhy terénu, které jednotku nezpomalují ("les")
-	var traits: Array = []        # vlastnosti (nepřátelé): klíče z units.json "traits"
-	var asleep: bool = false      # nepřítel ve spící skupince (fáze bitvy): stojí, dokud se skupinka neprobudí
-	var pod: int = -1             # skupinka ze scénáře (scenario.pods), -1 = žádná
-	var heal_combat: float = 0.0  # kněz: samočinně léčí, jen když je nepřítel do tolika m (v boji)
-	var skill: String = ""        # velitel: schopnost (units.json foe_skills)
-	var skill_t: float = 0.0      # do další schopnosti (s)
-	var casting: bool = false     # velitel se napřahuje (ohlášená schopnost, omráčení ji přeruší)
+	var vs_mounted: float = 1.0   # damage multiplier against cavalry
+	var ignores: Array = []       # terrain kinds that do not slow the unit ("les" = forest)
+	var traits: Array = []        # traits (enemies): keys from units.json "traits"
+	var asleep: bool = false      # enemy in a sleeping group (battle phases): stands until the group wakes
+	var pod: int = -1             # group from the scenario (scenario.pods), -1 = none
+	var heal_combat: float = 0.0  # priest: heals on his own only when an enemy is within this many m (in combat)
+	var skill: String = ""        # commander: ability (units.json foe_skills)
+	var skill_t: float = 0.0      # until the next ability (s)
+	var casting: bool = false     # commander is winding up (announced ability, a stun interrupts it)
 	var cast_t: float = 0.0
 	var cast_pos: Vector2
 	var cast_target: String = ""
-	var rally_t: float = 0.0      # povzbuzený velitelem: silnější útok
+	var rally_t: float = 0.0      # rallied by a commander: stronger attack
 	var rally_mult: float = 1.0
-	var on_break: String = ""     # jak reaguje na zlomenou morálku (nepřátelé)
+	var on_break: String = ""     # how he reacts to broken morale (enemies)
 	var desperate: bool = false
 	var fleeing: bool = false
-	var fled: bool = false        # utekl z bojiště (počítá se jako ztráta, ne jako padlý)
-	var arrive_t: float = 0.0     # nepřítel z pozdější vlny: kdy dorazí na bojiště
+	var fled: bool = false        # fled the battlefield (counts as a loss, not as fallen)
+	var arrive_t: float = 0.0     # enemy from a later wave: when he arrives on the battlefield
 
 	func alive() -> bool:
 		return hp > 0.0
@@ -140,39 +140,39 @@ var house: Dictionary
 var scenario: Dictionary
 var river_lo: float
 var river_hi: float
-var crossings: Array = []   # [{x0, x1, kind, speed}] místa, kde jde řeku přejít
+var crossings: Array = []   # [{x0, x1, kind, speed}] places where the river can be crossed
 var forests: Array = []     # [{x0, x1, y0, y1, speed, path: [x0, x1]}]
 
-# --- stav ---
+# --- state ---
 var t: float = 0.0
 var units: Array[Unit] = []
 var projectiles: Array[Projectile] = []
 var events: Array[Dictionary] = []
 var glory: float = 0.0
 var abilities_used: int = 0
-var zones: Array = []          # hořící zem: [{pos, r, t, dps, from}]
-var grudges: Dictionary = {}    # nepřátelé, kteří zranili hrdinu (Přísaha pomsty)
+var zones: Array = []          # burning ground: [{pos, r, t, dps, from}]
+var grudges: Dictionary = {}    # enemies who wounded a hero (Blood Debt)
 var task_ok: bool = true
-var mode: String = "stret"         # typ bitvy: utok (nepřítel drží pozice, oddíl postupuje), obrana, stret
-var pending: Array[Unit] = []      # nepřátelé z dalších vln, ještě nedorazili (nejsou v units)
-var waves_left: int = 0            # kolik vln ještě přijde
-var groups: Array = []             # skupiny nepřátel: [{"name", "members": [id]}], index = Unit.group
-var pods: Array = []               # skupinky (fáze bitvy) ze scénáře: [{"name", "wake", "alarm", "awake"}]
-var pod_awake: Dictionary = {}     # číslo skupinky -> true, když se probudila
+var mode: String = "stret"         # battle type: utok (assault: enemy holds positions, squad advances), obrana (defense), stret (clash)
+var pending: Array[Unit] = []      # enemies from later waves who have not arrived yet (not in units)
+var waves_left: int = 0            # how many waves are still to come
+var groups: Array = []             # enemy groups: [{"name", "members": [id]}], index = Unit.group
+var pods: Array = []               # groups (battle phases) from the scenario: [{"name", "wake", "alarm", "awake"}]
+var pod_awake: Dictionary = {}     # group number -> true once it has woken up
 var over: String = ""
 var foes_broken: bool = false
-var broken_t: float = -1.0         # kdy se zlomila morálka nepřítele
-var decided: String = ""        # "k" / "e": strana, která má bitvu rozhodnutou ve svůj prospěch
-var charging: bool = false      # hráč vydal povel Do boje! (jednorázový)
+var broken_t: float = -1.0         # when the enemy's morale broke
+var decided: String = ""        # "k" / "e": the side the battle is decided in favour of
+var charging: bool = false      # the player gave the All In! command (one-time)
 var _next_id: int = 0
-var ancestors: int = 0             # padlí předci rodu v běhu (Přísaha předků)
+var ancestors: int = 0             # fallen ancestors of the house in the run (Oath of the Ancestors)
 var _rng := RandomNumberGenerator.new()
 
 
-## setup = {"pos": {key: Vector2}, "orders": {key: [druh, cíl]} (nepovinné, viz set_order),
-##          "passives": {key: [klíče pasivek]} (nepovinné, jinak výchozí pasivky rodu),
-##          "glory": počáteční sláva (běh ji přenáší), "names": {key: jméno} (nástupci),
-##          "extra_enemies": [řádky nepřátel navíc] (uprchlíci, kteří se vrátili)}
+## setup = {"pos": {key: Vector2}, "orders": {key: [kind, target]} (optional, see set_order),
+##          "passives": {key: [passive keys]} (optional, otherwise the house's default passives),
+##          "glory": starting glory (the run carries it over), "names": {key: name} (successors),
+##          "extra_enemies": [extra enemy rows] (fled enemies who returned)}
 func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	units_data = data["units"]
 	house = data["house"]
@@ -213,7 +213,7 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 			u.name = names[key]
 		var hp_frac: Dictionary = setup.get("hp", {})
 		if hp_frac.has(key):
-			u.hp = u.maxhp * clampf(float(hp_frac[key]), 0.05, 1.0)   # zranění z minulé bitvy běhu
+			u.hp = u.maxhp * clampf(float(hp_frac[key]), 0.05, 1.0)   # wounds from the previous battle of the run
 
 	var foes_data: Dictionary = units_data["foes"]
 	pods = (scenario.get("pods", []) as Array).duplicate(true)
@@ -226,7 +226,7 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	for row: Array in rows:
 		var fkey: String = row[0]
 		var fd: Dictionary = (foes_data[fkey] as Dictionary).duplicate()
-		# obtížnost bitvy: násobky zdraví a poškození nepřátel ze scénáře
+		# battle difficulty: scenario multipliers of enemy health and damage
 		fd["hp"] = float(fd["hp"]) * float(scenario.get("foe_hp", 1.0))
 		fd["dmg"] = float(fd["dmg"]) * float(scenario.get("foe_dmg", 1.0))
 		var u := _make_unit(fkey, SIDE_FOE, fd)
@@ -249,7 +249,7 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		u.t = _rng.randf() * 0.6
 		u.skill_t = float(units_data.get("foe_skills", {}).get(u.skill, {}).get("first", 3.0))
 		if u.arrive_t > 0.0:
-			pending.append(u)   # další vlna: přijde později
+			pending.append(u)   # next wave: arrives later
 		else:
 			units.append(u)
 		i += 1
@@ -266,7 +266,7 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		set_order(key, String(o[0]), o[1] if o.size() > 1 else null)
 
 
-## scenario = klíč scénáře (soubor data/scenarios/<klíč>.json), nebo celá cesta k souboru.
+## scenario = scenario key (file data/scenarios/<key>.json), or a full path to the file.
 static func load_data(scenario: String = DEFAULT_SCENARIO) -> Dictionary:
 	var path := scenario if scenario.begins_with("res://") else "res://data/scenarios/%s.json" % scenario
 	return {
@@ -276,7 +276,7 @@ static func load_data(scenario: String = DEFAULT_SCENARIO) -> Dictionary:
 	}
 
 
-## Scénář; varianta s "base" převezme vše ze základního scénáře a přepíše jen svá pole.
+## Scenario; a variant with "base" takes everything from the base scenario and overrides only its own fields.
 static func read_scenario(path_or_key: String) -> Dictionary:
 	var path := path_or_key if path_or_key.begins_with("res://") else "res://data/scenarios/%s.json" % path_or_key
 	var sc := _read_json(path)
@@ -288,12 +288,12 @@ static func read_scenario(path_or_key: String) -> Dictionary:
 	return sc
 
 
-## Seznam scénářů v pořadí pro výběr bitvy.
+## List of scenarios in order for the battle picker.
 static func scenario_list() -> Array:
 	return _read_json("res://data/scenarios/index.json").get("order", [DEFAULT_SCENARIO])
 
 
-## Výchozí rozestavení ze scénáře.
+## Default deployment from the scenario.
 static func default_setup(data: Dictionary) -> Dictionary:
 	var pos := {}
 	var deploy: Dictionary = data["scenario"]["deploy"]
@@ -310,11 +310,11 @@ static func default_setup(data: Dictionary) -> Dictionary:
 static func _read_json(path: String) -> Dictionary:
 	var text := FileAccess.get_file_as_string(path)
 	if text.is_empty():
-		push_error("Nelze načíst %s" % path)
+		push_error("Cannot load %s" % path)
 		return {}
 	var parsed: Variant = JSON.parse_string(text)
 	if typeof(parsed) != TYPE_DICTIONARY:
-		push_error("Neplatný JSON v %s" % path)
+		push_error("Invalid JSON in %s" % path)
 		return {}
 	return parsed
 
@@ -381,7 +381,7 @@ func by_id(id: String) -> Unit:
 	return null
 
 
-## Pasivka hrdiny (data), nebo prázdný slovník, když ji nemá. Zlomená přísaha neplatí.
+## The hero's passive (data), or an empty dictionary if he does not have it. A broken oath does not apply.
 func _pas(u: Unit, key: String) -> Dictionary:
 	if u == null or not u.passives.has(key):
 		return {}
@@ -396,7 +396,7 @@ func passives_of(id: String) -> Array:
 	return u.passives if u != null else []
 
 
-## Pasivky, které hrdina může dostat (podle třídy).
+## Passives the hero can get (by class).
 func passives_for(id: String) -> Array:
 	var u := by_id(id)
 	var out: Array = []
@@ -409,23 +409,23 @@ func passives_for(id: String) -> Array:
 	return out
 
 
-## Proč pasivku nejde přidat ("" = jde).
+## Why the passive cannot be added ("" = it can).
 func passive_problem(id: String, key: String) -> String:
 	var u := by_id(id)
 	if u == null or not units_data["passives"].has(key):
-		return "Neznámá pasivka."
+		return "Unknown passive."
 	if t > 0.0:
-		return "Pasivky se mění jen před bitvou."
+		return "Passives can only be changed before the battle."
 	if not passives_for(id).has(key):
-		return "Tahle pasivka není pro tuto třídu."
+		return "This passive is not for this class."
 	if units_data["passives"][key].get("kind", "") == "oath":
 		for k: String in u.passives:
 			if k != key and units_data["passives"][k].get("kind", "") == "oath":
-				return "%s už složil přísahu „%s“." % [u.name, units_data["passives"][k]["name"]]
+				return "%s has already sworn the oath “%s”." % [u.name, units_data["passives"][k]["name"]]
 	return ""
 
 
-## Přidá nebo odebere pasivku (jen před bitvou). Vrací false, když to nejde.
+## Adds or removes a passive (only before the battle). Returns false when not possible.
 func set_passive(id: String, key: String, on: bool) -> bool:
 	var u := by_id(id)
 	if u == null:
@@ -443,8 +443,8 @@ func set_passive(id: String, key: String, on: bool) -> bool:
 	return true
 
 
-## Přepočítá statistiky hrdiny z dat třídy, pasivek a přísahy: zdraví (Odolnost), prodleva útoku
-## a léčení (Pohotovost), léčení kněze (Moc), dostřel, použití schopnosti.
+## Recalculates the hero's stats from class data, passives and oath: health (Toughness), attack delay
+## and healing speed (Haste), priest healing (Power), range, ability uses.
 func _apply_passives(u: Unit) -> void:
 	var extra := 0
 	var reach_mult := 1.0
@@ -465,9 +465,9 @@ func _apply_passives(u: Unit) -> void:
 		u.uses = int(ability_of(u.id).get("uses", 0)) + extra
 
 
-## Bonus hrdiny k vlastnosti (podíl: 0.25 = +25 %): utok, moc, odolnost, pohotovost. Síla se počítá do Útoku i Moci.
-## Bez cíle (tg = null) jen bonusy, které na cíli nezávisí; podmíněné (when) jen když podmínka teď platí.
-## static = true: jen bonusy bez podmínky (zdraví a prodlevy se počítají jednou před bitvou).
+## The hero's stat bonus (fraction: 0.25 = +25 %): utok, moc, odolnost, pohotovost. Might counts towards Attack and Power.
+## Without a target (tg = null) only bonuses independent of the target; conditional ones (when) only if the condition holds now.
+## static = true: only unconditional bonuses (health and delays are computed once before the battle).
 func stat(u: Unit, key: String, tg: Unit = null, static_only: bool = false) -> float:
 	if u == null or u.side != SIDE_KNIGHT:
 		return 0.0
@@ -508,7 +508,7 @@ func stat(u: Unit, key: String, tg: Unit = null, static_only: bool = false) -> f
 	return sum
 
 
-## Vlastnosti hrdiny pro kartu: {utok, moc, odolnost, pohotovost} jako podíly (podmíněné bonusy podle stavu teď).
+## Hero stats for the card: {utok, moc, odolnost, pohotovost} as fractions (conditional bonuses as of now).
 func stats_of(id: String) -> Dictionary:
 	var u := by_id(id)
 	var out := {}
@@ -517,7 +517,7 @@ func stats_of(id: String) -> Dictionary:
 	return out
 
 
-## Platí podmínka pasivky (`when`)? Podmínky na cíli bez cíle neplatí.
+## Does the passive's condition (`when`) hold? Target conditions do not hold without a target.
 func _when_ok(u: Unit, d: Dictionary, tg: Unit) -> bool:
 	match String(d.get("when", "")):
 		"":
@@ -541,14 +541,14 @@ func _when_ok(u: Unit, d: Dictionary, tg: Unit) -> bool:
 
 # --------------------------------------------------------------- pouta
 
-## Data typu pouta hrdiny (units.json bonds), prázdné bez pouta.
+## Data of the hero's bond type (units.json bonds), empty without a bond.
 func _bond_def(u: Unit) -> Dictionary:
 	if u == null or u.bond_type == "":
 		return {}
 	return (units_data.get("bonds", {}) as Dictionary).get(u.bond_type, {})
 
 
-## Živý druh z pouta, nebo null.
+## Living bond companion, or null.
 func _partner(u: Unit) -> Unit:
 	if u == null or u.bond_with == "":
 		return null
@@ -556,7 +556,7 @@ func _partner(u: Unit) -> Unit:
 	return p if p != null and p.alive() else null
 
 
-## Hodnota pro úroveň: seznam [ú1, ú2, ú3] nebo jedno číslo.
+## Value for a level: a list [l1, l2, l3] or a single number.
 func _lvl(v: Variant, level: int) -> float:
 	if v is Array:
 		var arr: Array = v
@@ -564,14 +564,14 @@ func _lvl(v: Variant, level: int) -> float:
 	return float(v)
 
 
-## Číslo z pouta hrdiny pro jeho úroveň (0, když pouto nemá).
+## Number from the hero's bond for its level (0 without a bond).
 func _bv(u: Unit, key: String) -> float:
 	var bd := _bond_def(u)
 	return _lvl(bd[key], u.bond_level) if bd.has(key) else 0.0
 
 
-## Strana hrdiny v pouto `who`: 0 = skupina A (třeba jezdec v Kopí a štít), 1 = skupina B, -1 = bez pouta.
-## U dvojice, která sedí oběma směry, je A ten s menším pořadím ve skupině A.
+## The hero's side in the bond's `who`: 0 = group A (e.g. the cavalier in Lance and Shield), 1 = group B, -1 = no bond.
+## For a pair that fits both ways, A is the one with the smaller key.
 func _bond_side(u: Unit) -> int:
 	var bd := _bond_def(u)
 	if bd.is_empty():
@@ -586,7 +586,7 @@ func _bond_side(u: Unit) -> int:
 	return 0 if u.key < u.bond_with else 1
 
 
-## Pouto hrdiny pro scénu: {type, name, with, level, desc, grief_desc} nebo prázdné.
+## The hero's bond for the scene: {type, name, with, level, desc, grief_desc} or empty.
 func bond_of(id: String) -> Dictionary:
 	var u := by_id(id)
 	var bd := _bond_def(u)
@@ -595,8 +595,8 @@ func bond_of(id: String) -> Dictionary:
 	return {"type": u.bond_type, "name": bd["name"], "with": u.bond_with, "level": u.bond_level, "desc": bd.get("desc", ""), "grief_desc": bd.get("grief_desc", "")}
 
 
-## Léčení hrdiny k o `amount` od léčitele (kněz, Požehnání, Druhý dech…): Zpovědník léčí druha víc,
-## kněz v žalu neléčí, Pokrevní bratrství léčí i druha.
+## Heals hero k by `amount` from a healer (priest, Blessing, Second Wind…): Confessor heals the companion more,
+## a grieving priest does not heal, Blood Brothers heals the companion too.
 func _heal(healer: Unit, k: Unit, amount: float, share: bool = true) -> void:
 	if not k.alive() or amount <= 0.0:
 		return
@@ -612,7 +612,7 @@ func _heal(healer: Unit, k: Unit, amount: float, share: bool = true) -> void:
 			_heal(null, p, amount * _bv(k, "heal_share"), false)
 
 
-## Kdo bere za zraněného část zranění: Přísaha ochrany (chráněný), Štítonoš (druh do share_radius). [hrdina, podíl] nebo [].
+## Who takes part of the wounded hero's damage: Oath of Protection (ward), Shield-Bearer (companion within share_radius). [hero, share] or [].
 func _shield_bearer(tg: Unit) -> Array:
 	var guard := _warden_of(tg)
 	if guard != null:
@@ -624,7 +624,7 @@ func _shield_bearer(tg: Unit) -> Array:
 	return []
 
 
-## Žal: padl hrdina s poutem, druh dostane žal podle typu a úrovně (úroveň 1 poloviční, úroveň 3 navíc −Síla).
+## Grief: a hero with a bond fell, the companion gets grief by type and level (level 1 halved, level 3 also −Might).
 func _grieve(dead: Unit) -> void:
 	var p := _partner(dead)
 	if p == null:
@@ -647,10 +647,10 @@ func _grieve(dead: Unit) -> void:
 			p.hp = maxf(1.0, p.hp - p.maxhp * float(bd.get("grief_hp", 0.3)) * scale)
 	if dead.bond_level >= 3:
 		p.grief["sila"] = float(p.grief.get("sila", 0.0)) + float(rules.get("grief_sila", -0.15))
-	_log("%s truchlí, padl druh %s (%s)" % [p.name, dead.name, bd.get("name", "")], true)
+	_log("%s mourns his fallen companion %s (%s)" % [p.name, dead.name, bd.get("name", "")], true)
 
 
-## Kopí a štít: po schopnosti tanka se jezdcova schopnost nabije.
+## Lance and Shield: after the tank's ability the cavalier's ability recharges.
 func _after_ability(u: Unit) -> void:
 	var p := _partner(u)
 	if p != null and u.bond_type == "kopi" and _bond_side(u) == 1:
@@ -665,7 +665,7 @@ func _allies_within(u: Unit, r: float) -> int:
 	return n
 
 
-## Přísaha, kterou hrdina právě drží (data). Prázdný slovník, když žádnou nemá nebo ji porušil.
+## The oath the hero currently holds (data). Empty dictionary when he has none or broke it.
 func oath_of(id: String) -> Dictionary:
 	var u := by_id(id)
 	if u == null or u.oath_broken:
@@ -681,7 +681,7 @@ func has_oath(id: String) -> bool:
 	return not oath_of(id).is_empty()
 
 
-## Kolik přísah bylo v bitvě porušeno.
+## How many oaths were broken in the battle.
 func oaths_broken() -> int:
 	var n := 0
 	for k in knights():
@@ -690,12 +690,12 @@ func oaths_broken() -> int:
 	return n
 
 
-## Přísaha, která hrdinovi nedovolí léčení od kněze.
+## An oath that does not allow the priest to heal the hero.
 func _no_heal(u: Unit) -> bool:
 	return bool(oath_of(u.id).get("no_heal", false))
 
 
-## Slib chudoby: kněz neléčí sám sebe.
+## Vow of Poverty: the priest does not heal himself.
 func _no_self_heal(u: Unit) -> bool:
 	return bool(oath_of(u.id).get("no_self_heal", false))
 
@@ -704,13 +704,13 @@ func _no_retreat(u: Unit) -> bool:
 	return bool(oath_of(u.id).get("no_retreat", false))
 
 
-## Přísaha bdělosti: po začátku bitvy se hrdina nepohne.
+## Oath of Vigilance: once the battle starts the hero does not move.
 func _no_move(u: Unit) -> bool:
 	return t > 0.0 and bool(oath_of(u.id).get("no_move", false))
 
 
-## Smí hrdina na tohoto nepřítele sám zaútočit? Přísahy, které některé cíle zakazují
-## (prchající, zranění pod hranicí, kdo na něj útočí, před první ranou jen velitel).
+## May the hero attack this enemy on his own? Oaths that forbid some targets
+## (the fleeing, the wounded below a threshold, whoever attacks him, only a commander before the first blow).
 func _oath_allows(u: Unit, tg: Unit) -> bool:
 	if u.side != SIDE_KNIGHT or tg.side != SIDE_FOE:
 		return true
@@ -732,47 +732,47 @@ func _is_commander(f: Unit) -> bool:
 	return f.leader or f.skill != ""
 
 
-## Zásah schopností: když přísaha takový cíl zakazuje, hrdina ji poruší. Rytířská výzva: první zásah určí,
-## jestli přísahu dodržel.
+## Ability hit: when the oath forbids such a target, the hero breaks it. Knightly Challenge: the first hit decides
+## whether he kept the oath.
 func _ability_hit(u: Unit, tg: Unit) -> void:
 	if not has_oath(u.id):
 		return
 	if not _oath_allows(u, tg):
-		_break(u, "zasáhl %s" % tg.name)
+		_break(u, "hit %s" % tg.name)
 	u.first_struck = true
 
 
-## Proč by rozkaz porušil přísahu ("" = neporuší). Scéna se před takovým rozkazem zeptá.
+## Why an order would break the oath ("" = it would not). The scene asks before such an order.
 func order_oath_conflict(id: String, kind: String, target: Variant = null) -> String:
 	var u := by_id(id)
 	var o := oath_of(id)
 	if u == null or o.is_empty():
 		return ""
 	if bool(o.get("no_retreat", false)) and kind == "point" and target is Vector2 and is_retreat(id, target):
-		return "rozkaz nesmí vést zpět"
+		return "an order may not lead back"
 	if t <= 0.0:
-		return ""   # před začátkem bitvy jsou rozkazy volné
+		return ""   # before the battle starts orders are free
 	if bool(o.get("no_orders", false)):
-		return "po začátku bitvy nepřijímá rozkazy"
+		return "takes no orders once the battle starts"
 	if bool(o.get("no_move", false)):
-		return "po začátku bitvy se nesmí pohnout"
+		return "may not move once the battle starts"
 	if o.has("max_orders") and u.orders_given >= int(o["max_orders"]):
-		return "v bitvě přijme nejvýš %d rozkazy" % int(o["max_orders"])
+		return "takes at most %d orders per battle" % int(o["max_orders"])
 	return ""
 
 
-## Proč by schopnost porušila přísahu ("" = neporuší). Plošné zásahy se poznají až při dopadu.
+## Why an ability would break the oath ("" = it would not). Area hits are known only on impact.
 func ability_oath_conflict(id: String, target: Variant = null) -> String:
 	var u := by_id(id)
 	var o := oath_of(id)
 	if u == null or o.is_empty():
 		return ""
 	if (o.get("breaks_on_ability", []) as Array).has(u.ability):
-		return "%s přísahu poruší" % String(units_data["abilities"][u.ability]["name"])
+		return "%s would break the oath" % String(units_data["abilities"][u.ability]["name"])
 	if target is String:
 		var e := by_id(target)
 		if e != null and not _oath_allows(u, e):
-			return "na %s podle přísahy útočit nesmí" % e.name
+			return "his oath forbids attacking %s" % e.name
 	return ""
 
 
@@ -780,10 +780,10 @@ func _ord(field: String, default: float) -> float:
 	return float(units_data.get("orders", {}).get(field, default))
 
 
-# =============================================================== skupiny nepřátel
+# =============================================================== enemy groups
 
-## Rozdělí nepřátele do skupin (cíl rozkazu na skupinu): kdo přijde ve stejné vlně, je stejného druhu
-## boje (střelec / pěší) a stojí do `orders.group_link` m od někoho ze skupiny.
+## Splits enemies into groups (target of the group order): those who come in the same wave, fight the same way
+## (ranged / melee) and stand within `orders.group_link` m of someone in the group.
 func _make_groups() -> void:
 	var all: Array[Unit] = []
 	for u in units:
@@ -792,7 +792,7 @@ func _make_groups() -> void:
 	all.append_array(pending)
 	var link := _ord("group_link", 3.0)
 	groups.clear()
-	# skupinky ze scénáře jsou skupiny pro rozkazy (i se svým názvem)
+	# groups from the scenario are groups for orders (with their own name)
 	for pi in pods.size():
 		var pm: Array = []
 		for u in all:
@@ -841,16 +841,16 @@ func _group_title(members: Array) -> String:
 	for k: String in keys:
 		var pl := String(foes[k].get("plural", foes[k]["name"]))
 		parts.append(pl if parts.is_empty() else pl.to_lower())
-	return " a ".join(parts)
+	return " and ".join(parts)
 
 
-## Skupina nepřítele (-1 = neznámý).
+## Enemy's group (-1 = unknown).
 func group_of(id: String) -> int:
 	var u := by_id(id)
 	return u.group if u != null and u.side == SIDE_FOE else -1
 
 
-## Živí nepřátelé skupiny, kteří už jsou na bojišti.
+## Living group members already on the battlefield.
 func group_members(g: int) -> Array[Unit]:
 	var out: Array[Unit] = []
 	for u in units:
@@ -859,14 +859,14 @@ func group_members(g: int) -> Array[Unit]:
 	return out
 
 
-## Název skupiny pro hráče, s počtem živých („Lapkové (5)“).
+## Group name for the player, with the number alive ("Brigands (5)").
 func group_name(g: int) -> String:
 	if g < 0 or g >= groups.size():
 		return ""
 	return "%s (%d)" % [groups[g]["name"], group_members(g).size()]
 
 
-## Střed skupiny (jen živí na bojišti).
+## Group centre (only the living on the battlefield).
 func group_center(g: int) -> Vector2:
 	var m := group_members(g)
 	var sum := Vector2.ZERO
@@ -875,7 +875,7 @@ func group_center(g: int) -> Vector2:
 	return sum / maxi(m.size(), 1)
 
 
-## Násobek poškození. Hrdina: Útok (základní útok a Úder ze stínu); schopnost (ability = true) jen Moc přes ability_of.
+## Damage multiplier. Hero: Attack (basic attack and Shadow Strike); ability (ability = true) only Power via ability_of.
 func _dmg_mult(u: Unit, tg: Unit = null, ability: bool = false) -> float:
 	if u.side != SIDE_KNIGHT:
 		var fm := 1.0
@@ -912,7 +912,7 @@ func _speed(u: Unit) -> float:
 	return u.speed
 
 
-## Cíl z kandidátů: nejbližší, ale hrdina s target_priority dá přednost svému typu cíle.
+## Target from candidates: the nearest, but a hero with target_priority prefers his kind of target.
 func _choose_target(u: Unit, all_cand: Array[Unit]) -> Unit:
 	var cand: Array[Unit] = []
 	for f in all_cand:
@@ -946,7 +946,7 @@ func _nearest(list: Array[Unit], from: Vector2) -> Unit:
 
 # =============================================================== schopnosti
 
-## Schopnost hrdiny včetně úprav z pasivek (ability_mod).
+## The hero's ability including passive modifications (ability_mod).
 func ability_of(id: String) -> Dictionary:
 	var u := by_id(id)
 	if u == null or u.ability == "":
@@ -963,19 +963,19 @@ func ability_of(id: String) -> Dictionary:
 	return a
 
 
-## Proč schopnost teď nejde použít ("" = jde). Pro nápovědu v UI.
+## Why the ability cannot be used now ("" = it can). For the UI hint.
 func ability_problem(id: String) -> String:
 	var u := by_id(id)
 	if u == null or not u.alive() or u.ability == "":
-		return "Hrdina nemá schopnost."
+		return "The hero has no ability."
 	if u.uses <= 0:
-		return "Schopnost je pro tuto bitvu vyčerpaná."
+		return "The ability is spent for this battle."
 	if u.ability_cd > 0.0:
-		return "Schopnost se nabíjí (%d s)." % ceili(u.ability_cd)
+		return "The ability is recharging (%d s)." % ceili(u.ability_cd)
 	return ""
 
 
-## Jde schopnost použít (bez ohledu na cíl)?
+## Can the ability be used (regardless of target)?
 func can_use_ability(id: String) -> bool:
 	var u := by_id(id)
 	if u == null or u.side != SIDE_KNIGHT or not u.alive() or u.ability == "" or over != "" or u.dashing:
@@ -983,35 +983,35 @@ func can_use_ability(id: String) -> bool:
 	return u.uses > 0 and u.ability_cd <= 0.0
 
 
-## Druh cíle schopnosti: "none", "point" (místo na zemi), "enemy" (nepřítel).
+## Ability target kind: "none", "point" (a spot on the ground), "enemy".
 func ability_target(id: String) -> String:
 	return String(ability_of(id).get("target", "none"))
 
 
-## Proč tenhle cíl nejde ("" = jde).
+## Why this target is not possible ("" = it is).
 func ability_target_problem(id: String, target: Variant) -> String:
 	var u := by_id(id)
 	var a := ability_of(id)
 	match String(a.get("target", "none")):
 		"point":
 			if not target is Vector2:
-				return "Vyber místo."
+				return "Choose a spot."
 			var p: Vector2 = target
 			if u.pos.distance_to(p) > float(a.get("range", INF)):
-				return "Moc daleko (nejvýš %d m)." % int(a["range"])
+				return "Too far (at most %d m)." % int(a["range"])
 			if a.get("land", false) and _in_water(p):
-				return "Do vody to nejde."
+				return "Can't go into the water."
 		"enemy":
 			var e := by_id(String(target)) if target is String else null
 			if e == null or e.side != SIDE_FOE or not e.alive():
-				return "Vyber nepřítele."
+				return "Choose an enemy."
 			if u.pos.distance_to(e.pos) > float(a.get("range", INF)):
-				return "Moc daleko (nejvýš %d m)." % int(a["range"])
+				return "Too far (at most %d m)." % int(a["range"])
 	return ""
 
 
-## Kdy by schopnost dávala smysl a na co (jednoduchá rada; používají ji testy a automatické hraní).
-## Vrací [ano/ne, cíl].
+## When the ability would make sense and on what (a simple hint; used by tests and auto-play).
+## Returns [yes/no, target].
 func ability_hint(id: String) -> Array:
 	var u := by_id(id)
 	if not can_use_ability(id):
@@ -1019,7 +1019,7 @@ func ability_hint(id: String) -> Array:
 	var a := ability_of(id)
 	var foes := living(SIDE_FOE)
 	if (u.ability == "najezd" or u.ability == "uder") and u.hp < u.maxhp * _ord("hint_dive_hp", 0.6):
-		return [false, null]   # rada: zraněný hrdina se znovu nevrhá mezi nepřátele
+		return [false, null]   # hint: a wounded hero does not throw himself among enemies again
 	match u.ability:
 		"vyzva":
 			var n := 0
@@ -1028,7 +1028,7 @@ func ability_hint(id: String) -> Array:
 					n += 1
 			return [n >= 2, null]
 		"pozehnani":
-			# nejlepší místo: střed hrdiny, kolem kterého je nejvíc zraněných
+			# best spot: the centre of the hero with the most wounded around him
 			var best_p := Vector2.ZERO
 			var best_hurt := 0
 			for c in living(SIDE_KNIGHT):
@@ -1046,19 +1046,19 @@ func ability_hint(id: String) -> Array:
 			var best: Unit = null
 			var best_n := 0
 			if u.ability == "najezd":
-				# rada: omráčit velitele, který se napřahuje
+				# hint: stun a commander who is winding up
 				for f in foes:
 					if f.casting and f.pos.distance_to(u.pos) <= float(a["range"]) and not (a.get("land", false) and _in_water(f.pos)):
 						return [true, f.pos]
 				if mode == "obrana":
-					return [false, null]   # rada: v obraně se nevybíhá, nájezd jen proti veliteli
+					return [false, null]   # hint: no sallies in defense, Charge only against a commander
 			for f in foes:
 				if f.pos.distance_to(u.pos) > float(a["range"]) or (a.get("land", false) and _in_water(f.pos)):
 					continue
 				if f.asleep or _near_sleeper(f.pos):
-					continue   # rada: spící skupinku nebudit schopností
+					continue   # hint: do not wake a sleeping group with an ability
 				if u.ability == "najezd" and (not _near_other_knight(u, f.pos) or _outnumbered(u, f.pos)):
-					continue   # rada: nájezd jen tam, kde už bojuje někdo z oddílu (ne sám do přesily)
+					continue   # hint: Charge only where someone from the squad is already fighting (not alone into superior numbers)
 				var n := 0
 				for g in foes:
 					if g.pos.distance_to(f.pos) <= 2.0:
@@ -1070,7 +1070,7 @@ func ability_hint(id: String) -> Array:
 			return [best != null and best_n >= need, best.pos if best != null else null]
 		"uder":
 			if mode == "obrana":
-				return [false, null]   # rada: v obraně se nevybíhá
+				return [false, null]   # hint: no sallies in defense
 			var pick: Unit = null
 			for f in foes:
 				if f.pos.distance_to(u.pos) <= float(a["range"]) and (f.ranged or f.hp < f.maxhp * 0.4) and not f.asleep and not _near_sleeper(f.pos) and _near_other_knight(u, f.pos) and not _outnumbered(u, f.pos):
@@ -1080,7 +1080,7 @@ func ability_hint(id: String) -> Array:
 	return [false, null]
 
 
-## Rada: je u místa spící skupinka? (schopnost by ji probudila; do jejího `wake` + 2 m)
+## Hint: is there a sleeping group near the spot? (the ability would wake it; within its `wake` + 2 m)
 func _near_sleeper(p: Vector2) -> bool:
 	for f in living(SIDE_FOE):
 		if f.asleep and f.pod >= 0 and f.pod < pods.size():
@@ -1090,7 +1090,7 @@ func _near_sleeper(p: Vector2) -> bool:
 	return false
 
 
-## Rada: je u místa víc nepřátel než hrdinů (bez toho, kdo by tam skočil)? Do přesily se neskáče.
+## Hint: are there more enemies than heroes at the spot (not counting whoever would leap there)? No leaping into superior numbers.
 func _outnumbered(u: Unit, p: Vector2) -> bool:
 	var r := _ord("hint_support", 5.0)
 	var foes := 0
@@ -1104,7 +1104,7 @@ func _outnumbered(u: Unit, p: Vector2) -> bool:
 	return foes > mates + 1
 
 
-## Rada: stojí u místa (do `hint_support` m) jiný hrdina? Skok a nájezd nemají vést samotného hrdinu do přesily.
+## Hint: is another hero near the spot (within `hint_support` m)? A leap or Charge must not take a lone hero into superior numbers.
 func _near_other_knight(u: Unit, p: Vector2) -> bool:
 	for k in living(SIDE_KNIGHT):
 		if k != u and k.pos.distance_to(p) <= _ord("hint_support", 5.0):
@@ -1112,7 +1112,7 @@ func _near_other_knight(u: Unit, p: Vector2) -> bool:
 	return false
 
 
-## Kdy přijde další vlna (INF = žádná).
+## When the next wave comes (INF = none).
 func next_wave_t() -> float:
 	var best := INF
 	for p in pending:
@@ -1120,7 +1120,7 @@ func next_wave_t() -> float:
 	return best
 
 
-## Použije schopnost hrdiny (ubere použití, spustí nabíjení). Vrací false, když to nejde.
+## Uses the hero's ability (takes a use, starts the recharge). Returns false when not possible.
 func use_ability(id: String, target: Variant = null) -> bool:
 	if not can_use_ability(id) or ability_target_problem(id, target) != "":
 		return false
@@ -1155,7 +1155,7 @@ func use_ability(id: String, target: Variant = null) -> bool:
 	return true
 
 
-## Požehnání: vyléčí hrdiny v kruhu kolem `where` o `frac` jejich zdraví (štít z Požehnané zbroje).
+## Blessing: heals heroes in a circle around `where` by `frac` of their health (shield from Blessed Armor).
 func _bless(u: Unit, where: Vector2, a: Dictionary, frac: float) -> void:
 	for k in living(SIDE_KNIGHT):
 		if k.pos.distance_to(where) <= float(a["radius"]) and not _no_heal(k) and not (k == u and _no_self_heal(u)):
@@ -1165,7 +1165,7 @@ func _bless(u: Unit, where: Vector2, a: Dictionary, frac: float) -> void:
 				k.shield = float(a["shield"])
 
 
-## Salva: šípy náhodně mezi nepřátele v kruhu (mult = násobek z komba), Ohnivá salva zapálí zem.
+## Volley: arrows randomly among enemies in the circle (mult = combo multiplier), Fire Volley sets the ground alight.
 func _volley(u: Unit, where: Vector2, radius: float, a: Dictionary, mult: float) -> void:
 	var hits: Array[Unit] = []
 	for f in living(SIDE_FOE):
@@ -1183,7 +1183,7 @@ func _volley(u: Unit, where: Vector2, radius: float, a: Dictionary, mult: float)
 		zones.append({"pos": where, "r": radius, "t": float(a["fire_t"]), "dps": float(a["fire_dps"]), "from": u.id})
 
 
-## Nájezd k bodu (mult = silnější z komba).
+## Charge to a point (mult = stronger from a combo).
 func _start_dash(u: Unit, target: Vector2, a: Dictionary, mult: float) -> void:
 	u.dashing = true
 	u.dash_to = target
@@ -1192,8 +1192,8 @@ func _start_dash(u: Unit, target: Vector2, a: Dictionary, mult: float) -> void:
 	u.dash_t = u.pos.distance_to(target) / maxf(u.speed * float(a["speed_mult"]), 0.1) + 0.3
 
 
-## Úder ze stínu: skok za nepřítele a úder `mult` × útok (mult už se zvětšením z Moci).
-## Lovecká dvojice: cíl označí pro lučištníka.
+## Shadow Strike: leap behind an enemy and strike for `mult` × attack (mult already includes Power).
+## Hunting Pair: marks the target for the archer.
 func _shadow_strike(u: Unit, e: Unit, mult: float) -> void:
 	var dir := (e.pos - u.pos).normalized()
 	var behind := e.pos + dir * (e.radius + u.radius)
@@ -1214,10 +1214,10 @@ func _shadow_strike(u: Unit, e: Unit, mult: float) -> void:
 		e.mark_t = float(_bond_def(u).get("mark_t", 5.0))
 
 
-# --------------------------------------------------------------- komba pout
+# --------------------------------------------------------------- bond combos
 
-## Komba, která oddíl teď má (pouto aspoň na combo_level a schopnosti tvoří pár), v pořadí karet:
-## [{id, name, a (id hrdiny se schopností a), b, key ("Q"/"E"), aim, desc}]. Nejvýš 2.
+## Combos the squad has now (bond of at least combo_level and the abilities form a pair), in card order:
+## [{id, name, a (id of the hero with ability a), b, key ("Q"/"E"), aim, desc}]. At most 2.
 func combos() -> Array:
 	var out: Array = []
 	var cdefs: Dictionary = units_data.get("combos", {})
@@ -1256,27 +1256,27 @@ func _combo(cid: String) -> Dictionary:
 	return {}
 
 
-## Proč kombo teď nejde ("" = jde): oba žijí, oba mají schopnost nabitou, jsou dost blízko.
+## Why the combo is not possible now ("" = it is): both alive, both abilities ready, close enough.
 func combo_problem(cid: String) -> String:
 	var c := _combo(cid)
 	if c.is_empty() or over != "":
-		return "Kombo teď oddíl nemá."
+		return "The squad has no such combo now."
 	var ha := by_id(c["a"])
 	var hb := by_id(c["b"])
 	for h: Unit in [ha, hb]:
 		if not h.alive():
-			return "%s padl." % h.name
+			return "%s has fallen." % h.name
 		if not can_use_ability(h.id):
 			return "%s: %s" % [h.name, ability_problem(h.id)]
 	var cd: Dictionary = units_data["combos"][cid]
 	if ha.pos.distance_to(hb.pos) > float(cd.get("max_gap", 14.0)):
-		return "%s a %s jsou moc daleko od sebe (nejvýš %d m)." % [ha.name, hb.name, int(cd.get("max_gap", 14.0))]
+		return "%s and %s are too far apart (at most %d m)." % [ha.name, hb.name, int(cd.get("max_gap", 14.0))]
 	if cid == "za_zady" and _taunted_victim(ha) == null:
-		return "U tanka (%s) není nepřítel." % ha.name
+		return "There is no enemy at the tank (%s)." % ha.name
 	return ""
 
 
-## Hrdina, jehož schopností se kombo míří (aim = point), jinak "".
+## The hero whose ability aims the combo (aim = point), otherwise "".
 func combo_aimer(cid: String) -> String:
 	var c := _combo(cid)
 	if c.is_empty() or String(c["aim"]) != "point":
@@ -1292,7 +1292,7 @@ func combo_target_problem(cid: String, target: Variant) -> String:
 	return ability_target_problem(aimer, target)
 
 
-## Spustí kombo: obě schopnosti najednou, po jednom použití z každé. Vrací false, když nejde.
+## Fires a combo: both abilities at once, one use of each. Returns false when not possible.
 func use_combo(cid: String, target: Variant = null) -> bool:
 	if combo_problem(cid) != "" or combo_target_problem(cid, target) != "":
 		return false
@@ -1339,11 +1339,11 @@ func use_combo(cid: String, target: Variant = null) -> bool:
 	events.append({"type": "ability", "id": ha.id, "key": ha.ability, "pos": where})
 	events.append({"type": "ability", "id": hb.id, "key": hb.ability, "pos": where})
 	events.append({"type": "combo", "id": cid, "pos": where})
-	_log("Kombo %s: %s a %s" % [cd["name"], ha.name, hb.name], true)
+	_log("Combo %s: %s and %s" % [cd["name"], ha.name, hb.name], true)
 	return true
 
 
-## Za zády: nepřítel u tanka (do dosahu Výzvy), přednostně ten, kdo na něj útočí.
+## From Behind: an enemy at the tank (within Challenge range), preferably one attacking him.
 func _taunted_victim(tank: Unit) -> Unit:
 	var r := float(ability_of(tank.id).get("radius", 6.0))
 	var on_him: Array[Unit] = []
@@ -1357,7 +1357,7 @@ func _taunted_victim(tank: Unit) -> Unit:
 	return _nearest(on_him if not on_him.is_empty() else near, tank.pos)
 
 
-# =============================================================== příkazy hráče
+# =============================================================== player commands
 
 func has_trait(u: Unit, key: String) -> bool:
 	return u.traits.has(key)
@@ -1372,7 +1372,7 @@ func _trait_value(u: Unit, field: String, default: Variant) -> Variant:
 	return default
 
 
-## Povel Do boje!: jednorázový, jen když je morálka nepřítele zlomená. Všichni hrdinové útočí.
+## The All In! command: one-time, only when enemy morale is broken. All heroes attack.
 func can_charge() -> bool:
 	return over == "" and foes_broken and not charging
 
@@ -1381,36 +1381,36 @@ func charge_all() -> bool:
 	if not can_charge():
 		return false
 	charging = true
-	_log("Do boje! Všichni hrdinové dobojují", true)
+	_log("All In! Every hero finishes the fight", true)
 	return true
 
 
-# --------------------------------------------------------------- rozkazy hrdinům
+# --------------------------------------------------------------- hero orders
 
-## Proč rozkaz nejde dát ("" = jde). kind: "point" (cíl Vector2), "group" (číslo skupiny nebo id nepřítele),
-## "ally" (id hrdiny), "" (zrušit: hrdina drží, kde stojí). Rozkazy jdou dávat kdykoli.
+## Why the order cannot be given ("" = it can). kind: "point" (Vector2 target), "group" (group number or enemy id),
+## "ally" (hero id), "" (cancel: the hero holds where he stands). Orders can be given at any time.
 func order_problem(id: String, kind: String = "", target: Variant = null) -> String:
 	var u := by_id(id)
 	if u == null or u.side != SIDE_KNIGHT or not u.alive():
-		return "Neznámý hrdina."
+		return "Unknown hero."
 	if u.rage_t > 0.0:
-		return "%s zuří pro padlého druha a neposlouchá." % u.name
+		return "%s rages for his fallen companion and will not listen." % u.name
 	if bool(oath_of(id).get("ignores_orders", false)) and _grudge_target(u) != null:
-		return "%s drží přísahu pomsty a rozkaz neposlechne." % u.name
+		return "%s is bound by Blood Debt and will not obey." % u.name
 	match kind:
 		"point":
 			if not target is Vector2:
-				return "Vyber místo."
+				return "Choose a spot."
 			if _in_water(target):
-				return "Do vody to nejde."
+				return "Can't go into the water."
 		"group":
 			var g := _group_arg(target)
 			if g < 0 or group_members(g).is_empty():
-				return "Vyber nepřítele."
+				return "Choose an enemy."
 		"ally":
 			var a := by_id(String(target)) if target is String else null
 			if a == null or a == u or a.side != SIDE_KNIGHT or not a.alive():
-				return "Vyber jiného hrdinu."
+				return "Choose another hero."
 	return ""
 
 
@@ -1424,7 +1424,7 @@ func _group_arg(target: Variant) -> int:
 	return -1
 
 
-## Dá hrdinovi rozkaz. Vrací false, když to nejde (order_problem).
+## Gives the hero an order. Returns false when not possible (order_problem).
 func set_order(id: String, kind: String, target: Variant = null) -> bool:
 	if order_problem(id, kind, target) != "":
 		return false
@@ -1451,12 +1451,12 @@ func set_order(id: String, kind: String, target: Variant = null) -> bool:
 	return true
 
 
-## Rozkaz přesunu (přetažení hrdiny): totéž co rozkaz na místo.
+## Move order (dragging a hero): same as an order to a place.
 func order_move(id: String, target: Vector2) -> bool:
 	return set_order(id, "point", target)
 
 
-## Rozkaz hrdiny pro hráče („Na místo“, „Na skupinu: Lapkové (5)“…).
+## The hero's order for the player ("To a place", "At group: Brigands (5)"…).
 func order_text(id: String) -> String:
 	var u := by_id(id)
 	if u == null:
@@ -1464,20 +1464,20 @@ func order_text(id: String) -> String:
 	var names: Dictionary = units_data.get("orders", {}).get("names", {})
 	match u.order:
 		"point":
-			return String(names.get("point_done" if u.order_done else "point", "Na místo"))
+			return String(names.get("point_done" if u.order_done else "point", "To a place"))
 		"group":
 			if u.order_done:
-				return String(names.get("group_done", "Skupina padla, drží místo"))
-			return "%s: %s" % [names.get("group", "Na skupinu"), group_name(u.order_group)]
+				return String(names.get("group_done", "Group fell, holds place"))
+			return "%s: %s" % [names.get("group", "At group"), group_name(u.order_group)]
 		"ally":
 			var a := by_id(u.order_ally)
 			if u.order_done or a == null:
-				return String(names.get("ally_done", "Spojenec padl, drží místo"))
-			return "%s: %s" % [names.get("ally", "Se spojencem"), a.name]
-	return String(names.get("none", "Bez rozkazu: drží místo"))
+				return String(names.get("ally_done", "Ally fell, holds place"))
+			return "%s: %s" % [names.get("ally", "With ally"), a.name]
+	return String(names.get("none", "No order: holds place"))
 
 
-## Hrdinové bez rozkazu (jména). Scéna před bitvou varuje.
+## Heroes without orders (names). The scene warns before the battle.
 func unordered() -> Array:
 	var out: Array = []
 	for k in living(SIDE_KNIGHT):
@@ -1486,7 +1486,7 @@ func unordered() -> Array:
 	return out
 
 
-## Vůdce oddílu pro automatického velitele: nejodolnější bojovník (ne léčitel, ne střelec).
+## Squad leader for the automatic commander: the toughest fighter (not a healer, not ranged).
 func _auto_lead() -> Unit:
 	var lead: Unit = null
 	for k in living(SIDE_KNIGHT):
@@ -1495,9 +1495,9 @@ func _auto_lead() -> Unit:
 	return lead
 
 
-## Jednoduchý velitel pro testy a automatické hraní: vůdce jde na nejbližší skupinu,
-## ostatní se drží u něj. V obraně (a dokud bojují bdělí nepřátelé, když scénář radí `auto_plan: "hold"`)
-## vůdce drží místo. Vrací {id: [druh, cíl]}.
+## A simple commander for tests and auto-play: the leader goes at the nearest group,
+## the others stay with him. In defense (and while awake enemies fight, when the scenario advises `auto_plan: "hold"`)
+## the leader holds his place. Returns {id: [kind, target]}.
 func suggest_orders() -> Dictionary:
 	var out := {}
 	var ks := living(SIDE_KNIGHT)
@@ -1520,7 +1520,7 @@ func suggest_orders() -> Dictionary:
 			melee = melee or not f.ranged
 		var d := group_center(g).distance_to(lead.pos)
 		var md := group_center(main).distance_to(lead.pos) if main >= 0 else INF
-		# nejbližší skupina; pěší přednost jen při podobné vzdálenosti (osamělý střelec za řekou počká)
+		# nearest group; melee preferred only at a similar distance (a lone bowman beyond the river can wait)
 		if main < 0 or d < md - 2.0 or (absf(d - md) <= 2.0 and melee and not main_melee):
 			main = g
 			main_melee = melee
@@ -1533,8 +1533,8 @@ func suggest_orders() -> Dictionary:
 	return out
 
 
-## Automatický velitel (testy, auto-hraní): když se plán vůdce změní (skupina padla, probudila se jiná…),
-## dá oddílu nové rozkazy. Hráč tohle dělá sám.
+## Automatic commander (tests, auto-play): when the leader's plan changes (a group fell, another woke…),
+## gives the squad new orders. The player does this himself.
 func auto_command() -> void:
 	var lead := _auto_lead()
 	if lead == null:
@@ -1554,14 +1554,14 @@ func auto_command() -> void:
 	apply_orders(plan)
 
 
-## Dá všem hrdinům rozkazy ze slovníku {id: [druh, cíl]} (třeba ze suggest_orders).
+## Gives all heroes orders from a dictionary {id: [kind, target]} (e.g. from suggest_orders).
 func apply_orders(orders: Dictionary) -> void:
 	for id: String in orders:
 		var o: Array = orders[id]
 		set_order(id, String(o[0]), o[1] if o.size() > 1 else null)
 
 
-## Je rozkaz pro hrdinu ústupem? (vzdálí ho od nejbližšího nepřítele o víc než 1 m)
+## Is the order a retreat for the hero? (takes him more than 1 m farther from the nearest enemy)
 func is_retreat(id: String, target: Vector2) -> bool:
 	var u := by_id(id)
 	var foe := _nearest(living(SIDE_FOE), u.pos)
@@ -1574,7 +1574,7 @@ func break_oath(id: String) -> void:
 	_break(by_id(id), "")
 
 
-## Poruší přísahu: přestane platit, rod přijde o slávu (`break_glory_cost`). why = proč (do záznamu bitvy).
+## Breaks the oath: it stops applying, the house loses glory (`break_glory_cost`). why = reason (for the battle log).
 func _break(u: Unit, why: String) -> void:
 	if u == null:
 		return
@@ -1584,11 +1584,11 @@ func _break(u: Unit, why: String) -> void:
 	u.oath_broken = true
 	glory = maxf(0.0, glory - float(o.get("break_glory_cost", 0.0)))
 	_apply_passives_keep_hp(u)
-	_log("%s porušil přísahu %s%s" % [u.name, o["name"], (": " + why) if why != "" else ""], true)
+	_log("%s broke his oath %s%s" % [u.name, o["name"], (" (" + why + ")") if why != "" else ""], true)
 	events.append({"type": "oath_broken", "id": u.id, "text": why})
 
 
-## Kdo bere za hrdinu část zranění (Přísaha ochrany): tank s přísahou, jehož chráněný je do `ward_radius` m.
+## Who takes part of the hero's damage (Oath of Protection): a tank with the oath whose ward is within `ward_radius` m.
 func _warden_of(tg: Unit) -> Unit:
 	for k in living(SIDE_KNIGHT):
 		if k != tg and k.ward == tg.id and has_oath(k.id):
@@ -1598,7 +1598,7 @@ func _warden_of(tg: Unit) -> Unit:
 	return null
 
 
-## Chráněný pro Přísahu ochrany: zvolený (setup.wards), jinak kněz, jinak spojenec s nejmenším zdravím.
+## Ward for the Oath of Protection: chosen (setup.wards), otherwise the priest, otherwise the ally with the least health.
 func _pick_ward(u: Unit, chosen: String) -> void:
 	u.ward = ""
 	if not oath_of(u.id).has("ward_share"):
@@ -1619,7 +1619,7 @@ func _pick_ward(u: Unit, chosen: String) -> void:
 	u.ward = best.id if best != null else ""
 
 
-## Přísahy, které se hlídají průběžně: Pod korouhví (sám), Nikdy nestojí (stojí bez boje), Přísaha korouhve (od tanka).
+## Oaths watched continuously: Under the Banner (alone), Never Stand Still (standing without fighting), Oath of the Standard (away from the tank).
 func _watch_oaths(u: Unit, dt: float) -> void:
 	var o := oath_of(u.id)
 	if o.is_empty():
@@ -1627,7 +1627,7 @@ func _watch_oaths(u: Unit, dt: float) -> void:
 	if o.has("alone_break"):
 		u.alone_t = 0.0 if _when_ok(u, o, null) else u.alone_t + dt
 		if u.alone_t > float(o["alone_break"]):
-			_break(u, "zůstal sám")
+			_break(u, "was left alone")
 			return
 	if o.has("idle_break"):
 		var awake := false
@@ -1636,7 +1636,7 @@ func _watch_oaths(u: Unit, dt: float) -> void:
 		var busy := u.moving or u.dashing or t - u.combat_t <= 1.0
 		u.idle_t = 0.0 if busy or not awake else u.idle_t + dt
 		if u.idle_t > float(o["idle_break"]):
-			_break(u, "zůstal stát")
+			_break(u, "stood still")
 			return
 	if o.has("leash_to"):
 		var lead: Unit = null
@@ -1646,23 +1646,23 @@ func _watch_oaths(u: Unit, dt: float) -> void:
 		var far := lead != null and lead.pos.distance_to(u.pos) > float(o.get("leash_radius", 8.0))
 		u.away_t = u.away_t + dt if far else 0.0
 		if u.away_t > float(o.get("leash_grace", 2.0)):
-			_break(u, "vzdálil se od %s" % lead.name)
+			_break(u, "strayed from %s" % lead.name)
 
 
-## Konec vyhrané bitvy: Přísaha předků chce, aby hrdina sám někoho zabil.
+## End of a won battle: the Oath of the Ancestors wants the hero to have killed someone himself.
 func _end_oaths() -> void:
-	# Soupeři: kdo zabil víc, přinese rodu slávu navíc
+	# Rivals: whoever killed more brings the house extra glory
 	for k in living(SIDE_KNIGHT):
 		var p := _partner(k)
 		if p != null and k.bond_type == "souperi" and k.kills > p.kills:
 			_gain_glory(float(_bond_def(k).get("rival_glory", 15)), k)
-			_log("Soupeři: %s zabil víc než %s" % [k.name, p.name], false)
+			_log("Rivals: %s killed more than %s" % [k.name, p.name], false)
 	for k in living(SIDE_KNIGHT):
 		if bool(oath_of(k.id).get("needs_kill", false)) and k.kills == 0:
-			_break(k, "v bitvě nikoho nezabil")
+			_break(k, "killed no one in the battle")
 
 
-## Přepočet statistik uprostřed bitvy (zachová podíl zdraví a zbývající použití).
+## Recalculates stats mid-battle (keeps the health fraction and remaining uses).
 func _apply_passives_keep_hp(u: Unit) -> void:
 	var frac := u.hp / maxf(u.maxhp, 0.001)
 	var uses := u.uses
@@ -1686,7 +1686,7 @@ func _gain_glory(v: float, who: Unit = null) -> void:
 		who.glory_earned += glory - before
 
 
-## Přechod přes řeku, ve kterém x leží (nebo prázdný slovník).
+## The river crossing x lies in (or an empty dictionary).
 func _crossing_at(x: float) -> Dictionary:
 	for c: Dictionary in crossings:
 		if x >= float(c["x0"]) and x <= float(c["x1"]):
@@ -1694,7 +1694,7 @@ func _crossing_at(x: float) -> Dictionary:
 	return {}
 
 
-## Nejvýhodnější přechod pro cestu z x_from do x_to.
+## The best crossing for a path from x_from to x_to.
 func _best_crossing(x_from: float, x_to: float) -> Dictionary:
 	var best: Dictionary = {}
 	var bd := INF
@@ -1707,7 +1707,7 @@ func _best_crossing(x_from: float, x_to: float) -> Dictionary:
 	return best
 
 
-## Násobek rychlosti podle terénu (brod, les; stezka lesem nezpomaluje).
+## Terrain speed multiplier (ford, forest; a forest trail does not slow).
 func terrain_speed(u: Unit, p: Vector2) -> float:
 	if p.y >= river_lo and p.y <= river_hi:
 		var c := _crossing_at(p.x)
@@ -1732,7 +1732,7 @@ func _band(y: float) -> int:
 	return 1
 
 
-## Krok v pásu u břehu nevede hlouběji do řeky.
+## A step in the band by the bank does not lead deeper into the river.
 func _not_deeper(old: Vector2, p: Vector2) -> bool:
 	var mid := (river_lo + river_hi) / 2.0
 	if old.y >= mid:
@@ -1744,7 +1744,7 @@ func _in_water(p: Vector2) -> bool:
 	return p.y > river_lo - 0.3 and p.y < river_hi + 0.3 and _crossing_at(p.x).is_empty()
 
 
-## Kam jít, aby se jednotka dostala k cíli přes řeku (nejvýhodnějším přechodem).
+## Where to go so the unit gets to the target across the river (by the best crossing).
 func _nav(u: Unit, target: Vector2) -> Vector2:
 	var us := _band(u.pos.y)
 	var ts := _band(target.y)
@@ -1752,7 +1752,7 @@ func _nav(u: Unit, target: Vector2) -> Vector2:
 	if us == 1 and ts == 1 and not here.is_empty():
 		var there := _crossing_at(target.x)
 		if there.is_empty() or float(there["x0"]) != float(here["x0"]):
-			# oba v pásu řeky, ale na různých přechodech (lávka a brod): nejdřív ven na břeh blíž cíli
+			# both in the river band but at different crossings (footbridge and ford): first out onto the bank nearer the target
 			var mid := (river_lo + river_hi) / 2.0
 			var exit_y := river_lo - 0.5 if target.y < mid else river_hi + 0.5
 			return Vector2(clampf(u.pos.x, float(here["x0"]) + 0.35, float(here["x1"]) - 0.35), exit_y)
@@ -1762,7 +1762,7 @@ func _nav(u: Unit, target: Vector2) -> Vector2:
 		return target
 	var c := _best_crossing(u.pos.x, target.x)
 	if ts == 1 and not _crossing_at(target.x).is_empty():
-		c = _crossing_at(target.x)   # cíl stojí v přechodu: jde se tím přechodem
+		c = _crossing_at(target.x)   # the target stands in a crossing: go through that crossing
 	var x0 := float(c["x0"]) + 0.35
 	var x1 := float(c["x1"]) - 0.35
 	if u.pos.x >= x0 - 0.1 and u.pos.x <= x1 + 0.1 and u.pos.y >= river_lo - 0.7 and u.pos.y <= river_hi + 0.7:
@@ -1789,9 +1789,9 @@ func _walk(u: Unit, target: Vector2, dt: float, stop: float = 0.0) -> void:
 	u.moving = true
 	u.moved_t = t
 	if _in_water(u.pos) and _in_water(old) and _not_deeper(old, u.pos):
-		return   # už stojí v pásu u břehu (odtlačení): smí se hýbat podél břehu nebo ven, ne hlouběji
+		return   # already standing in the band by the bank (pushed): may move along the bank or out, not deeper
 	if _in_water(u.pos):
-		# u břehu se nezasekne: zkusí sklouznout podél břehu (jen po x, nebo jen po y)
+		# does not get stuck at the bank: tries to slide along it (only along x, or only along y)
 		u.pos = old + Vector2(step_v.x, 0.0)
 		if _in_water(u.pos):
 			u.pos = old + Vector2(0.0, step_v.y)
@@ -1801,8 +1801,8 @@ func _walk(u: Unit, target: Vector2, dt: float, stop: float = 0.0) -> void:
 					u.pos = old
 
 
-## Uhnutí: když v cestě (do `avoid_look` m před jednotkou) stojí jednotka stejné strany, směr se stočí do strany,
-## aby se spojenci obcházeli, místo aby šli skrz sebe. Nepřítel se neobchází (do něj se jde bojovat).
+## Avoidance: when a unit of the same side stands in the way (within `avoid_look` m ahead), the direction turns aside
+## so allies walk around each other instead of through. Enemies are not avoided (one goes there to fight).
 func _avoid(u: Unit, dir: Vector2, target: Vector2, dist: float) -> Vector2:
 	var look := _ord("avoid_look", 1.6)
 	var steer := Vector2.ZERO
@@ -1827,7 +1827,7 @@ func _avoid(u: Unit, dir: Vector2, target: Vector2, dist: float) -> Vector2:
 		return dir
 	var out := dir + steer * _ord("avoid_strength", 1.5)
 	if out.dot(dir) < 0.1:
-		out = dir * 0.1 + steer.normalized()   # nikdy necouvá, jen uhne
+		out = dir * 0.1 + steer.normalized()   # never backs off, only steps aside
 	return out.normalized()
 
 
@@ -1840,7 +1840,7 @@ func _face_to(u: Unit, tg: Unit) -> void:
 func _attack(u: Unit, tg: Unit) -> void:
 	_face_to(u, tg)
 	if not _oath_allows(u, tg):
-		return   # přísaha tenhle cíl zakazuje: neútočí
+		return   # the oath forbids this target: no attack
 	u.combat_t = t
 	if u.t > 0.0:
 		return
@@ -1869,7 +1869,7 @@ func _attack(u: Unit, tg: Unit) -> void:
 		_hurt(u, tg, u.dmg * m)
 
 
-## glory_hit = false: zranění, které slávu za zásah nedává (oheň a jiné trvalé efekty).
+## glory_hit = false: damage that gives no glory per hit (fire and other lasting effects).
 func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 	if not tg.alive():
 		return
@@ -1882,7 +1882,7 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 			guard.hit = 0.18
 			raw *= 1.0 - share
 			if guard.hp <= 0.0:
-				guard.hp = 0.01   # za chráněného nepadne, tím se zranění jen nedělí
+				guard.hp = 0.01   # does not die for his ward, the damage just stops being shared
 	tg.hp -= raw * _taken_mult(tg)
 	tg.hit = 0.18
 	tg.combat_t = t
@@ -1892,7 +1892,7 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 	if tg.side == SIDE_KNIGHT and tg.hp > 0.0 and not sw.is_empty() and not tg.second_wind_used and tg.hp < tg.maxhp * float(sw["at"]):
 		tg.second_wind_used = true
 		_heal(tg, tg, tg.maxhp * float(sw["heal_frac"]))
-		_log("%s: Druhý dech" % tg.name, false)
+		_log("%s: Second Wind" % tg.name, false)
 	if att != null and att.side == SIDE_KNIGHT and glory_hit:
 		_gain_glory(float(house["glory"]["per_hit"]), att)
 	if tg.hp > 0.0:
@@ -1906,10 +1906,10 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 		if tg.key == str(scenario["optional_task"].get("kill", "")):
 			task_ok = true
 		if tg.leader:
-			_log("%s padl!" % tg.name, true)
+			_log("%s has fallen!" % tg.name, true)
 			_break_morale()
 		return
-	# Poslední pomazání: kněz poblíž jednou za bitvu zvedne padlého
+	# Last Rites: a nearby priest raises the fallen once per battle
 	for k in living(SIDE_KNIGHT):
 		var pp := _pas(k, "posledni_pomazani")
 		if k != tg and not pp.is_empty() and not k.revive_used and k.pos.distance_to(tg.pos) <= float(pp["radius"]):
@@ -1917,9 +1917,9 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 			tg.hp = tg.maxhp * float(pp["revive_frac"])
 			events.erase(events[-1])
 			events.append({"type": "heal", "id": tg.id})
-			_log("%s zvedl padlého: %s" % [k.name, tg.name], true)
+			_log("%s raised the fallen: %s" % [k.name, tg.name], true)
 			return
-	_log("%s padl" % tg.name, true)
+	_log("%s has fallen" % tg.name, true)
 	_grieve(tg)
 	var martyr := oath_of(tg.id)
 	if martyr.has("martyr_radius"):
@@ -1927,18 +1927,18 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 			if k.pos.distance_to(tg.pos) <= float(martyr["martyr_radius"]) and not _no_heal(k):
 				k.hp = k.maxhp
 				events.append({"type": "heal", "id": k.id})
-		_log("%s padl jako mučedník a vyléčil druhy" % tg.name, true)
+		_log("%s fell as a martyr and healed his companions" % tg.name, true)
 	for k in living(SIDE_KNIGHT):
 		if not _pas(k, "mstitel").is_empty():
 			k.avenger = true
 		if k.ward == tg.id and has_oath(k.id) and oath_of(k.id).has("ward_share"):
-			_break(k, "%s padl" % tg.name)
+			_break(k, "%s fell" % tg.name)
 	var protect: String = scenario["optional_task"].get("protect", "")
 	if tg.id == protect or protect == "all":
 		task_ok = false
 
 
-## Útok na cíl, nebo k němu dojít (stop = jak blízko).
+## Attack the target, or walk to it (stop = how close).
 func _engage(u: Unit, tg: Unit, dt: float) -> void:
 	if u.side == SIDE_FOE:
 		u.target_id = tg.id
@@ -1951,10 +1951,10 @@ func _engage(u: Unit, tg: Unit, dt: float) -> void:
 		_walk(u, tg.pos, dt, u.reach * 0.8)
 
 
-## Dojít na místo; rytíř s přísahou Nikdy neustoupí nejde tam, kde by byl dál od nepřítele.
-## Klidové místo (za oddílem, vedle oddílu…): kdo stojí a je blízko, zůstane stát.
-## Rozejde se, až se místo vzdálí o víc než `settle` m. Bez toho hrdinové kmitají
-## (krok, stop, krok), protože se jejich místa počítají jeden od druhého.
+## Walk to a place; a knight with Never Retreat does not go where he would be farther from the enemy.
+## Resting spot (behind the squad, beside the squad…): whoever stands still and is close stays put.
+## He moves off only once the spot moves more than `settle` m away. Without this heroes jitter
+## (step, stop, step), because their spots are computed from one another.
 func _settle(u: Unit, p: Vector2, dt: float, stop: float, foes: Array[Unit]) -> void:
 	if not u.moving and u.pos.distance_to(p) <= stop + _ord("settle", 1.0):
 		return
@@ -1966,7 +1966,7 @@ func _go(u: Unit, p: Vector2, dt: float, stop: float, _foes: Array[Unit]) -> voi
 		u.moving = false
 		return
 	if _no_retreat(u):
-		var f := _nearest(living(SIDE_FOE), u.pos)   # směr k nepříteli počítá i se spícími
+		var f := _nearest(living(SIDE_FOE), u.pos)   # the direction to the enemy counts the sleeping ones too
 		if f != null and p.distance_to(f.pos) > u.pos.distance_to(f.pos) + 0.3:
 			u.moving = false
 			return
@@ -1976,28 +1976,28 @@ func _go(u: Unit, p: Vector2, dt: float, stop: float, _foes: Array[Unit]) -> voi
 func _knight_think(u: Unit, dt: float) -> void:
 	_watch_oaths(u, dt)
 	_priest_heal(u, dt)
-	# Spící skupinky hrdina sám nenapadá (ani střelec z dálky); budí je přiblížení nebo rozkaz na skupinu.
+	# A hero does not attack sleeping groups on his own (not even a ranged one from afar); they wake when approached or by a group order.
 	var all_foes := living(SIDE_FOE)
 	var foes: Array[Unit] = []
 	for f in all_foes:
 		if not f.asleep:
 			foes.append(f)
 	if u.dashing:
-		_dash(u, dt, all_foes)   # nájezd zasáhne každého v cestě
+		_dash(u, dt, all_foes)   # Charge hits everyone in the way
 		return
-	# žal Bratrů ve zbrani: zuří, jde na nejbližšího a neposlouchá
+	# Brothers in Arms grief: rages, goes for the nearest and ignores orders
 	if u.rage_t > 0.0 and not foes.is_empty():
 		var rt := _nearest(foes, u.pos)
 		if rt != null:
 			_engage(u, rt, dt)
 			return
-	# Kopí a štít: tank pod hranicí zdraví, jezdec mu sám vyrazí na pomoc
+	# Lance and Shield: tank below the health threshold, the cavalier rides to his aid on his own
 	if u.bond_type == "kopi" and _bond_side(u) == 0:
 		var tk := _partner(u)
 		if tk != null and not u.rescue_used and tk.hp < tk.maxhp * float(_bond_def(u).get("rescue_at", 0.25)):
 			u.rescue_used = true
 			u.rescue_t = float(_bond_def(u).get("rescue_t", 4.0))
-			_log("%s spěchá na pomoc: %s" % [u.name, tk.name], true)
+			_log("%s rushes to help: %s" % [u.name, tk.name], true)
 		if u.rescue_t > 0.0 and tk != null:
 			u.rescue_t -= dt
 			var foes_on: Array[Unit] = []
@@ -2011,13 +2011,13 @@ func _knight_think(u: Unit, dt: float) -> void:
 		var nf := _nearest(foes, u.pos)
 		if nf != null and u.pos.distance_to(nf.pos) <= u.reach + 0.3:
 			_gain_glory(float(house["glory"]["oath_per_second"]) * dt, u)
-	# Do boje! nebo rozhodnutá bitva: všichni útočí.
+	# All In! or a decided battle: everyone attacks.
 	if (charging or decided != "") and not foes.is_empty():
 		var ct := _choose_target(u, foes)
 		if ct != null:
 			_engage(u, ct, dt)
 			return
-	# Po Úderu ze stínu a Nájezdu dobojuje s cílem (nejvýš `focus_time` s, dokud žije a je u něj), pak se vrátí k rozkazu.
+	# After Shadow Strike and Charge keeps fighting the target (at most `focus_time` s, while it lives and is near), then returns to the order.
 	if u.focus_id != "":
 		var fo := by_id(u.focus_id)
 		u.focus_t -= dt
@@ -2027,7 +2027,7 @@ func _knight_think(u: Unit, dt: float) -> void:
 			u.regroup = false
 			_engage(u, fo, dt)
 			return
-	# Přísaha pomsty: dokud žije, kdo zranil spojence, jde po něm a rozkaz neplatí.
+	# Blood Debt: while whoever wounded an ally lives, he goes after him and orders do not apply.
 	if bool(oath_of(u.id).get("ignores_orders", false)):
 		var gt := _grudge_target(u)
 		if gt != null:
@@ -2044,7 +2044,7 @@ func _knight_think(u: Unit, dt: float) -> void:
 			_hold_place(u, dt, foes)
 
 
-## Nejbližší živý nepřítel, který zranil spojence (Přísaha pomsty).
+## Nearest living enemy who wounded an ally (Blood Debt).
 func _grudge_target(u: Unit) -> Unit:
 	var list: Array[Unit] = []
 	for f in living(SIDE_FOE):
@@ -2053,14 +2053,14 @@ func _grudge_target(u: Unit) -> Unit:
 	return _nearest(list, u.pos)
 
 
-## Rozkaz splněn: hrdina drží místo, kde stojí.
+## Order done: the hero holds the place where he stands.
 func _done(u: Unit) -> void:
 	u.order_done = true
 	u.home = u.pos
 
 
-## Bojuje s tím z `foes`, kdo je u něj (pěší do reach + `on_way`, střelec do `on_way_ranged`).
-## Vrací true, když bojuje.
+## Fights whoever from `foes` is next to him (melee within reach + `on_way`, ranged within `on_way_ranged`).
+## Returns true when fighting.
 func _fight_close(u: Unit, dt: float, foes: Array[Unit]) -> bool:
 	var close: Array[Unit] = []
 	var r := _ord("on_way_ranged", 2.5) if u.ranged else u.reach + _ord("on_way", 1.0)
@@ -2078,13 +2078,13 @@ func _fight_close(u: Unit, dt: float, foes: Array[Unit]) -> bool:
 	return true
 
 
-## Na místo: dojde bez boje (tak hráč hrdinu stáhne z boje), pak místo drží.
+## To a place: walks there without fighting (that is how the player pulls a hero out of combat), then holds the place.
 func _order_point(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	if u.order_done:
 		_hold_place(u, dt, foes)
 		return
 	var d := u.pos.distance_to(u.order_pos)
-	var taken := false   # na místě už stojí jiný hrdina: stačí dojít k němu
+	var taken := false   # another hero already stands at the spot: it is enough to reach him
 	for k in living(SIDE_KNIGHT):
 		if k != u and k.pos.distance_to(u.order_pos) <= 1.0:
 			taken = true
@@ -2094,11 +2094,11 @@ func _order_point(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		return
 	_go(u, u.order_pos, dt, 0.3, foes)
 	if not u.moving:
-		_done(u)   # došel, nebo dál nesmí (přísaha Nikdy neustoupí): drží, kde stojí
+		_done(u)   # arrived, or may not go further (Never Retreat): holds where he stands
 
 
-## Na skupinu: jde po skupině (i když se hýbe) a bojuje s jejími členy (a brání se tomu, kdo ho cestou napadne);
-## když skupina padne, drží místo.
+## At a group: follows the group (even if it moves) and fights its members (and defends against whoever attacks him on the way);
+## when the group falls, holds his place.
 func _order_group(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	if u.order_done:
 		_hold_place(u, dt, foes)
@@ -2110,7 +2110,7 @@ func _order_group(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		return
 	if _fight_close(u, dt, mem):
 		return
-	# kdo na něj cestou útočí, tomu se brání (stáhnout z boje jde rozkazem na místo)
+	# defends against whoever attacks him on the way (pulling out of combat is done with an order to a place)
 	var attackers: Array[Unit] = []
 	for f in foes:
 		if f.target_id == u.id and not f.asleep:
@@ -2119,7 +2119,7 @@ func _order_group(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		return
 	var tg := _choose_target(u, mem)
 	if tg == null:
-		_hold_place(u, dt, foes)   # přísaha žádný cíl ze skupiny nedovolí
+		_hold_place(u, dt, foes)   # the oath allows no target from the group
 		return
 	if u.ranged:
 		if u.pos.distance_to(tg.pos) <= u.reach:
@@ -2131,8 +2131,8 @@ func _order_group(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	_engage(u, tg, dt)
 
 
-## Ke spojenci: drží se u něj (střelec a léčitel kus za ním) a bojuje s tím, kdo spojence ohrožuje.
-## Léčitel se zapojí, jen když nikdo v dosahu léčení nepotřebuje léčit, jinak se jen brání.
+## With an ally: stays by him (ranged and healer a bit behind) and fights whoever threatens the ally.
+## A healer joins in only when no one in healing range needs healing, otherwise he only defends himself.
 func _order_ally(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	var a := by_id(u.order_ally)
 	if u.order_done or a == null or not a.alive():
@@ -2145,7 +2145,7 @@ func _order_ally(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	var own := u.reach + _ord("on_way", 1.0)
 	var helps := u.heal <= 0.0 or not _needs_heal(u)
 	if u.bond_type == "souperi" and u.bond_with == a.id and a.hp < a.maxhp * float(_bond_def(u).get("no_help_below", 0.3)):
-		helps = false   # Soupeři: druhovi pod 30 % zdraví nepomůže
+		helps = false   # Rivals: does not help the companion below 30 % health
 	var dist := _ord("ally_dist_back", 4.0) if (u.ranged or u.heal > 0.0) else _ord("ally_dist", 2.0)
 	var gap := u.pos.distance_to(a.pos)
 	if not u.ranged and gap > dist + guard + _ord("ally_leash", 0.5):
@@ -2153,7 +2153,7 @@ func _order_ally(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	if u.regroup and gap <= dist + 0.5:
 		u.regroup = false
 	if u.regroup:
-		# zatoulal se (třeba po Nájezdu): vrací se až ke spojenci a cestou se nezdržuje
+		# strayed (e.g. after a Charge): goes all the way back to the ally without stopping on the way
 		_walk(u, a.pos, dt, dist)
 		return
 	for f in foes:
@@ -2179,7 +2179,7 @@ func _order_ally(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	_settle(u, spot, dt, 0.6 if spot != a.pos else dist, foes)
 
 
-## Potřebuje někdo v dosahu léčitele léčení?
+## Does anyone within the healer's range need healing?
 func _needs_heal(u: Unit) -> bool:
 	for k in living(SIDE_KNIGHT):
 		if k.hp < k.maxhp * 0.85 and k.pos.distance_to(u.pos) <= u.heal_range:
@@ -2187,8 +2187,8 @@ func _needs_heal(u: Unit) -> bool:
 	return false
 
 
-## Drží místo `home`: bojuje s tím, kdo přijde do `hold_radius` m od místa, a brání se tomu,
-## kdo na něj útočí do dvojnásobku; střelec střílí na dostřel. Pak se vrátí na místo.
+## Holds `home`: fights whoever comes within `hold_radius` m of the spot and defends against whoever
+## attacks him within twice that; a ranged hero shoots at range. Then returns to the spot.
 func _hold_place(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	var hr := _ord("hold_radius", 4.0)
 	var cand: Array[Unit] = []
@@ -2209,7 +2209,7 @@ func _hold_place(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	_settle(u, u.home, dt, 0.3, foes)
 
 
-## Je kněz v boji? (bdělý nepřítel do `heal_combat` m). Mezi skupinkami se samo neléčí.
+## Is the priest in combat? (an awake enemy within `heal_combat` m). He does not heal on his own between groups.
 func _in_combat(u: Unit) -> bool:
 	for f in living(SIDE_FOE):
 		if not f.asleep and not f.fleeing and f.pos.distance_to(u.pos) <= u.heal_combat:
@@ -2217,7 +2217,7 @@ func _in_combat(u: Unit) -> bool:
 	return false
 
 
-## Kněz léčí nejzraněnějšího hrdinu v dosahu, jen v boji.
+## The priest heals the most wounded hero in range, only in combat.
 func _priest_heal(u: Unit, dt: float) -> void:
 	if u.heal > 0.0:
 		u.heal_t -= dt
@@ -2232,8 +2232,8 @@ func _priest_heal(u: Unit, dt: float) -> void:
 				u.heal_t = u.heal_cd
 
 
-## Zásah Nájezdem a přísaha: Rytířská výzva je splněná, když Nájezd zasáhne velitele (i když cestou srazí pěšáky);
-## ostatní zákazy (prchající, zranění) platí pro každý zásah.
+## Charge hit and oaths: Knightly Challenge is kept when the Charge hits a commander (even if it knocks down footmen on the way);
+## the other bans (the fleeing, the wounded) apply to every hit.
 func _dash_oath(u: Unit, f: Unit) -> void:
 	var o := oath_of(u.id)
 	if o.is_empty():
@@ -2241,11 +2241,11 @@ func _dash_oath(u: Unit, f: Unit) -> void:
 	if bool(o.get("first_on_commander", false)) and not u.first_struck:
 		if _is_commander(f):
 			u.first_struck = true
-		return   # rozhodne se na konci Nájezdu
+		return   # decided at the end of the Charge
 	_ability_hit(u, f)
 
 
-## Nájezd: jede rychle k cíli, každého nepřítele v cestě zasáhne a omráčí.
+## Charge: rides fast to the target, hits and stuns every enemy in the way.
 func _dash(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	var a := ability_of(u.id)
 	u.dash_t -= dt
@@ -2257,10 +2257,10 @@ func _dash(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		u.dashing = false
 		u.moving = false
 		if bool(oath_of(u.id).get("first_on_commander", false)) and not u.first_struck and not u.dash_hit.is_empty():
-			_break(u, "Nájezd nezasáhl velitele")
+			_break(u, "Charge did not hit the commander")
 		u.dash_mult = 1.0
 		if u.combo_strike != "":
-			# Kladivo a kovadlina: asasín skočí za prvního sraženého; pěšáka zabije, velitele zasáhne silně
+			# Hammer and Anvil: the assassin leaps behind the first one knocked down; kills a footman, hits a commander hard
 			var sa := by_id(u.combo_strike)
 			u.combo_strike = ""
 			var first: Unit = null
@@ -2273,7 +2273,7 @@ func _dash(u: Unit, dt: float, foes: Array[Unit]) -> void:
 				if not _is_commander(first):
 					cm = maxf(cm, first.hp / maxf(sa.dmg * _dmg_mult(sa, first) * _taken_mult(first), 0.01) + 1.0)
 				_shadow_strike(sa, first, cm)
-		# po Nájezdu dobojuje s nejbližším, koho srazil
+		# after a Charge keeps fighting the nearest one he knocked down
 		var hit: Array[Unit] = []
 		for id: String in u.dash_hit:
 			var hf := by_id(id)
@@ -2311,7 +2311,7 @@ func _foe_think(u: Unit, dt: float) -> void:
 			_skill_cancel(u)
 		return
 	if u.asleep:
-		# spící skupinka: stojí na svém místě, dokud se neprobudí (_check_pods)
+		# sleeping group: stands in place until it wakes (_check_pods)
 		if u.pos.distance_to(u.home) > 0.4:
 			_walk(u, u.home, dt, 0.2)
 		else:
@@ -2335,7 +2335,7 @@ func _foe_think(u: Unit, dt: float) -> void:
 		u.skill_t -= dt
 		if u.skill_t <= 0.0 and _skill_start(u, ks):
 			return
-	# Výzva: kdo je v dosahu tanka s výzvou, útočí na něj
+	# Challenge: whoever is within range of a challenging tank attacks him
 	var tg := _taunter_for(u, ks)
 	if tg == null:
 		tg = _foe_pick(u, ks)
@@ -2344,7 +2344,7 @@ func _foe_think(u: Unit, dt: float) -> void:
 		_foe_shoot_or_walk(u, tg, dt)
 		return
 	if not _has_slot(u, tg):
-		# u hrdiny už je plno: počká kousek stranou, nestrká se do chumlu
+		# the hero is already crowded: waits a little aside, does not push into the crowd
 		var away := u.pos - tg.pos
 		var spot := tg.pos + (away / maxf(away.length(), 0.01)) * (u.reach + tg.radius + _ord("wait_gap", 1.6))
 		if u.pos.distance_to(spot) > 0.4:
@@ -2356,14 +2356,14 @@ func _foe_think(u: Unit, dt: float) -> void:
 	_engage(u, tg, dt)
 
 
-# --------------------------------------------------------------- velitelé
+# --------------------------------------------------------------- commanders
 
 func _skill_def(u: Unit) -> Dictionary:
 	return units_data.get("foe_skills", {}).get(u.skill, {})
 
 
-## Velitel začne schopnost, když má smysl (cíl v dosahu). Ohlásí ji: napřahuje se `windup` s
-## (rozhraní kreslí varování z warnings()). Vrací true, když začal.
+## A commander starts his ability when it makes sense (target in range). He announces it: winds up for `windup` s
+## (the UI draws the warning from warnings()). Returns true when started.
 func _skill_start(u: Unit, ks: Array[Unit]) -> bool:
 	var sd := _skill_def(u)
 	if sd.is_empty():
@@ -2375,7 +2375,7 @@ func _skill_start(u: Unit, ks: Array[Unit]) -> bool:
 	var where := u.pos
 	match kind:
 		"zone":
-			# hodí na místo, kde stojí nejvíc hrdinů
+			# throws at the spot where most heroes stand
 			var best_n := 0
 			for k in ks:
 				if k.pos.distance_to(u.pos) > rng:
@@ -2413,14 +2413,14 @@ func _skill_start(u: Unit, ks: Array[Unit]) -> bool:
 	u.cast_pos = where
 	u.cast_target = target.id if target != null else ""
 	u.moving = false
-	var warn := String(sd.get("warn", "%s se napřahuje!"))
+	var warn := String(sd.get("warn", "%s winds up!"))
 	var text := warn % (target.name if target != null else u.name) if warn.contains("%s") else warn
 	events.append({"type": "warn", "id": u.id, "text": text})
 	_log(text, true)
 	return true
 
 
-## Ohlášená schopnost velitele dopadne.
+## The commander's announced ability lands.
 func _skill_fire(u: Unit) -> void:
 	var sd := _skill_def(u)
 	u.casting = false
@@ -2454,14 +2454,14 @@ func _skill_fire(u: Unit) -> void:
 	events.append({"type": "skill", "id": u.id, "key": u.skill, "pos": where, "radius": r})
 
 
-## Omráčení přeruší napřahování (hráč může schopnost velitele zastavit Nájezdem).
+## A stun interrupts the windup (the player can stop a commander's ability with Charge).
 func _skill_cancel(u: Unit) -> void:
 	u.casting = false
 	u.skill_t = float(_skill_def(u).get("cd", 10.0)) * 0.5
-	_log("%s: přerušeno!" % u.name, true)
+	_log("%s: interrupted!" % u.name, true)
 
 
-## Ohlášené schopnosti velitelů pro rozhraní: [{"pos", "radius", "t", "kind", "target"}].
+## Announced commander abilities for the UI: [{"pos", "radius", "t", "kind", "target"}].
 func warnings() -> Array:
 	var out: Array = []
 	for f in living(SIDE_FOE):
@@ -2473,7 +2473,7 @@ func warnings() -> Array:
 	return out
 
 
-## Kolik pěších nepřátel teď bojuje s hrdinou zblízka.
+## How many melee enemies are fighting the hero up close right now.
 func _attackers_on(k: Unit, except: Unit = null) -> int:
 	var n := 0
 	for f in living(SIDE_FOE):
@@ -2482,14 +2482,14 @@ func _attackers_on(k: Unit, except: Unit = null) -> int:
 	return n
 
 
-## Má nepřítel u hrdiny místo? (nejvýš `melee_slots` pěších najednou; kdo už bojuje, místo má)
+## Does the enemy have a slot at the hero? (at most `melee_slots` melee at once; whoever already fights has one)
 func _has_slot(u: Unit, k: Unit) -> bool:
 	if u.target_id == k.id and u.pos.distance_to(k.pos) <= u.reach + k.radius + 0.6:
 		return true
 	return _attackers_on(k, u) < int(_ord("melee_slots", 3.0))
 
 
-## Cíl nepřítele: nejbližší hrdina s volným místem (střelec prostě nejbližší); když je všude plno, nejbližší.
+## Enemy target: the nearest hero with a free slot (ranged simply the nearest); when all are full, the nearest.
 func _foe_pick(u: Unit, ks: Array[Unit]) -> Unit:
 	if u.ranged:
 		return _nearest(ks, u.pos)
@@ -2501,7 +2501,7 @@ func _foe_pick(u: Unit, ks: Array[Unit]) -> Unit:
 	return best if best != null else _nearest(ks, u.pos)
 
 
-## Střelec: střílí z dostřelu, ale postupuje na 60 % dostřelu, aby nevznikl pat.
+## Bowman: shoots from range but advances to 60 % of range so no stalemate arises.
 func _foe_shoot_or_walk(u: Unit, tg: Unit, dt: float) -> void:
 	var d := u.pos.distance_to(tg.pos)
 	if d <= u.reach:
@@ -2514,7 +2514,7 @@ func _foe_shoot_or_walk(u: Unit, tg: Unit, dt: float) -> void:
 		_face_to(u, tg)
 
 
-## Hrdinové, které nepřítel může cílit (bez těch v Úkrytu; když jsou schovaní všichni, tak všichni).
+## Heroes the enemy can target (without those in Vanish; when all are hidden, all of them).
 func _visible_knights() -> Array[Unit]:
 	var all := living(SIDE_KNIGHT)
 	var out: Array[Unit] = []
@@ -2564,10 +2564,10 @@ func _enemy_morale() -> Dictionary:
 	return m
 
 
-## Zlomí morálku nepřátel, když ztratili dost jednotek.
+## Breaks enemy morale when it has lost enough units.
 func _check_morale() -> void:
 	if foes_broken or not pending.is_empty():
-		return   # dokud přicházejí další vlny, nepřítel se nezlomí
+		return   # while more waves are coming the enemy does not break
 	var total := 0
 	var lost := 0
 	for u in units:
@@ -2587,7 +2587,7 @@ func _break_morale() -> void:
 	broken_t = t
 	for pi in pods.size():
 		if not pod_awake.has(pi):
-			_wake_pod(pi, "zlom")   # zlomený nepřítel už nikde nečeká
+			_wake_pod(pi, "zlom")   # a broken enemy no longer waits anywhere
 	for u in living(SIDE_FOE):
 		if bool(_trait_value(u, "never_breaks", false)):
 			continue
@@ -2596,11 +2596,11 @@ func _break_morale() -> void:
 			u.fleeing = true
 		elif reaction == "desperate":
 			u.desperate = true
-	_log("Nepřítel je zlomený: střelci prchají, pěšáci se zoufale vrhají do boje. Můžeš dát povel Do boje!", true)
+	_log("The enemy is broken: bowmen flee, footmen throw themselves desperately into the fight. You can give the All In! command.", true)
 
 
-## Síla strany: zdraví × poškození za sekundu (hrubý odhad, bez bonusů). Spící skupinky se nepočítají
-## (ještě nebojují), další vlny ano.
+## Side strength: health × damage per second (a rough estimate, no bonuses). Sleeping groups do not count
+## (they are not fighting yet), later waves do.
 func power(side: String) -> float:
 	var p := 0.0
 	for u in living(side):
@@ -2612,7 +2612,7 @@ func power(side: String) -> float:
 	return p
 
 
-## Další vlna: nepřátelé, jejichž čas přišel, vstoupí na bojiště (událost arrive pro scénu).
+## Next wave: enemies whose time has come enter the battlefield (arrive event for the scene).
 func _arrivals() -> void:
 	if pending.is_empty():
 		return
@@ -2622,7 +2622,7 @@ func _arrivals() -> void:
 		if t >= u.arrive_t:
 			units.append(u)
 			if foes_broken:
-				u.desperate = u.on_break == "desperate"   # přicházejí do prohrané bitvy
+				u.desperate = u.on_break == "desperate"   # arriving into a lost battle
 			events.append({"type": "arrive", "id": u.id})
 			came += 1
 		else:
@@ -2633,12 +2633,12 @@ func _arrivals() -> void:
 		for p in pending:
 			wave_times[p.arrive_t] = true
 		waves_left = wave_times.size()
-		_log("Přichází další vlna: %d nepřátel" % came, true)
+		_log("Another wave is coming: %d enemies" % came, true)
 
 
-## Probouzení skupinek (fáze bitvy): spící skupinka se probudí, když se k některému jejímu členovi
-## přiblíží hrdina na `wake` m, když ji někdo zraní, když bdělý nepřítel bojuje do `alarm` m od jejího
-## místa (hluk boje) nebo když se nepříteli zlomí morálka.
+## Waking groups (battle phases): a sleeping group wakes when a hero comes within `wake` m of one of its
+## members, when someone wounds it, when an awake enemy fights within `alarm` m of its
+## spot (the noise of battle) or when the enemy's morale breaks.
 func _check_pods() -> void:
 	for pi in pods.size():
 		if pod_awake.has(pi):
@@ -2666,7 +2666,7 @@ func _check_pods() -> void:
 					why = "blizko"
 					break
 		if why == "" and alarm > 0.0:
-			# hluk boje: bdělý nepřítel bojuje do `alarm` m od místa skupinky
+			# noise of battle: an awake enemy fights within `alarm` m of the group's spot
 			var c := _pod_center(pi)
 			for f in living(SIDE_FOE):
 				if f.pod != pi and not f.asleep and t - f.combat_t <= 1.0 and f.pos.distance_to(c) <= alarm:
@@ -2691,8 +2691,8 @@ func _wake_pod(pi: int, why: String) -> void:
 	for f in living(SIDE_FOE):
 		if f.pod == pi:
 			f.asleep = false
-	var pname := String((pods[pi] as Dictionary).get("name", "Nepřátelé"))
-	var msg := ("%s: poplach! Přidávají se do boje" if why == "poplach" else "%s se dávají do boje") % pname
+	var pname := String((pods[pi] as Dictionary).get("name", "Enemies"))
+	var msg := ("%s: alarm! They join the fight" if why == "poplach" else "%s join the fight") % pname
 	events.append({"type": "wake", "pod": pi, "why": why, "text": msg})
 	_log(msg, true)
 
@@ -2704,7 +2704,7 @@ func _any_asleep() -> bool:
 	return false
 
 
-## Spící skupinky, které ještě zbývají (pro rozhraní: „čekají další nepřátelé“).
+## Sleeping groups that remain (for the UI: "more enemies are waiting").
 func sleeping_pods() -> int:
 	var n := 0
 	for pi in pods.size():
@@ -2718,16 +2718,16 @@ func sleeping_pods() -> int:
 
 
 func _check_decided() -> void:
-	# pojistka proti patu: když hráč po zlomení morálky dlouho nedá Do boje!, hrdinové dobojují sami
+	# stalemate guard: when the player does not give All In! long after the morale break, the heroes finish the fight on their own
 	if foes_broken and not charging and broken_t >= 0.0 and t - broken_t > float(units_data["morale"].get("auto_charge_after", 25.0)):
 		charging = true
-		_log("Hrdinové sami dobíjejí zbytek nepřátel", true)
+		_log("The heroes finish off the rest of the enemies on their own", true)
 	if decided != "":
 		return
 	var r := float(units_data["morale"]["decided_ratio"])
 	var pk := power(SIDE_KNIGHT)
 	var pe := power(SIDE_FOE)
-	# Po zlomení morálky rozhoduje hráč povelem Do boje!, pojistka se nespouští.
+	# After the morale break the player decides with All In!, the guard does not fire.
 	if pe < pk * r and not foes_broken and not _any_asleep():
 		decided = SIDE_KNIGHT
 	elif pk < pe * r:
@@ -2735,7 +2735,7 @@ func _check_decided() -> void:
 	else:
 		return
 	events.append({"type": "decided", "side": decided})
-	_log("Bitva je rozhodnutá, hrdinové dobojují" if decided == SIDE_KNIGHT else "Bitva je ztracená, hrdinové bojují do posledního", true)
+	_log("The battle is decided, the heroes finish the fight" if decided == SIDE_KNIGHT else "The battle is lost, the heroes fight to the last", true)
 
 
 func step(dt: float) -> void:
@@ -2794,7 +2794,7 @@ func step(dt: float) -> void:
 			still.append(p)
 	projectiles = still
 
-	# hořící zem (Ohnivá salva)
+	# burning ground (Fire Volley)
 	for z: Dictionary in zones:
 		z["t"] = float(z["t"]) - dt
 		for f in living(String(z.get("hurts", SIDE_FOE))):
@@ -2819,7 +2819,7 @@ func step(dt: float) -> void:
 
 
 
-## Výsledek bitvy pro běh: kdo padl, kdo utekl, sláva.
+## Battle result for the run: who fell, who fled, glory.
 func result() -> Dictionary:
 	var dead: Array = []
 	var glory_by := {}

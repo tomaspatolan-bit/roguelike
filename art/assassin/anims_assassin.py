@@ -1,10 +1,10 @@
-# Animace asasína (A_Assassin_*), stejná kostra jako rytíř. Spouští se v Blenderu po build_assassin.py:
+# Assassin animations (A_Assassin_*), same skeleton as the knight. Run in Blender after build_assassin.py:
 # exec(open(r"<repo>/art/assassin/anims_assassin.py", encoding="utf-8").read(), {})
-# Dýka v každé ruce (úchop jako ostatní zbraně, čepel = osa Z kosti ruky); hand_* rotace X natočí čepel dopředu
-# (při Úderu ze stínu čepel nahoře míří vzhůru a dopředu, pak se sekne dolů hrotem napřed).
-# Konvence (ověřeno 30.10.2026): thigh X kladná = stehno dopředu, calf X záporná = ohyb kolene,
-# spine_02 X kladná = předklon, Y = otočení trupu (kladná = pravé rameno dopředu), pelvis.loc Y = výška pánve.
-# Zásah a smrt bere asasín z rytíře (A_Knight_Hit, A_Knight_Death).
+# A dagger in each hand (grip like the other weapons, blade = hand bone Z axis); hand_* X rotation turns the blade forward
+# (in Shadow Strike the raised blade points up and forward, then slashes down point first).
+# Conventions (verified 30.10.2026): thigh X positive = thigh forward, calf X negative = knee bend,
+# spine_02 X positive = lean forward, Y = torso twist (positive = right shoulder forward), pelvis.loc Y = pelvis height.
+# The assassin takes hit and death from the knight (A_Knight_Hit, A_Knight_Death).
 import bpy
 
 arm = bpy.data.objects["Armature"]
@@ -70,7 +70,7 @@ def copy_with_override(src, name, override):
 
 
 def crouch(k):
-    """Pokrčené nohy, k = 1 běžný postoj, víc = hlubší (pánev klesne, chodidla zůstanou na zemi)."""
+    """Bent legs, k = 1 normal stance, more = deeper (the pelvis drops, the feet stay on the ground)."""
     return {"thigh_l": (0.5 * k, 0, 0), "thigh_r": (0.5 * k, 0, 0), "calf_l": (-0.9 * k, 0, 0), "calf_r": (-0.9 * k, 0, 0),
             "foot_l": (0.4 * k, 0, 0), "foot_r": (0.4 * k, 0, 0), "pelvis.loc": (0, -0.073 * k * k, 0)}
 
@@ -79,17 +79,17 @@ READY = {"upperarm_r": (0.35, 0, 0.5), "lowerarm_r": (1.0, 0, 0), "upperarm_l": 
          "spine_02": (0.15, 0, 0), "head": (-0.12, 0, 0)}
 BASE = merged(crouch(1.0), READY)
 
-# --- klid: přikrčený, dýky nízko před tělem, dýchá a rozhlíží se
+# --- idle: crouched, daggers low in front of the body, breathing and looking around
 idle = {}
 for f, k, look in ((1, 0.0, 0.0), (25, 1.0, 0.25), (49, 0.0, 0.0)):
     idle[f] = merged(BASE, {"spine_03": (0.03 * k, 0, 0), "head": (-0.12, look, 0), "lowerarm_r": (1.0 - 0.06 * k, 0, 0),
                             "lowerarm_l": (1.0 - 0.06 * k, 0, 0)})
 make_action("A_Assassin_Idle", idle)
 
-# --- chůze: nohy z rytíře, předklon, dýky nízko
+# --- walk: legs from the knight, leaning forward, daggers low
 copy_with_override("A_Knight_Walk", "A_Assassin_Walk", lambda f: merged(READY, {"spine_02": (0.2, 0, 0)}))
 
-# --- útok: nápřah pravou, rychlé bodnutí v 6. snímku (dýka dopředu), návrat
+# --- attack: wind up with the right, quick stab at frame 6 (dagger forward), return
 COCK = {"upperarm_r": (0.1, 0, 0.45), "lowerarm_r": (1.9, 0, 0), "spine_02": (0.15, -0.3, 0), "hand_r": (-0.8, 0, 0)}
 STAB = {"upperarm_r": (1.45, 0, 0.35), "lowerarm_r": (0.15, 0, 0), "spine_02": (0.25, 0.35, 0), "hand_r": (-1.4, 0, 0),
         "upperarm_l": (0.2, 0, -0.6), "thigh_r": (0.8, 0, 0), "calf_r": (-0.8, 0, 0)}
@@ -101,7 +101,7 @@ make_action("A_Assassin_Attack", {
     16: BASE,
 })
 
-# --- Úder ze stínu: hluboký přikrčení, obě dýky nad hlavu, prudké bodnutí shora oběma, návrat
+# --- Shadow Strike: deep crouch, both daggers overhead, a sharp downward stab with both, return
 RAISE = merged(crouch(1.4), {"upperarm_r": (2.4, 0, 0.3), "lowerarm_r": (1.2, 0, 0), "upperarm_l": (2.4, 0, -0.3),
                              "lowerarm_l": (1.2, 0, 0), "hand_r": (-2.2, 0, 0), "hand_l": (-2.2, 0, 0),
                              "spine_02": (-0.1, 0, 0), "head": (-0.2, 0, 0)})

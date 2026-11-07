@@ -1,9 +1,9 @@
 extends SceneTree
-## Spustí scénu bitvy, odehraje kus bitvy s automatickými pokřiky a uloží snímky obrazovky.
-## Slouží ke kontrole, že se scéna načte bez chyb a vypadá rozumně.
-## Spuštění (s oknem, kvůli vykreslení):
-##   godot --path . --script res://tests/screenshot_battle.gd -- <složka pro snímky> [klíč scénáře]
-## Bez okna (jen kontrola chyb, bez snímků):
+## Starts the battle scene, plays part of a battle automatically and saves screenshots.
+## Checks that the scene loads without errors and looks reasonable.
+## Run (with a window, for rendering):
+##   godot --path . --script res://tests/screenshot_battle.gd -- <screenshot folder> [scenario key]
+## Without a window (only an error check, no screenshots):
 ##   godot --headless --path . --script res://tests/screenshot_battle.gd
 
 var out_dir := ""
@@ -17,15 +17,15 @@ const TacticalCamera := preload("res://scripts/battle/orbit_camera.gd")
 const BattleScript := preload("res://scripts/battle/battle.gd")
 
 func _init() -> void:
-	TacticalCamera.edge_scroll_all = false   # posun myší u okraje by měnil snímky
-	BattleScript.tutorial_mode = 1   # výcvik vždy (a nic se neuloží do nastavení)
+	TacticalCamera.edge_scroll_all = false   # mouse edge panning would change the screenshots
+	BattleScript.tutorial_mode = 1   # tutorial always (and nothing is saved to the settings)
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
 		out_dir = args[0]
 		DirAccess.make_dir_recursive_absolute(out_dir)
 	scene = load("res://scenes/battle/battle.tscn").instantiate()
 	if args.size() > 1:
-		scene.set("scenario_id", args[1])   # druhý argument: klíč scénáře
+		scene.set("scenario_id", args[1])   # second argument: scenario key
 	root.add_child(scene)
 
 
@@ -45,7 +45,7 @@ func _process(_delta: float) -> bool:
 		print("Výcvik se ukázal: %s" % ("OK" if bool((ui0.get("tutorial") as Control).visible) and int(scene.get("_tut_i")) == 0 else "CHYBA"))
 		var deploy := int(scene.get("phase")) == 0
 		if deploy:
-			_test_drag_swap()   # rozestavení má jen obrana
+			_test_drag_swap()   # only defense has deployment
 		else:
 			var sim0: Variant = scene.get("sim")
 			print("Bitva začíná v pauze: %s" % ("OK" if int(scene.get("phase")) == 2 and float(sim0.get("t")) == 0.0 else "CHYBA"))
@@ -63,15 +63,15 @@ func _process(_delta: float) -> bool:
 	if started_at > 0:
 		var sim: Variant = scene.get("sim")
 		if bool(scene.get("_tut_paused")):
-			# výcvik zastavil bitvu, ať hráč zareaguje: snímek a pokračovat (reakci obstará auto-hraní níž)
+			# the tutorial paused the battle for the player to react: screenshot and continue (auto-play below reacts)
 			_tut_pauses += 1
 			if _tut_pauses <= 3:
 				_shot("06_vycvik_pauza_%d.png" % _tut_pauses)
 			print("Výcvik zastavil bitvu v %.0f s (krok %d)" % [float(sim.get("t")), int(scene.get("_tut_i")) + 1])
 			scene.call("_toggle_pause")
 		if sim != null and scene.get("phase") == 1:
-			# stejná zásada jako test simulace: velitel vede oddíl skupinku po skupince, schopnost, když ji rada
-			# doporučí; cílené přes klik na bojiště
+			# same principle as the simulation test: the commander leads the squad group by group, an ability when the hint
+			# recommends it; targeted ones via a click on the battlefield
 			sim.call("auto_command")
 			_auto_abilities(sim)
 			if bool(scene.get("paused")):
@@ -107,7 +107,7 @@ func _process(_delta: float) -> bool:
 	return false
 
 
-## Přetáhne tanka myší na kněze: musí si prohodit místa.
+## Drags the tank onto the priest with the mouse: they must swap places.
 func _test_drag_swap() -> void:
 	var sim: Variant = scene.get("sim")
 	var cam: Camera3D = scene.get("cam")
@@ -125,7 +125,7 @@ func _test_drag_swap() -> void:
 	var ok_t := (tank.get("pos") as Vector2).distance_to(knez_before) < 0.6
 	var ok_k := (knez.get("pos") as Vector2).distance_to(tank_before) < 0.01
 	print("Drag & drop prohození: %s" % ("OK" if ok_t and ok_k else "CHYBA (tank %s, kněz %s)" % [tank.get("pos"), knez.get("pos")]))
-	# prohodit zpátky, aby bitva běžela ve výchozím rozestavení
+	# swap back so the battle runs in the default deployment
 	a = cam.unproject_position((views["tank"] as Node3D).global_position + Vector3(0, 1.0, 0))
 	b = cam.unproject_position((views["knez"] as Node3D).global_position + Vector3(0, 1.0, 0))
 	scene.call("_pointer_down", a)
@@ -137,8 +137,8 @@ func _test_drag_swap() -> void:
 	_test_orders_by_click()
 
 
-## Rozkazy klikem jako hráč: Poslat (výběr cíle) a klik na nepřítele,
-## spojence nebo zem podle rady automatického velitele.
+## Orders by clicking like a player: Send (target picking) and a click on an enemy,
+## an ally or the ground according to the automatic commander's hint.
 func _test_orders_by_click() -> void:
 	var sim: Variant = scene.get("sim")
 	var cam: Camera3D = scene.get("cam")
@@ -167,7 +167,7 @@ func _test_orders_by_click() -> void:
 			print("  %s: čekal jsem %s, je %s" % [id, kind, got])
 		if kind == "group" and int(u.get("order_group")) != int(o[1]):
 			print("  %s: jiná skupina (%d místo %d), cíl byl přesto přijat" % [id, u.get("order_group"), o[1]])
-	# kdo má podle rady držet místo, dostane rozkaz na místo, kde stojí (klik na zem)
+	# whoever should hold his place per the hint gets an order to the spot where he stands (click on the ground)
 	for id: String in plan:
 		if String((plan[id] as Array)[0]) == "":
 			var p: Vector2 = sim.call("by_id", id).get("pos")
@@ -180,7 +180,7 @@ func _test_orders_by_click() -> void:
 var _paused_t := -1.0
 
 
-## Mezerník pozastaví bitvu (čas stojí), znovu ji pustí.
+## Space pauses the battle (time stops), and resumes it.
 func _test_realtime_pause() -> void:
 	var sim: Variant = scene.get("sim")
 	scene.call("_toggle_pause")
@@ -188,7 +188,7 @@ func _test_realtime_pause() -> void:
 	print("Pauza: %s" % ("OK" if int(scene.get("phase")) == 2 else "CHYBA"))
 
 
-## V pauze: výběr hrdiny a pravé tlačítko na nepřítele = rozkaz na jeho skupinu; pak bitva běží dál.
+## While paused: select a hero and right-click an enemy = order at his group; then the battle goes on.
 func _test_realtime_orders() -> void:
 	var sim: Variant = scene.get("sim")
 	var cam: Camera3D = scene.get("cam")
@@ -202,11 +202,11 @@ func _test_realtime_orders() -> void:
 	var j: Variant = sim.call("by_id", "jezdec")
 	var ok := String(j.get("order")) == "group" and int(j.get("order_group")) == int(sim.call("group_of", foe.get("id")))
 	print("Rozkaz pravým tlačítkem v pauze: %s (čas stál: %s)" % ["OK" if ok else "CHYBA (%s)" % j.get("order"), "OK" if stood else "CHYBA"])
-	# zpátky k tankovi (pravé tlačítko na spojence), ať bitva běží podle plánu
+	# back to the tank (right button on an ally) so the battle runs to plan
 	var tank_screen := cam.unproject_position((views["tank"] as Node3D).global_position + Vector3(0, 1.0, 0))
 	scene.call("_command_click", tank_screen)
 	print("Rozkaz pravým tlačítkem na spojence: %s" % ("OK" if String(j.get("order")) == "ally" and String(j.get("order_ally")) == "tank" else "CHYBA (%s)" % j.get("order")))
-	# výběr tažením přes celou obrazovku vybere všechny živé hrdiny
+	# a drag across the whole screen selects all living heroes
 	var vs := root.get_visible_rect().size
 	scene.call("_pointer_down", Vector2(3, 3))
 	scene.call("_pointer_move", Vector2(40, 40))
@@ -215,7 +215,7 @@ func _test_realtime_orders() -> void:
 	var sel: Array = scene.get("selection")
 	var alive_k: int = sim.call("living", "k").size()
 	print("Výběr tažením: %s (%d z %d)" % ["OK" if sel.size() == alive_k else "CHYBA", sel.size(), alive_k])
-	# klik na hrdinu při výběru celého oddílu vybere jen jeho (jako v RTS) a v bitvě s ním nepohne
+	# clicking a hero while the whole squad is selected selects only him (as in an RTS) and does not move him in battle
 	var tpos: Vector2 = sim.call("by_id", "tank").get("pos")
 	var torder: String = sim.call("by_id", "tank").get("order")
 	scene.call("_pointer_down", tank_screen)
@@ -223,12 +223,12 @@ func _test_realtime_orders() -> void:
 	var one: Array = scene.get("selection")
 	var still: bool = String(sim.call("by_id", "tank").get("order")) == torder and (sim.call("by_id", "tank").get("pos") as Vector2).distance_to(tpos) < 0.01
 	print("Klik na hrdinu vybere jen jeho: %s" % ("OK" if one == ["tank"] and still else "CHYBA (%s)" % [one]))
-	# druhý klik na kartu vybraného výběr nezruší (natočí kameru)
+	# a second click on the selected hero's card does not clear the selection (turns the camera)
 	scene.call("_select", "tank")
 	var cam_ok := (scene.get("selection") as Array) == ["tank"]
 	scene.call("_select_all")
 	print("Karta a Ctrl+A: %s" % ("OK" if cam_ok and (scene.get("selection") as Array).size() == alive_k else "CHYBA"))
-	# H: vybraní drží místo; karta má schopnost s klávesou a nemá Poslat ani text rozkazu
+	# H: the selected hold their place; the card has the ability with its key and has no Send or order text
 	scene.call("_set_selected", "jezdec")
 	scene.call("_hold_selected")
 	var held := String(sim.call("by_id", "jezdec").get("order")) == ""
@@ -236,14 +236,14 @@ func _test_realtime_orders() -> void:
 	var texts: Array = []
 	for l: Label in (ui.get("cards_row") as Node).find_children("*", "Label", true, false):
 		texts.append(l.text)
-	var clean := not texts.has("Poslat") and not texts.any(func(t: String) -> bool: return t.begins_with("Se spojencem") or t.begins_with("Bez rozkazu"))
+	var clean := not texts.has("Send") and not texts.any(func(t: String) -> bool: return t.begins_with("With ally") or t.begins_with("No order"))
 	print("H drží místo, karta bez Poslat, schopnost s klávesou: %s" % ("OK" if held and clean and texts.has("1") else "CHYBA (%s, %s)" % [held, texts]))
-	# volná bitva má pouta na zkoušku: dvě komba na Q a E v panelu za kartami
+	# the free battle has trial bonds: two combos on Q and E in the panel after the cards
 	var combos: Array = sim.call("combos")
 	var combo_ok := combos.size() == 2 and texts.has("Q") and texts.has("E") and (ui.get("_combo_buttons") as Dictionary).size() == 2
 	print("Komba pout na Q a E: %s" % ("OK" if combo_ok else "CHYBA (%d komb, Q %s, E %s)" % [combos.size(), texts.has("Q"), texts.has("E")]))
 	scene.call("_select_all")
-	# náhled pravého tlačítka nad nepřítelem (kamera se po druhém kliku na kartu natočila, pozice znovu)
+	# right-button preview over an enemy (the camera turned after the second card click, so the position again)
 	screen = cam.unproject_position((views[String(foe.get("id"))] as Node3D).global_position + Vector3(0, 1.0, 0))
 	scene.call("_pointer_move", screen)
 	var hc: Array = scene.get("_hover_cmd")
@@ -252,7 +252,7 @@ func _test_realtime_orders() -> void:
 	scene.call("_clear_selection")
 
 
-## Výcvik: akce testu (výběr, rozkazy, start, schopnosti, H) prošly kroky; zbývá Rozumím.
+## Tutorial: the test's actions (selection, orders, start, abilities, H) went through the steps; Got it remains.
 func _test_tutorial_end() -> void:
 	var steps: int = (scene.get("_tut_steps") as Array).size()
 	var at_last := int(scene.get("_tut_i")) == steps - 1
@@ -262,7 +262,7 @@ func _test_tutorial_end() -> void:
 	print("Výcvik prošel kroky: %s" % ("OK" if at_last and closed else "CHYBA (krok %d z %d, %s)" % [int(scene.get("_tut_i")) + 1, steps, scene.get("_tut_flags")]))
 
 
-## Kamera má pevný úhel podle mapy a výřez neujede za hranice mapy.
+## The camera has a fixed angle by map and the view does not leave the map bounds.
 func _test_camera() -> void:
 	var cam: Variant = scene.get("cam")
 	var data: Dictionary = scene.get("data")
@@ -290,7 +290,7 @@ var _aimed := 0
 var _tut_pauses := 0
 
 
-## Použije schopnosti jako hráč: bez cíle tlačítkem, s cílem přes cílení a klik na bojiště.
+## Uses abilities like a player: without a target by the button, with a target via targeting and a click on the battlefield.
 func _auto_abilities(sim: Variant) -> void:
 	var cam: Camera3D = scene.get("cam")
 	var views: Dictionary = scene.get("views")
@@ -311,7 +311,7 @@ func _auto_abilities(sim: Variant) -> void:
 			var p: Vector2 = h[1]
 			screen = cam.unproject_position(Vector3(p.x, 0.0, -p.y))
 		scene.call("_pointer_move", screen)
-		var right := _aimed % 2 == 0   # střídavě pravým tlačítkem (provést akci) a levým
+		var right := _aimed % 2 == 0   # alternating the right button (perform the action) and the left
 		if right:
 			scene.call("_command_click", screen)
 		else:

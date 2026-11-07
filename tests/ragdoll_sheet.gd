@@ -1,7 +1,7 @@
 extends SceneTree
-## Ragdoll padlých: pět hrdinů a dva nepřátelé v řadě padnou, snímky po 0,3 s, 1 s a 3 s.
-## Hlídá, že fyzikální kosti vzniknou a tělo spadne na zem a zůstane na ní (nepropadne, neodletí).
-## Spuštění (s oknem): godot --path . --script res://tests/ragdoll_sheet.gd -- <složka>
+## Ragdoll of the fallen: five heroes and two enemies in a row fall, screenshots after 0.3 s, 1 s and 3 s.
+## Checks that physics bones are created and the body falls to the ground and stays on it (does not sink, does not fly off).
+## Run (with a window): godot --path . --script res://tests/ragdoll_sheet.gd -- <folder>
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
 const UnitView := preload("res://scripts/battle/unit_view.gd")
@@ -40,7 +40,7 @@ func _init() -> void:
 	var picks: Array = s.knights()
 	picks.append(s.by_id("e0"))
 	var foes := s.living(Sim.SIDE_FOE)
-	picks.append(foes[foes.size() - 1])   # poslední nepřítel scénáře (počet se mění s balancem)
+	picks.append(foes[foes.size() - 1])   # the scenario's last enemy (the count changes with balance)
 	var i := 0
 	for u in picks:
 		var v := UnitView.new()
@@ -85,7 +85,7 @@ func _process(delta: float) -> bool:
 	return false
 
 
-## Kosti padlých musí ležet na zemi: ne pod ní, ne vysoko ve vzduchu (po 3 s).
+## The bones of the fallen must lie on the ground: not under it, not high in the air (after 3 s).
 func _check_bodies(at: float) -> void:
 	for k in views.size():
 		var v: UnitView = views[k]

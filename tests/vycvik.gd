@@ -1,7 +1,7 @@
 extends SceneTree
-## Výcvik jako hráč: kroky jdou po sobě, karta je přišpendlená k cíli, v klíčových chvílích se bitva zastaví.
-## Spuštění (s oknem): godot --path . --script res://tests/vycvik.gd -- <složka na snímky> [scénář]
-## Výsledek: „VÝSLEDEK: OK“, snímky vycvik_*.png.
+## Tutorial like a player: steps follow one another, the card is pinned to its target, the battle pauses at key moments.
+## Run (with a window): godot --path . --script res://tests/vycvik.gd -- <screenshot folder> [scenario]
+## Result: "VÝSLEDEK: OK", screenshots vycvik_*.png.
 
 const TacticalCamera := preload("res://scripts/battle/orbit_camera.gd")
 const BattleScript := preload("res://scripts/battle/battle.gd")
@@ -10,7 +10,7 @@ var scene: Node
 var out_dir := ""
 var frame := 0
 var errors: Array[String] = []
-var paused_steps: Array = []   # kroky, u kterých výcvik zastavil bitvu
+var paused_steps: Array = []   # steps at which the tutorial paused the battle
 var shots := {}
 
 
@@ -68,7 +68,7 @@ func _process(_delta: float) -> bool:
 	elif frame == 40:
 		_shot("2_rozkaz.png")
 		_ok(_pinned(), "krok 2 je přišpendlený k místu před hrdiny")
-		scene.call("_command_click", _screen(scene.call("_tut_world", "ahead"), 0.0))   # tam, kam ukazuje karta
+		scene.call("_command_click", _screen(scene.call("_tut_world", "ahead"), 0.0))   # where the card points
 		_ok(_step() == 2, "rozkaz pravým splnil krok 2")
 	elif frame == 50:
 		_shot("3_start.png")
@@ -80,11 +80,11 @@ func _process(_delta: float) -> bool:
 		if bool(scene.get("_tut_paused")):
 			_react(sim)
 		elif _step() == 5:
-			scene.call("_hold_selected")   # krok H se ukáže bez čekání; hráč ho zkusí
+			scene.call("_hold_selected")   # the H step shows without waiting; the player tries it
 			_ok(_step() == 6, "H splnilo krok 6")
 			scene.call("_select_all")
 		if _step() == 6 and int(scene.get("phase")) == 1:
-			sim.call("auto_command")   # oddíl dál útočí, ať velitel začne chystat schopnost
+			sim.call("auto_command")   # the squad keeps attacking so the commander starts preparing an ability
 	if frame > 50 and (_step() < 0 or String(sim.get("over")) != "" or float(sim.get("t")) > 150.0):
 		_ok(_step() < 0, "výcvik prošel všemi kroky (zbývá krok %d)" % (_step() + 1))
 		_ok(paused_steps.has(3) and paused_steps.has(4), "bitva se zastavila u nepřátel a u boje (%s)" % [paused_steps])
@@ -95,7 +95,7 @@ func _process(_delta: float) -> bool:
 	return false
 
 
-## Výcvik zastavil bitvu: snímek, kontrola a reakce jako hráč, pak pokračovat mezerníkem.
+## The tutorial paused the battle: screenshot, check and a player's reaction, then continue with Space.
 func _react(sim: Variant) -> void:
 	var i := _step()
 	paused_steps.append(i)
@@ -104,7 +104,7 @@ func _react(sim: Variant) -> void:
 	_ok(_pinned(), "krok %d: karta je přišpendlená" % (i + 1))
 	match i:
 		3:
-			# nepřátelé jdou: oddíl na nejbližší skupinu
+			# enemies are coming: the squad at the nearest group
 			scene.call("_select_all")
 			var best: Variant = null
 			for f: Variant in sim.call("living", "e"):
@@ -115,7 +115,7 @@ func _react(sim: Variant) -> void:
 			scene.call("_command_click", sp)
 			_ok(_step() == 4, "útok na skupinu splnil krok 4")
 		4:
-			scene.call("_ability", "tank")   # Výzva (bez cíle)
+			scene.call("_ability", "tank")   # Challenge (no target)
 			_ok(_step() == 5, "schopnost splnila krok 5")
 			_shot("6_h.png")
 		6:

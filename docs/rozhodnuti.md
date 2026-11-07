@@ -2,6 +2,10 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 07.11.2026 – Hra v angličtině
+- **Texty ve hře, data a komentáře v kódu jsou anglicky**, hra je jen anglicky (bez české lokalizace, lokalizace se řeší až před vydáním). Tom: trh bude mířený na angličtinu. Dokumentace, deník rozhodnutí, commity a naše komunikace zůstávají česky. Klíče v datech se nemění.
+- Názvy drží `docs/glosar.md`: House of the Wolf, The Count's Forest, třídy Tank, Priest, Archer, Cavalier, Assassin, vlastnosti Attack, Power, Toughness, Haste, Might, znamení rodu = relic. Osobní jména zůstávají česká, tituly se překládají (Father Jan, Captain Kuno). Pracovní název hry Knights (na Steamu rozhodne Tom).
+
 ## 07.11.2026 – Pouta rostou vítězstvími, komba na Q a E
 - **Pouto se buduje společnými vítězstvími**, ne jako odměna z nabídky: dvojice, která bitvu vyhraje a oba přežijí, má +1 společné vítězství. 2 vítězství = úroveň 1 (hráč vybere typ pouta ze dvou), 4 = úroveň 2 (silnější efekt a kombo), 6 = úroveň 3 (pokrevní). Každý hrdina má nejvýš jedno pouto. Žal po padlém roste s úrovní. Nástupce začíná od nuly. Hostina v táboře dá vybrané dvojici +1 vítězství, Přísaha samotáře pouta zakazuje. Tom: vztah má vzniknout ze společně odbojovaných bitev.
 - **Kombo pouta nahrazuje souhru** jako samostatnou odměnu: od úrovně 2 spojí schopnosti obou hrdinů do jedné silnější akce, spouští se klávesou Q nebo E (nejvýš 2 komba naráz, 1–5 zůstávají jednotlivým schopnostem). Kombo spotřebuje po jednom použití z obou schopností. Cílení je buď kotvené na hrdinu (tank, nemíří se), nebo se míří jedna schopnost. 15 komb je v návrhu. Důvod: hráč chtěl vidět souhru přímo v boji; dvě klávesy navíc jsou mez, kterou ovládání unese (05.11 „žádný druhý slot“ platí dál pro jednotlivé schopnosti).

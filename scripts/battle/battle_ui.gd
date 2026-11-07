@@ -1,9 +1,9 @@
 extends CanvasLayer
-## Rozhraní bitvy. Neobsahuje herní logiku: jen vykresluje stav a posílá signály do battle.gd.
+## Battle UI. Holds no game logic: it only draws the state and sends signals to battle.gd.
 ##
-## Rozvržení: nahoře lišta velení (čas, sláva, signál, Do boje!, rychlost; v rozestavení
-## signály a Začít bitvu), vlevo nahoře karta bitvy (scénář, úkol, rod), dole karty rytířů,
-## vpravo nahoře malý deník bitvy (dá se sbalit), nad jednotkami zdraví a ikonky stavu.
+## Layout: command bar at the top (time, glory, All In!, speed; in deployment
+## Start battle), battle card top left (scenario, task, house), hero cards at the bottom,
+## a small collapsible battle log top right, health and status icons above units.
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
 const Icon := preload("res://scripts/battle/ui_icon.gd")
@@ -39,19 +39,19 @@ const STEEL := Color("#8aa2e0")
 const CARD_W := 196.0
 
 const ORDER_COL := Color(1.0, 0.92, 0.55)
-## Ikona rozkazu podle druhu (zástupné).
+## Order icon by kind (placeholder).
 const ORDER_ICONS := {"": "hold", "point": "route", "group": "zarod", "ally": "hradba"}
 
-## Ikona schopnosti podle klíče (zástupné).
+## Ability icon by key (placeholder).
 const ABILITY_ICONS := {"vyzva": "hradba", "pozehnani": "heal", "salva": "lucistnik", "najezd": "charge", "uder": "asasin"}
 
 var root: Control
-var tutorial: PanelContainer        # panel výcviku (show_tutorial / hide_tutorial)
+var tutorial: PanelContainer        # tutorial panel (show_tutorial / hide_tutorial)
 var _tut_title: Label
 var _tut_text: Label
 var _tut_ok: Button
-var _tut_arrow: Line2D               # šipka od karty výcviku k cíli
-var _tut_mark: Line2D                # kroužek na cíli
+var _tut_arrow: Line2D               # arrow from the tutorial card to its target
+var _tut_mark: Line2D                # ring on the target
 var top_bar: PanelContainer
 var top_row: HBoxContainer
 var info_card: PanelContainer
@@ -63,16 +63,16 @@ var toast: PanelContainer
 var toast_label: Label
 var result_box: PanelContainer
 var oath_dialog: ConfirmationDialog
-var select_box: Panel              # obdélník výběru tažením
-var scenario_choices: Array = []   # [[klíč, název], ...] pro výběr bitvy
-var run_mode := false              # bitva je součástí běhu: bez výběru bitvy, pasivky jen ke čtení
-var run_label := ""                # např. "Bitva 2 ze 3"
+var select_box: Panel              # box selection rectangle
+var scenario_choices: Array = []   # [[key, name], ...] for the battle picker
+var run_mode := false              # the battle is part of a run: no battle picker, passives read-only
+var run_label := ""                # e.g. "Battle 2 of 3"
 
 var _overhead: Dictionary = {}     # id -> {"root", "fill", "bg", "icons", "sig"}
 var _cards: Dictionary = {}        # id -> {"hp": ProgressBar, "icons": HBoxContainer, "sig": String}
 var _time_label: Label
-var _ability_buttons: Dictionary = {}   # id hrdiny -> Button
-var _combo_buttons: Dictionary = {}     # id komba -> Button
+var _ability_buttons: Dictionary = {}   # hero id -> Button
+var _combo_buttons: Dictionary = {}     # combo id -> Button
 var _hint: Label
 var _hint_t := 0.0
 var _pause_button: Button
@@ -95,7 +95,7 @@ func _ready() -> void:
 	bars_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(bars_layer)
 
-	# lišta velení nahoře uprostřed
+	# command bar top centre
 	top_bar = PanelContainer.new()
 	top_bar.anchor_left = 0.5
 	top_bar.anchor_right = 0.5
@@ -107,7 +107,7 @@ func _ready() -> void:
 	top_row.add_theme_constant_override("separation", 8)
 	top_bar.add_child(top_row)
 
-	# karta bitvy vlevo nahoře
+	# battle card top left
 	info_card = PanelContainer.new()
 	info_card.position = Vector2(12, 12)
 	info_card.custom_minimum_size = Vector2(300, 0)
@@ -117,7 +117,7 @@ func _ready() -> void:
 	info_box.add_theme_constant_override("separation", 6)
 	info_card.add_child(info_box)
 
-	# karty rytířů dole uprostřed
+	# hero cards bottom centre
 	var cards_holder := CenterContainer.new()
 	cards_holder.anchor_left = 0.0
 	cards_holder.anchor_right = 1.0
@@ -132,7 +132,7 @@ func _ready() -> void:
 	cards_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cards_holder.add_child(cards_row)
 
-	# deník vpravo nahoře
+	# log top right
 	log_panel = PanelContainer.new()
 	log_panel.anchor_left = 1.0
 	log_panel.anchor_right = 1.0
@@ -149,11 +149,11 @@ func _ready() -> void:
 	lh.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	lh.add_theme_font_size_override("font_size", 12)
 	lh.add_theme_color_override("font_color", MUTED)
-	lh.text = "DENÍK BITVY  ▾"
+	lh.text = "BATTLE LOG  ▾"
 	lh.focus_mode = Control.FOCUS_NONE
 	lh.pressed.connect(func() -> void:
 		_log_open = not _log_open
-		lh.text = "DENÍK BITVY  ▾" if _log_open else "DENÍK BITVY  ▸"
+		lh.text = "BATTLE LOG  ▾" if _log_open else "BATTLE LOG  ▸"
 		_log_box.visible = _log_open)
 	lv.add_child(lh)
 	_log_box = VBoxContainer.new()
@@ -176,14 +176,14 @@ func _ready() -> void:
 	toast_label.custom_minimum_size = Vector2(380, 0)
 	th.add_child(toast_label)
 	var tb := Button.new()
-	tb.text = "Pokračovat  [Mezerník]"
+	tb.text = "Continue  [Space]"
 	tb.focus_mode = Control.FOCUS_NONE
 	tb.pressed.connect(func() -> void: continue_pressed.emit())
 	th.add_child(tb)
 	toast.visible = false
 	root.add_child(toast)
 
-	# výcvik: karta s krokem, přišpendlená šipkou k tomu, čeho se krok týká (point_tutorial)
+	# tutorial: a card with the step, pinned with an arrow to what the step is about (point_tutorial)
 	_tut_arrow = Line2D.new()
 	_tut_arrow.width = 3.0
 	_tut_arrow.default_color = GLORY
@@ -212,13 +212,13 @@ func _ready() -> void:
 	trow.alignment = BoxContainer.ALIGNMENT_END
 	tv.add_child(trow)
 	var skip := Button.new()
-	skip.text = "Přeskočit výcvik"
+	skip.text = "Skip tutorial"
 	skip.flat = true
 	skip.focus_mode = Control.FOCUS_NONE
 	skip.pressed.connect(func() -> void: tutorial_skip_pressed.emit())
 	trow.add_child(skip)
 	_tut_ok = _primary(Button.new())
-	_tut_ok.text = "Rozumím"
+	_tut_ok.text = "Got it"
 	_tut_ok.focus_mode = Control.FOCUS_NONE
 	_tut_ok.pressed.connect(func() -> void: tutorial_ok_pressed.emit())
 	trow.add_child(_tut_ok)
@@ -255,9 +255,9 @@ func _ready() -> void:
 	root.add_child(result_box)
 
 	oath_dialog = ConfirmationDialog.new()
-	oath_dialog.title = "Přísaha"
-	oath_dialog.ok_button_text = "Porušit přísahu"
-	oath_dialog.cancel_button_text = "Zrušit rozkaz"
+	oath_dialog.title = "Oath"
+	oath_dialog.ok_button_text = "Break the oath"
+	oath_dialog.cancel_button_text = "Cancel order"
 	oath_dialog.dialog_autowrap = true
 	oath_dialog.min_size = Vector2i(440, 0)
 	oath_dialog.confirmed.connect(func() -> void:
@@ -269,7 +269,7 @@ func _ready() -> void:
 	add_child(oath_dialog)
 
 
-# ================================================================ téma a pomocníci
+# ================================================================ theme and helpers
 
 func _box(bg: Color, radius: int, pad: int, border: Color = Color(0, 0, 0, 0), bw: int = 0) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
@@ -329,8 +329,8 @@ func _bar(fill: Color, h: int = 6) -> ProgressBar:
 	return p
 
 
-## Tlačítko s ikonkou a textem (popisek je Label uvnitř, aby šel měnit v update_dynamic).
-## Klávesová zkratka na tlačítku: malý rámeček s klávesou za textem (text tlačítka zůstává první Label).
+## Button with an icon and text (the caption is a Label inside so update_dynamic can change it).
+## Keyboard shortcut on a button: a small box with the key after the text (the button text stays the first Label).
 func _add_keycap(b: Button, key: String) -> void:
 	var h := b.get_child(0) as HBoxContainer
 	var cap := PanelContainer.new()
@@ -383,57 +383,57 @@ func _clear() -> void:
 	_time_label = null
 
 
-## Ikona třídy rytíře.
+## Hero class icon.
 static func class_icon(u: Sim.Unit) -> String:
 	return u.key if u.key in ["tank", "knez", "lucistnik", "jezdec", "asasin"] else "tank"
 
 
-## Ikonky stavu jednotky: [druh, barva, přeškrtnutá, popisek]. Jen čte simulaci.
+## Unit status icons: [kind, colour, struck through, tooltip]. Only reads the simulation.
 func _status_icons(sim: Sim, u: Sim.Unit, in_battle: bool) -> Array:
 	var out: Array = []
 	if u.side == Sim.SIDE_KNIGHT:
 		for k: String in u.passives:
 			var pd: Dictionary = sim.units_data["passives"][k]
 			if pd.get("kind", "") == "oath":
-				out.append(["oath", GLORY, u.oath_broken, "Přísaha %s%s: %s" % [pd["name"], " (zlomena)" if u.oath_broken else "", pd["desc"]]])
+				out.append(["oath", GLORY, u.oath_broken, "Oath %s%s: %s" % [pd["name"], " (broken)" if u.oath_broken else "", pd["desc"]]])
 			else:
 				out.append(["glory", Color(STEEL, 0.9), false, "%s: %s" % [pd["name"], pd["desc"]]])
 		var bond := sim.bond_of(u.id)
 		if not bond.is_empty():
 			var mate := sim.by_id(String(bond["with"]))
-			out.append(["glory", GLORY, mate == null or not mate.alive(), "Pouto %s · druh %s (úroveň %d): %s Žal: %s" % [bond["name"], mate.name if mate != null else "?", int(bond["level"]), bond["desc"], bond["grief_desc"]]])
+			out.append(["glory", GLORY, mate == null or not mate.alive(), "Bond %s · companion %s (level %d): %s Grief: %s" % [bond["name"], mate.name if mate != null else "?", int(bond["level"]), bond["desc"], bond["grief_desc"]]])
 		var st: Dictionary = sim.stats_of(u.id)
 		var parts: Array = []
 		for sk: String in ["utok", "moc", "odolnost", "pohotovost"]:
 			if absf(float(st[sk])) > 0.001:
 				parts.append("%s %+d %%" % [sim.units_data["stats"][sk]["name"], roundi(float(st[sk]) * 100.0)])
 		if not parts.is_empty():
-			out.append(["glory", Color(GLORY, 0.7), false, "Vlastnosti: " + ", ".join(parts)])
+			out.append(["glory", Color(GLORY, 0.7), false, "Stats: " + ", ".join(parts)])
 		if in_battle and u.alive():
 			if u.taunt_t > 0.0:
-				out.append(["hradba", STEEL, false, "Výzva: nepřátelé útočí na něj, poloviční zranění"])
+				out.append(["hradba", STEEL, false, "Challenge: enemies attack him, half damage"])
 		if u.alive():
 			out.append([ORDER_ICONS.get("" if u.order_done else u.order, "hold"), ORDER_COL, false, sim.order_text(u.id)])
 	else:
 		if u.leader:
-			out.append(["glory", GLORY, false, "%s: velitel. Když padne, nepřítel se zlomí." % u.name])
+			out.append(["glory", GLORY, false, "%s: commander. When he falls, the enemy breaks." % u.name])
 		if u.casting:
-			out.append(["desperate", BAD, false, "Napřahuje se: omráčení (Nájezd) ho přeruší"])
+			out.append(["desperate", BAD, false, "Winding up: a stun (Charge) interrupts him"])
 		if u.stun_t > 0.0:
-			out.append(["glory", STEEL, false, "Omráčený"])
+			out.append(["glory", STEEL, false, "Stunned"])
 		if u.fleeing:
-			out.append(["flee", MUTED, false, "Prchá"])
+			out.append(["flee", MUTED, false, "Fleeing"])
 		elif u.desperate:
-			out.append(["desperate", BAD, false, "Zoufalý: útočí silněji"])
+			out.append(["desperate", BAD, false, "Desperate: attacks harder"])
 		elif u.asleep:
-			out.append(["hold", MUTED, false, "Hlídá: přidá se do boje, až se přiblížíš nebo uslyší boj"])
+			out.append(["hold", MUTED, false, "On watch: joins the fight when you come close or he hears fighting"])
 		for tr: String in u.traits:
 			if tr == "fanatik":
-				out.append(["fanatik", Color("#f08a3c"), false, "Fanatik: nikdy se nezlomí"])
+				out.append(["fanatik", Color("#f08a3c"), false, "Fanatic: never breaks"])
 			elif tr == "zbabelec":
-				out.append(["zbabelec", Color("#c9c3a6"), false, "Zbabělec: uteče, když se morálka zlomí"])
+				out.append(["zbabelec", Color("#c9c3a6"), false, "Coward: flees when morale breaks"])
 		if u.vs_mounted > 1.0:
-			out.append(["jezdec", BAD, true, "Kopí: proti jízdě 2× poškození"])
+			out.append(["jezdec", BAD, true, "Spear: 2× damage against cavalry"])
 	return out
 
 
@@ -453,15 +453,15 @@ static func _sig(icons: Array) -> String:
 	return s
 
 
-# ================================================================ rozestavení
+# ================================================================ deployment
 
 func show_deploy(sim: Sim, _setup: Dictionary, selection: Array, scenario_id: String = "", order_id: String = "") -> void:
 	_clear()
 	_fill_info(sim, true, scenario_id)
 
-	# lišta: začátek bitvy
+	# bar: battle start
 	var start := _primary(Button.new())
-	start.text = "Začít bitvu"
+	start.text = "Start battle"
 	start.custom_minimum_size = Vector2(150, 36)
 	start.pressed.connect(func() -> void: start_pressed.emit())
 	top_row.add_child(start)
@@ -479,7 +479,7 @@ func _fill_info(sim: Sim, deploy: bool, scenario_id: String) -> void:
 		var pick := OptionButton.new()
 		var i := 0
 		for ch: Array in scenario_choices:
-			pick.add_item("Bitva: %s" % ch[1])
+			pick.add_item("Battle: %s" % ch[1])
 			pick.set_item_metadata(i, ch[0])
 			if ch[0] == scenario_id:
 				pick.select(i)
@@ -494,27 +494,27 @@ func _fill_info(sim: Sim, deploy: bool, scenario_id: String) -> void:
 	if not md.is_empty():
 		info_box.add_child(_label("%s: %s" % [md.get("name", ""), md.get("desc", "")], 13, STEEL, true))
 	if sim.waves_left > 0:
-		info_box.add_child(_label("Ještě přijde vln: %d" % sim.waves_left, 13, GLORY))
+		info_box.add_child(_label("Waves still to come: %d" % sim.waves_left, 13, GLORY))
 	var task: Dictionary = sc["optional_task"]
 	var tb := PanelContainer.new()
 	var st := _box(Color(GLORY, 0.10), 6, 8)
 	st.border_color = GLORY
 	st.border_width_left = 3
 	tb.add_theme_stylebox_override("panel", st)
-	tb.add_child(_label("Úkol: %s Odměna: %s." % [task["text"], task["reward"]], 13, INK, true))
+	tb.add_child(_label("Task: %s Reward: %s." % [task["text"], task["reward"]], 13, INK, true))
 	info_box.add_child(tb)
 	if sim.sleeping_pods() > 0:
-		info_box.add_child(_label("Dál čeká nepřátel: skupinek %d" % sim.sleeping_pods(), 13, GLORY))
+		info_box.add_child(_label("Enemy groups still waiting: %d" % sim.sleeping_pods(), 13, GLORY))
 	if deploy:
-		info_box.add_child(_label("Vyber hrdinu (klik, tažení obdélníku, Shift přidá další) a pravým tlačítkem ho pošli: na místo, na nepřítele (půjde po celé jeho skupině) nebo na spojence (zůstane s ním). Kdo rozkaz nemá nebo ho splnil, drží místo a brání se (H zruší rozkaz vybraným). Schopnost: klávesa na tlačítku, cíl pravým tlačítkem. Mezerník bitvu pozastaví i spustí.", 12, MUTED, true))
-		info_box.add_child(_label("Nepřátelé stojí ve skupinkách a přidají se, až se přiblížíš nebo uslyší boj. Schopnosti mají pevný počet použití na celou bitvu (●) a po použití se nabíjejí; mezi skupinkami se nic nedoplňuje a kněz léčí jen v boji.", 12, MUTED, true))
+		info_box.add_child(_label("Select a hero (click, drag a box, Shift adds more) and send him with the right button: to a place, at an enemy (he goes after its whole group) or to an ally (he stays with him). Whoever has no order or has finished it holds his place and defends himself (H cancels the selected heroes' orders). Ability: the key on the button, target with the right button. Space pauses and resumes the battle.", 12, MUTED, true))
+		info_box.add_child(_label("Enemies stand in groups and join when you come close or they hear fighting. Abilities have a fixed number of uses for the whole battle (●) and recharge after use; nothing refills between groups and the priest heals only in combat.", 12, MUTED, true))
 
 
-# ================================================================ bitva
+# ================================================================ battle
 
 func show_battle(sim: Sim, pause_phase: bool, selection: Array, speed: float, log_lines: Array, aim_id: String = "", order_id: String = "", scenario_id: String = "") -> void:
 	_clear()
-	_fill_info(sim, pause_phase and sim.t == 0.0, scenario_id)   # před začátkem: výběr bitvy a návod
+	_fill_info(sim, pause_phase and sim.t == 0.0, scenario_id)   # before the start: battle picker and instructions
 
 	_time_label = _label("0:00", 16, INK)
 	_time_label.custom_minimum_size = Vector2(44, 0)
@@ -523,19 +523,19 @@ func show_battle(sim: Sim, pause_phase: bool, selection: Array, speed: float, lo
 
 	if pause_phase:
 		var rb := _primary(Button.new())
-		rb.text = "Začít bitvu" if sim.t == 0.0 else "Pauza · Pokračovat"
-		rb.tooltip_text = "Pokračovat [Mezerník]. V pauze jdou dávat rozkazy i schopnosti."
+		rb.text = "Start battle" if sim.t == 0.0 else "Paused · Continue"
+		rb.tooltip_text = "Continue [Space]. While paused you can give orders and use abilities."
 		rb.custom_minimum_size = Vector2(200, 36)
 		rb.pressed.connect(func() -> void: resume_pressed.emit())
 		top_row.add_child(rb)
 	else:
-		_pause_button = _icon_button("pause", "Pauza", INK)
-		_pause_button.tooltip_text = "Pauza [Mezerník]: zastaví čas, v klidu dáš rozkazy a schopnosti."
+		_pause_button = _icon_button("pause", "Pause", INK)
+		_pause_button.tooltip_text = "Pause [Space]: stops time so you can give orders and use abilities calmly."
 		_pause_button.pressed.connect(func() -> void: pause_pressed.emit())
 		top_row.add_child(_pause_button)
 		if sim.foes_broken:
-			_charge_button = _primary(_icon_button("charge", "Do boje! [F]" if not sim.charging else "Dobojují", Color.WHITE))
-			_charge_button.tooltip_text = "Jednorázový povel: všichni rytíři opustí postoje a dobojují se zlomeným nepřítelem."
+			_charge_button = _primary(_icon_button("charge", "All In! [F]" if not sim.charging else "Fighting on", Color.WHITE))
+			_charge_button.tooltip_text = "One-time command: all heroes leave their posts and finish off the broken enemy."
 			_charge_button.pressed.connect(func() -> void: charge_pressed.emit())
 			top_row.add_child(_charge_button)
 		var group := ButtonGroup.new()
@@ -555,10 +555,10 @@ func show_battle(sim: Sim, pause_phase: bool, selection: Array, speed: float, lo
 	_no_focus(root)
 
 
-# ================================================================ karty rytířů
+# ================================================================ hero cards
 
-## Karty hrdinů; zvýrazněné jsou vybraní (selection). Rozkaz k ústupu v bitvě porušuje
-## přísahu Nikdy neustoupí (battle.gd se zeptá).
+## Hero cards; the selected ones are highlighted (selection). A retreat order in battle breaks
+## the Never Retreat oath (battle.gd asks).
 func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String, aim_id: String) -> void:
 	for u in sim.knights():
 		var sel := selection.has(u.id)
@@ -583,7 +583,7 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 		names.add_theme_constant_override("separation", -2)
 		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		names.add_child(_label(u.name, 14, u.color.lightened(0.45) if u.alive() else MUTED))
-		names.add_child(_label(u.role + ("" if u.alive() else " · padl"), 11, MUTED))
+		names.add_child(_label(u.role + ("" if u.alive() else " · fallen"), 11, MUTED))
 		head.add_child(names)
 		var icons := HBoxContainer.new()
 		icons.add_theme_constant_override("separation", 2)
@@ -603,31 +603,31 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 
 		var a := sim.ability_of(u.id)
 		if not a.is_empty():
-			var key := sim.knights().find(u) + 1   # klávesa 1–5 podle pořadí karet (battle.gd _ability_by_index)
+			var key := sim.knights().find(u) + 1   # key 1–5 by card order (battle.gd _ability_by_index)
 			var ab := _icon_button(ABILITY_ICONS.get(u.ability, "glory"), String(a["name"]), GLORY)
 			ab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			ab.tooltip_text = String(a["desc"])
 			_add_keycap(ab, str(key))
 			if aim_id == u.id:
 				ab.add_theme_stylebox_override("normal", _box(Color("#3a3220"), 7, 8, GLORY, 2))
-				ab.tooltip_text += "\nKlikni na bojiště (levým nebo pravým), Esc zruší."
+				ab.tooltip_text += "\nClick the battlefield (left or right), Esc cancels."
 			ab.pressed.connect(func() -> void: ability_pressed.emit(id))
 			v.add_child(ab)
 			_ability_buttons[u.id] = ab
 
 		if not in_battle:
 			var mb := MenuButton.new()
-			mb.text = "Pasivky (%d)" % u.passives.size()
+			mb.text = "Passives (%d)" % u.passives.size()
 			mb.flat = false
 			mb.add_theme_font_size_override("font_size", 13)
-			mb.tooltip_text = "Pasivky a přísahy hrdiny (získávají se po bitvě)." if run_mode else "Na zkoušku: ve hře budou pasivky a přísahy odměnou v běhu."
+			mb.tooltip_text = "The hero's passives and oaths (gained after battles)." if run_mode else "For trial: in the game, passives and oaths are run rewards."
 			mb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			var pm := mb.get_popup()
 			var pi := 0
 			var pkeys: Array = u.passives.duplicate() if run_mode else sim.passives_for(u.id)
 			for pk: String in pkeys:
 				var pd: Dictionary = sim.units_data["passives"][pk]
-				pm.add_check_item(("Přísaha: " if pd.get("kind", "") == "oath" else "") + String(pd["name"]))
+				pm.add_check_item(("Oath: " if pd.get("kind", "") == "oath" else "") + String(pd["name"]))
 				pm.set_item_checked(pi, u.passives.has(pk))
 				pm.set_item_metadata(pi, pk)
 				pm.set_item_tooltip(pi, String(pd["desc"]))
@@ -642,7 +642,7 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 	_build_combos(sim)
 
 
-## Komba pout (Q, E): tlačítko s klávesou, názvem a dvojicí hrdinů. Jen čte simulaci.
+## Bond combos (Q, E): a button with the key, the combo name and the hero pair. Only reads the simulation.
 func _build_combos(sim: Sim) -> void:
 	var list := sim.combos()
 	if list.is_empty():
@@ -652,7 +652,7 @@ func _build_combos(sim: Sim) -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 3)
 	card.add_child(v)
-	v.add_child(_label("Komba pout", 11, MUTED))
+	v.add_child(_label("Bond combos", 11, MUTED))
 	for c: Dictionary in list:
 		var a := sim.by_id(String(c["a"]))
 		var b := sim.by_id(String(c["b"]))
@@ -668,9 +668,9 @@ func _build_combos(sim: Sim) -> void:
 	cards_row.add_child(card)
 
 
-## Krok výcviku: nadpis s číslem kroku, text; `ok` = krok potvrdí tlačítko Rozumím.
+## Tutorial step: title with the step number, text; `ok` = the step is confirmed with the Got it button.
 func show_tutorial(title: String, step: int, total: int, text: String, ok: bool) -> void:
-	_tut_title.text = "%s · krok %d z %d" % [title.to_upper(), step, total]
+	_tut_title.text = "%s · step %d of %d" % [title.to_upper(), step, total]
 	_tut_text.text = text
 	_tut_ok.visible = ok
 	tutorial.visible = true
@@ -683,8 +683,8 @@ func hide_tutorial() -> void:
 	_tut_mark.visible = false
 
 
-## Umístí kartu výcviku k bodu na obrazovce (nad něj, nebo pod něj, když je v horní polovině)
-## a natáhne k němu šipku s kroužkem. Bez bodu (null) leží karta vpravo pod deníkem bitvy.
+## Places the tutorial card next to a screen point (above it, or below when it is in the upper half)
+## and draws an arrow with a ring to it. Without a point (null) the card sits on the right below the battle log.
 func point_tutorial(target: Variant) -> void:
 	if not tutorial.visible:
 		return
@@ -724,7 +724,7 @@ func set_log(lines: Array) -> void:
 	for c in _log_box.get_children():
 		c.queue_free()
 	if lines.is_empty():
-		_log_box.add_child(_label("Bitva ještě nezačala." if _time_label == null else "Bitva začala.", 12, MUTED))
+		_log_box.add_child(_label("The battle has not started yet." if _time_label == null else "The battle has begun.", 12, MUTED))
 		return
 	var start := maxi(0, lines.size() - 6)
 	for i in range(lines.size() - 1, start - 1, -1):
@@ -735,13 +735,13 @@ func set_log(lines: Array) -> void:
 		_log_box.add_child(lab)
 
 
-## Části, které se mění každý zlomek sekundy (bez přestavby panelů).
+## Parts that change every fraction of a second (without rebuilding the panels).
 func update_dynamic(sim: Sim, _pause_phase: bool, paused: bool) -> void:
 	if _time_label != null:
 		_time_label.text = "%d:%02d" % [int(sim.t) / 60, int(sim.t) % 60]
 		var nw := sim.next_wave_t()
 		if nw < INF:
-			_time_label.text += "  ·  vlna za %d s" % ceili(nw - sim.t)
+			_time_label.text += "  ·  wave in %d s" % ceili(nw - sim.t)
 	var in_play := _time_label != null
 	for id: String in _ability_buttons:
 		var b: Button = _ability_buttons[id]
@@ -752,7 +752,7 @@ func update_dynamic(sim: Sim, _pause_phase: bool, paused: bool) -> void:
 			var base := String(sim.ability_of(id)["name"])
 			var tail := ""
 			if u.uses <= 0:
-				tail = "vyčerpáno"
+				tail = "spent"
 			elif u.ability_cd > 0.0:
 				tail = "%s %d s" % ["●".repeat(u.uses), ceili(u.ability_cd)]
 			else:
@@ -785,7 +785,7 @@ func update_dynamic(sim: Sim, _pause_phase: bool, paused: bool) -> void:
 			_fill_icons(c["icons"], icons, 16)
 
 
-# ================================================================ nad hlavami: zdraví a ikonky
+# ================================================================ above heads: health and icons
 
 func update_hp_bars(sim: Sim, cam: Camera3D, views: Dictionary, show_full: bool) -> void:
 	for u in sim.units:
@@ -802,7 +802,7 @@ func update_hp_bars(sim: Sim, cam: Camera3D, views: Dictionary, show_full: bool)
 			bg.size = Vector2(36, 5)
 			bg.position = Vector2(-18, 0)
 			if u.side == Sim.SIDE_KNIGHT:
-				# rámeček v barvě hrdiny: hrdinové jdou rozlišit i nad hlavou
+				# frame in the hero's colour: heroes can be told apart above their heads too
 				bg.color = u.color.lightened(0.3)
 				bg.size = Vector2(40, 9)
 				bg.position = Vector2(-20, -2)
@@ -855,12 +855,12 @@ func hide_toast() -> void:
 	toast.visible = false
 
 
-func ask_oath(knight_name: String, oath: Dictionary, why: String, on_break: Callable, on_keep: Callable, keep_text: String = "Zrušit rozkaz") -> void:
+func ask_oath(knight_name: String, oath: Dictionary, why: String, on_break: Callable, on_keep: Callable, keep_text: String = "Cancel order") -> void:
 	_oath_break_cb = on_break
 	_oath_keep_cb = on_keep
 	oath_dialog.cancel_button_text = keep_text
 	var cost := int(oath.get("break_glory_cost", 0))
-	oath_dialog.dialog_text = "%s složil přísahu „%s“ (%s) a tohle ji poruší: %s.\n\nKdyž ji porušíš, přísaha přestane platit, oddíl přijde o %d slávy a zlomená přísaha se nedědí." % [knight_name, oath.get("name", ""), oath.get("desc", ""), why, cost]
+	oath_dialog.dialog_text = "%s has sworn the oath “%s” (%s) and this would break it: %s.\n\nIf you break it, the oath stops working, the squad loses %d glory and a broken oath is not passed on." % [knight_name, oath.get("name", ""), oath.get("desc", ""), why, cost]
 	oath_dialog.popup_centered()
 
 
@@ -871,8 +871,8 @@ func show_result(sim: Sim, _setup: Dictionary) -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	result_box.add_child(v)
-	v.add_child(_label("Konec bitvy · %d:%02d" % [int(sim.t) / 60, int(sim.t) % 60], 12, MUTED))
-	v.add_child(_label(String(sim.scenario.get("win_title", "Vítězství")) if win else "Oddíl padl", 26, OK if win else BAD))
+	v.add_child(_label("Battle over · %d:%02d" % [int(sim.t) / 60, int(sim.t) % 60], 12, MUTED))
+	v.add_child(_label(String(sim.scenario.get("win_title", "Victory")) if win else "The squad has fallen", 26, OK if win else BAD))
 	var fallen: Array[String] = []
 	var best_glory := ""
 	var best_g := 0.0
@@ -890,13 +890,13 @@ func show_result(sim: Sim, _setup: Dictionary) -> void:
 	g.columns = 2
 	g.add_theme_constant_override("h_separation", 16)
 	for pair: Array in [
-		["Padlí", ", ".join(fallen) if not fallen.is_empty() else "nikdo"],
-		["Uprchlí nepřátelé", str(fled)],
-		["Volitelný úkol", "splněn, %s" % sim.scenario["optional_task"]["reward"] if win and sim.task_ok else "nesplněn"],
-		["Přísahy", "dodrženy" if sim.oaths_broken() == 0 else "zlomeno %d" % sim.oaths_broken()],
-		["Schopnosti", "%d×" % sim.abilities_used],
-		["Sláva", str(int(sim.glory))],
-		["Nejvíc slávy přinesl", best_glory if best_glory != "" else "nikdo"],
+		["Fallen", ", ".join(fallen) if not fallen.is_empty() else "no one"],
+		["Enemies fled", str(fled)],
+		["Optional task", "done, %s" % sim.scenario["optional_task"]["reward"] if win and sim.task_ok else "not done"],
+		["Oaths", "kept" if sim.oaths_broken() == 0 else "broken: %d" % sim.oaths_broken()],
+		["Abilities used", "%d×" % sim.abilities_used],
+		["Glory", str(int(sim.glory))],
+		["Most glory brought by", best_glory if best_glory != "" else "no one"],
 	]:
 		g.add_child(_label(pair[0], 14, MUTED))
 		g.add_child(_label(pair[1], 14))
@@ -905,7 +905,7 @@ func show_result(sim: Sim, _setup: Dictionary) -> void:
 	row.alignment = BoxContainer.ALIGNMENT_END
 	if run_mode:
 		var cont := _primary(Button.new())
-		cont.text = "Pokračovat v běhu" if win else "Kronika rodu"
+		cont.text = "Continue the run" if win else "House chronicle"
 		cont.pressed.connect(func() -> void: run_continue_pressed.emit())
 		row.add_child(cont)
 		v.add_child(row)
@@ -913,11 +913,11 @@ func show_result(sim: Sim, _setup: Dictionary) -> void:
 		result_box.visible = true
 		return
 	var again := Button.new()
-	again.text = "Znovu stejně"
+	again.text = "Again, same setup"
 	again.pressed.connect(func() -> void: retry_pressed.emit())
 	row.add_child(again)
 	var redeploy := _primary(Button.new())
-	redeploy.text = "Nové rozestavení"
+	redeploy.text = "New deployment"
 	redeploy.pressed.connect(func() -> void: redeploy_pressed.emit())
 	row.add_child(redeploy)
 	v.add_child(row)
@@ -929,15 +929,15 @@ func hide_result() -> void:
 	result_box.visible = false
 
 
-## Tlačítka nesmí brát fokus z klávesnice: jinak by mezerník a šipky ovládaly panel místo hry.
+## Buttons must not take keyboard focus: otherwise Space and the arrows would control the panel instead of the game.
 func _no_focus(node: Node) -> void:
 	for c in node.find_children("*", "Control", true, false):
 		(c as Control).focus_mode = Control.FOCUS_NONE
 
 
 
-## Krátká nápověda uprostřed nahoře (třeba proč cíl nejde), sama zmizí.
-## Obdélník výběru tažením (v pixelech obrazovky).
+## A short hint at the top centre (e.g. why a target is not possible), disappears by itself.
+## Box selection rectangle (in screen pixels).
 func show_box(rect: Rect2) -> void:
 	select_box.position = rect.position
 	select_box.size = rect.size

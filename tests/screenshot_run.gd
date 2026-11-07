@@ -1,9 +1,9 @@
 extends SceneTree
-## Projde běh přes obrazovky: start → mapa → uzly (bitva, elita, událost, tábor) → … → boss → kronika.
-## Cesta: na každém patře první dostupný uzel, ale přednostně typ, který ještě nebyl (ať se ukážou všechny obrazovky).
-## Bitvy se hrají automaticky (schopnosti podle rady), odměna a volba v události se berou první.
-## Spuštění (s oknem, kvůli snímkům):
-##   godot --path . --script res://tests/screenshot_run.gd -- <složka pro snímky>
+## Goes through a run screen by screen: start → map → nodes (battle, elite, event, camp) → … → boss → chronicle.
+## Path: on each floor the first available node, but preferably a type not seen yet (so all screens show).
+## Battles play automatically (abilities by hint), the first reward and the first event option are taken.
+## Run (with a window, for screenshots):
+##   godot --path . --script res://tests/screenshot_run.gd -- <screenshot folder>
 
 var out_dir := ""
 var scene: Node
@@ -21,8 +21,8 @@ const TacticalCamera := preload("res://scripts/battle/orbit_camera.gd")
 const BattleScript := preload("res://scripts/battle/battle.gd")
 
 func _init() -> void:
-	TacticalCamera.edge_scroll_all = false   # posun myší u okraje by měnil snímky
-	BattleScript.tutorial_mode = -1   # výcvik by zakrýval snímky
+	TacticalCamera.edge_scroll_all = false   # mouse edge panning would change the screenshots
+	BattleScript.tutorial_mode = -1   # the tutorial would cover the screenshots
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
 		out_dir = args[0]
@@ -51,7 +51,7 @@ func _process(_delta: float) -> bool:
 		return false
 	var run: Variant = scene.get("run")
 	var battle: Variant = scene.get("battle")
-	# napřed obrazovka události (na náhodné cestě nemusí být): podvržený běh s uzlem události
+	# first the event screen (a random path may not have one): a fake run with an event node
 	if frame == 10:
 		_shot("00_start.png")
 		var r := Run.new(21)
@@ -89,7 +89,7 @@ func _process(_delta: float) -> bool:
 		return true
 	step += 1
 	var t: String = run.call("node_type")
-	# po bitvě: dědictví a odměna
+	# after the battle: legacy and reward
 	if run.call("is_battle_node") and not bool(run.call("node_finished")):
 		if bool(run.call("has_legacy")):
 			_shot("%02d_dedictvi.png" % step)
@@ -125,7 +125,7 @@ func _process(_delta: float) -> bool:
 		scene.call("show_campfire")
 		wait = 10
 		return false
-	# mapa a volba dalšího uzlu (snímek až po vykreslení)
+	# map and the choice of the next node (screenshot only after drawing)
 	if not map_pending:
 		scene.call("show_map")
 		map_pending = true
@@ -156,7 +156,7 @@ func _drive_battle(battle: Node) -> void:
 		return
 	if phase == 2 and sim != null and float(sim.get("t")) == 0.0:
 		_shot("b%d_start.png" % (battles + 1))
-		battle.call("_toggle_pause")   # bitva bez rozestavení začíná v pauze
+		battle.call("_toggle_pause")   # a battle without deployment starts paused
 		battle.set("speed", 4.0)
 		return
 	if sim == null:

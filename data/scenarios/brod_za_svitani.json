@@ -1,22 +1,22 @@
 {
-  "_info": "Varianta brodu: terén a rozestavení z base. Hlídka u lávky, lapkové u pravého brodu, tábor s páličem za lesem.",
+  "_info": "Ford variant: terrain and deployment from base. A patrol at the footbridge, brigands at the right ford, a camp with the burner beyond the forest.",
   "base": "brod_a_les",
   "alarm_radius": 6,
   "mode": "utok",
   "foe_hp": 2.0, "foe_dmg": 2.0,
   "auto_plan": "attack",
-  "name": "Brod za svítání",
-  "subtitle": "Lapkové a kopiníci u Černého brodu, tentokrát obráceně · 6 pěšáků, 1 kopiník, 1 střelec",
-  "win_title": "Brod je náš",
+  "name": "Ford at Dawn",
+  "subtitle": "Brigands and spearmen at the Black Ford, the other way round this time · 6 footmen, 1 spearman, 1 bowman",
+  "win_title": "The Ford is ours",
   "optional_task": {
-    "text": "Otec Jan nesmí padnout.",
-    "reward": "vzácné znamení",
+    "text": "Father Jan must not fall.",
+    "reward": "rare relic",
     "protect": "knez"
   },
   "pods": [
-    {"name": "Hlídka u lávky", "wake": 7.0},
-    {"name": "Lapkové u pravého brodu", "wake": 7.0},
-    {"name": "Tábor za lesem", "wake": 8.0}
+    {"name": "Patrol at the footbridge", "wake": 7.0},
+    {"name": "Brigands at the right ford", "wake": 7.0},
+    {"name": "Camp beyond the forest", "wake": 8.0}
   ],
   "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
   "enemies": [

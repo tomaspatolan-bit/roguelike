@@ -1,19 +1,19 @@
 {
-  "_info": "Elita: předmostí drží garda kopiníků, za ní střelci a tábor se setníkem. Terén z base.",
+  "_info": "Elite: a guard of spearmen holds the bridgehead, behind it bowmen and a camp with the sergeant. Terrain from base.",
   "base": "most_pres_reku",
   "elite": true,
   "alarm_radius": 6,
   "mode": "utok",
   "foe_hp": 1.7, "foe_dmg": 1.7,
   "auto_plan": "attack",
-  "name": "Lapkovská garda",
-  "subtitle": "Elita · garda kopiníků drží most, za ní střelci a tábor · 4 pěšáci, 3 kopiníci, 2 střelci",
-  "win_title": "Garda je rozprášena",
-  "optional_task": {"text": "Nikdo nepadne.", "reward": "vzácné znamení", "protect": "all"},
+  "name": "The Brigand Guard",
+  "subtitle": "Elite · a guard of spearmen holds the bridge, bowmen and a camp behind · 4 footmen, 3 spearmen, 2 bowmen",
+  "win_title": "The Guard is scattered",
+  "optional_task": {"text": "No one falls.", "reward": "rare relic", "protect": "all"},
   "pods": [
-    {"name": "Garda na mostě", "wake": 6.0},
-    {"name": "Střelci na břehu", "wake": 9.0},
-    {"name": "Tábor lapků", "wake": 8.0}
+    {"name": "Guard on the bridge", "wake": 6.0},
+    {"name": "Bowmen on the bank", "wake": 9.0},
+    {"name": "Brigand camp", "wake": 8.0}
   ],
   "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
   "enemies": [

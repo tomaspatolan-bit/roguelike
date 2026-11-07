@@ -1,12 +1,12 @@
 {
-  "_info": "Obrana: rod drží Lesní ves proti třem vlnám lapků (po čtyřech, ve třetí pálič). Nepřítel s rozkazem arrive dorazí v daný čas bitvy (s). Chalupy jsou zástupná grafika (houses: x, y, šířka, hloubka, otočení). Jediná bitva s rozestavením.",
+  "_info": "Defense: the house holds Forest Village against three waves of brigands (four each, the burner in the third). An enemy with the arrive order arrives at the given battle time (s). The cottages are placeholder art (houses: x, y, width, depth, rotation). The only battle with deployment.",
   "mode": "obrana",
   "foe_hp": 2.0,
   "foe_dmg": 2.0,
-  "name": "Obrana Lesní vsi",
-  "subtitle": "Lapkové táhnou na ves ve třech vlnách · 8 pěšáků, 2 kopiníci, 2 střelci",
-  "stage_label": "Akt 1",
-  "win_title": "Ves ubráněna",
+  "name": "Defense of Forest Village",
+  "subtitle": "Brigands march on the village in three waves · 8 footmen, 2 spearmen, 2 bowmen",
+  "stage_label": "Act 1",
+  "win_title": "The Village Holds",
   "river": {
     "y0": -16.0,
     "y1": -14.0,
@@ -157,8 +157,8 @@
     }
   },
   "optional_task": {
-    "text": "Otec Jan nesmí padnout.",
-    "reward": "vzácné znamení",
+    "text": "Father Jan must not fall.",
+    "reward": "rare relic",
     "protect": "knez"
   },
   "enemy_morale": {

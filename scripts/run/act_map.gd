@@ -1,14 +1,14 @@
 extends RefCounted
-## Generátor mapy aktu: patra s uzly a cestami mezi nimi, nahoře boss.
-## Čistá logika (bez grafiky). Pravidla a čísla jsou v data/akt_*.json.
+## Act map generator: floors with nodes and paths between them, the boss at the top.
+## Pure logic (no graphics). Rules and numbers are in data/akt_*.json.
 ##
-## Uzel: {"id", "floor" (1..floors, boss = floors + 1), "col" (pořadí v patře), "x" (0..1, pro kreslení),
-##        "type" (bitva | elita | udalost | tabor | boss), "next": [id], "scenario" (bitvy), "event" (události)}
+## Node: {"id", "floor" (1..floors, boss = floors + 1), "col" (order within the floor), "x" (0..1, for drawing),
+##        "type" (bitva | elita | udalost | tabor | boss), "next": [id], "scenario" (battles), "event" (events)}
 
 const TYPES := ["bitva", "elita", "udalost", "tabor"]
 
 
-## Vytvoří mapu: {"floors": [[uzel, …] po patrech], "boss": uzel, "nodes": {id: uzel}}.
+## Creates the map: {"floors": [[node, …] per floor], "boss": node, "nodes": {id: node}}.
 static func generate(act: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
 	var floors: Array = []
 	var nodes := {}
@@ -24,8 +24,8 @@ static func generate(act: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
 	var boss := {"id": "boss", "floor": n_floors + 1, "col": 0, "x": 0.5, "type": "boss", "next": [], "scenario": String(act["boss"]), "event": ""}
 	nodes["boss"] = boss
 
-	# cesty: každý uzel vede na 1–2 uzly o patro výš, každý uzel má aspoň jednu cestu dovnitř,
-	# cesty se nekříží (sousedé v pořadí)
+	# paths: each node leads to 1–2 nodes one floor up, each node has at least one path in,
+	# paths do not cross (neighbours in order)
 	for f in range(n_floors - 1):
 		var a: Array = floors[f]
 		var b: Array = floors[f + 1]
@@ -34,12 +34,12 @@ static func generate(act: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
 			var target := roundi(float(i) * (b.size() - 1) / maxf(a.size() - 1, 1))
 			target = maxi(target, lo)
 			_link(a[i], b[target])
-			# občas i na souseda vpravo (rozcestí); další uzel pak jde nejníž sem, takže se cesty nekříží
+			# sometimes also to the neighbour on the right (a fork); the next node then starts no lower than here, so paths do not cross
 			if target + 1 < b.size() and rng.randf() < 0.4:
 				_link(a[i], b[target + 1])
 				target += 1
 			lo = target
-		# kdo nemá cestu dovnitř, dostane ji od nejbližšího souseda dole
+		# a node without a path in gets one from the nearest neighbour below
 		for j in b.size():
 			if _incoming(a, b[j]["id"]) == 0:
 				var best: Dictionary = a[0]
@@ -50,7 +50,7 @@ static func generate(act: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
 	for n: Dictionary in floors[n_floors - 1]:
 		_link(n, boss)
 
-	# typy uzlů
+	# node types
 	var weights: Dictionary = act["weights"]
 	for f in n_floors:
 		for n: Dictionary in floors[f]:
@@ -61,7 +61,7 @@ static func generate(act: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
 				n["type"] = act["last_floor"]
 			else:
 				n["type"] = _pick_type(weights, floor_i >= int(act["elite_from"]), rng)
-	# dvě elity (nebo dva tábory) za sebou na jedné cestě ne: druhá se změní na bitvu
+	# no two elites (or two camps) in a row on one path: the second becomes a battle
 	for f in range(1, n_floors - 1):
 		for n: Dictionary in floors[f]:
 			var t: String = n["type"]
@@ -71,12 +71,12 @@ static func generate(act: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
 				if (p["next"] as Array).has(n["id"]) and p["type"] == t:
 					n["type"] = "bitva"
 					break
-	# tábor hned po táboře nemá smysl: na patře před posledním tábory nenecháme
+	# a camp right after a camp makes no sense: no camps on the floor before the last
 	for n: Dictionary in floors[n_floors - 2]:
 		if n["type"] == "tabor":
 			n["type"] = "bitva"
 
-	# obsah: bitvy a elity z promíchaných seznamů, události bez opakování, dokud jde
+	# content: battles and elites from shuffled lists, events without repeats while possible
 	var bag := {"bitva": _bag(act["battles"], rng), "elita": _bag(act["elites"], rng), "udalost": _bag(act["events"], rng)}
 	var used := {"bitva": 0, "elita": 0, "udalost": 0}
 	for f in n_floors:

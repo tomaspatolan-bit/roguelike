@@ -1,13 +1,13 @@
-# Animace jezdce v sedle (A_Cavalier_*) na kostře rytíře. Spouští se v Blenderu po build_cavalier.py:
+# Cavalier animations in the saddle (A_Cavalier_*) on the knight skeleton. Run in Blender after build_cavalier.py:
 # exec(open(r"<repo>/art/cavalier/anims_cavalier.py", encoding="utf-8").read(), {})
-# Jezdec sedí na koni: hra ho připne na kost `saddle` koně (počátek jezdce = RIDER_OFFSET od počátku koně).
-# Pózy kopí jsou dohledané numericky (kopí = osa Z kosti ruky): svisle v klidu, při bodnutí míří stále
-# dopředu a dolů a posune se po své ose, vodorovně pod paží při Nájezdu (zápěstí hand_r natočí kopí podél předloktí).
-# Smrt jezdce = ragdoll (spadne z koně); zásah jen trupem, nohy zůstávají v sedle.
+# The cavalier sits on the horse: the game attaches him to the horse's `saddle` bone (rider origin = RIDER_OFFSET from the horse origin).
+# Lance poses were found numerically (lance = hand bone Z axis): vertical at rest, on the thrust it keeps pointing
+# forward and down and slides along its axis, horizontal under the arm during Charge (the hand_r wrist turns the lance along the forearm).
+# Rider death = ragdoll (falls off the horse); hit only with the torso, legs stay in the saddle.
 import bpy
 
 arm = bpy.data.objects["Armature"]
-RIDER_OFFSET = (0.0, -0.05, 0.855)      # Blender, od počátku koně (sedlo); ve hře v datech `rider_offset`
+RIDER_OFFSET = (0.0, -0.05, 0.855)      # Blender, from the horse origin (saddle); in the game in the data `rider_offset`
 
 
 def _curves(action):
@@ -48,23 +48,23 @@ def merged(*poses):
 
 SEAT = {"thigh_l": (0.953, -0.852, 0.109), "calf_l": (-1.047, 0.0, 0.0),
         "thigh_r": (0.953, 0.852, -0.109), "calf_r": (-1.047, 0.0, 0.0),
-        "cape_01": (-0.1, 0.0, 0.0), "cape_02": (-0.15, 0.0, 0.0), "cape_03": (-1.2, 0.0, 0.0)}   # plášť leží na zádi
-SHIELD = {"upperarm_l": (0.3, 0.0, -0.55), "lowerarm_l": (1.3, 0.0, 0.0)}                    # štít a otěže
-HOLD = {"upperarm_r": (0.3, 0.0, 0.55), "lowerarm_r": (1.3, 0.0, 0.0)}                       # kopí svisle
-# bodnutí (Tom 30.10.2026: píchnutí, ne sek): kopí míří stále dopředu dolů, úchop jede po ose kopí ~0,3 m
+        "cape_01": (-0.1, 0.0, 0.0), "cape_02": (-0.15, 0.0, 0.0), "cape_03": (-1.2, 0.0, 0.0)}   # cloak lies on the horse's rump
+SHIELD = {"upperarm_l": (0.3, 0.0, -0.55), "lowerarm_l": (1.3, 0.0, 0.0)}                    # shield and reins
+HOLD = {"upperarm_r": (0.3, 0.0, 0.55), "lowerarm_r": (1.3, 0.0, 0.0)}                       # lance vertical
+# thrust (Tom 30.10.2026: a thrust, not a slash): the lance keeps pointing forward and down, the grip slides ~0.3 m along the lance
 WINDUP = {"spine_02": (-0.05, 0.2, 0.0), "upperarm_r": (-0.6, 0.0, 1.0), "lowerarm_r": (2.0, 0.0, 0.0), "hand_r": (-1.1, 2.46, 0.0)}
 THRUST = {"spine_02": (0.18, -0.2, 0.0), "upperarm_r": (1.0, 0.0, 1.6), "lowerarm_r": (0.0, 0.0, 0.0), "hand_r": (-1.8, 3.75, 0.0)}
 COUCH = {"spine_02": (0.18, 0.0, 0.0), "spine_03": (0.1, 0.0, 0.0), "upperarm_r": (0.18, 0.0, 1.5), "lowerarm_r": (1.3, 0.0, 0.0),
          "hand_r": (-1.26, -0.91, 0.0), "head": (-0.15, 0.0, 0.0)}
 BASE = merged(SEAT, SHIELD, HOLD)
 
-# --- v sedle (klid i jízda; houpání dodá kůň)
+# --- in the saddle (idle and riding; the horse adds the bobbing)
 ride = {}
 for f, k in ((1, 0.0), (25, 1.0), (49, 0.0)):
     ride[f] = merged(BASE, {"spine_02": (0.03 * k, 0, 0), "head": (-0.03 * k, 0, 0), "lowerarm_r": (1.3 - 0.04 * k, 0, 0)})
 make_action("A_Cavalier_Ride", ride)
 
-# --- bodnutí kopím: sklopení a stažení, píchnutí v 8. snímku, stažení, návrat
+# --- lance thrust: lower and pull back, thrust at frame 8, pull back, return
 make_action("A_Cavalier_Attack", {
     1: BASE,
     5: merged(BASE, WINDUP),
@@ -74,7 +74,7 @@ make_action("A_Cavalier_Attack", {
     22: BASE,
 })
 
-# --- Nájezd: kopí sklopené pod paží, jezdec se předkloní
+# --- Charge: lance lowered under the arm, the rider leans forward
 make_action("A_Cavalier_Charge", {
     1: BASE,
     5: merged(BASE, COUCH),
@@ -82,7 +82,7 @@ make_action("A_Cavalier_Charge", {
     32: BASE,
 })
 
-# --- zásah: trup ucukne dozadu, nohy v sedle
+# --- hit: torso jerks back, legs in the saddle
 make_action("A_Cavalier_Hit", {
     1: BASE,
     4: merged(BASE, {"spine_02": (-0.2, 0.1, 0.05), "head": (-0.15, 0, 0), "upperarm_l": (0.6, 0, -0.5)}),

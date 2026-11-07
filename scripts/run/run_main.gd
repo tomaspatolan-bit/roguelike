@@ -1,7 +1,7 @@
 extends Node
-## Hlavní scéna: start, mapa aktu, bitva → dědictví a odměna, událost, tábor, kronika rodu.
-## Logika běhu je v run_state.gd; tady jen obrazovky a přepínání mezi nimi a bitvou.
-## Vzhled obrazovek je zástupný, finální UI navrhne Tom.
+## Main scene: start, act map, battle → legacy and reward, event, camp, house chronicle.
+## The run logic is in run_state.gd; here only screens and switching between them and the battle.
+## Screen look is placeholder, Tom will design the final UI.
 
 const Run := preload("res://scripts/run/run_state.gd")
 const BattleScript := preload("res://scripts/battle/battle.gd")
@@ -22,8 +22,8 @@ var run: Run = null
 var battle: Node = null
 var layer: CanvasLayer
 var screen: Control
-var _chron_mark := 0       # odkud v kronice ukázat, co přinesla událost
-var _ui_helper: BattleUI   # půjčené styly (téma, tlačítka) z UI bitvy, nepřidává se do stromu
+var _chron_mark := 0       # where in the chronicle to start showing what the event brought
+var _ui_helper: BattleUI   # borrowed styles (theme, buttons) from the battle UI, not added to the tree
 
 
 func _ready() -> void:
@@ -39,7 +39,7 @@ func _exit_tree() -> void:
 		_ui_helper.free()
 
 
-# ================================================================ přepínání
+# ================================================================ switching
 
 func _new_screen(margin: int = 220) -> VBoxContainer:
 	if screen != null:
@@ -75,25 +75,25 @@ func _hide_screen() -> void:
 
 func show_start() -> void:
 	var v := _new_screen()
-	v.add_child(_label("Rytíři", 44))
-	v.add_child(_label("Prototyp · fáze 2", 14, MUTED))
-	v.add_child(_label("Běh: Rod Vlka táhne krajem %s. Na mapě aktu si na každém patře vybereš, kudy půjdeš: bitva, elita (těžší, lepší odměna), událost nebo tábor (odpočinek). Nahoře čeká Hejtman Kuno. Zranění se nesou mezi bitvami, padlí zůstanou padlí a nastoupí za ně nástupci. Kdo z nepřátel uteče, vrátí se v boji s Hejtmanem." % String(Run.Sim._read_json("res://data/akt_1.json").get("name", "")), 16, INK, true))
+	v.add_child(_label("Knights", 44))
+	v.add_child(_label("Prototype · phase 2", 14, MUTED))
+	v.add_child(_label("Run: the House of the Wolf marches through %s. On the act map you pick your way on each floor: battle, elite (harder, better reward), event or camp (rest). Captain Kuno waits at the top. Wounds carry over between battles, the fallen stay fallen and successors take their place. Enemies who flee will return in the fight with the Captain." % String(Run.Sim._read_json("res://data/akt_1.json").get("name", "")), 16, INK, true))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	var b := _primary("Nový běh")
+	var b := _primary("New run")
 	b.pressed.connect(start_run)
 	row.add_child(b)
-	var f := _button("Volná bitva")
-	f.tooltip_text = "Jedna bitva s výběrem mapy a pasivek na zkoušku (jako dřív)."
+	var f := _button("Free battle")
+	f.tooltip_text = "A single battle with a choice of map and passives to try out (as before)."
 	f.pressed.connect(_free_battle)
 	row.add_child(f)
 	if BattleScript.tutorial_done():
-		var t := _button("Výcvik znovu")
-		t.tooltip_text = "V příští bitvě se znovu ukáže výcvik ovládání."
+		var t := _button("Tutorial again")
+		t.tooltip_text = "The controls tutorial will show again in the next battle."
 		t.pressed.connect(func() -> void:
 			BattleScript.set_tutorial_done(false)
 			t.disabled = true
-			t.text = "Výcvik bude v příští bitvě")
+			t.text = "Tutorial in the next battle")
 		row.add_child(t)
 	v.add_child(row)
 
@@ -128,7 +128,7 @@ func _on_battle_done(result: Dictionary) -> void:
 		show_after_battle()
 
 
-## Volba uzlu na mapě: bitva rovnou do bitvy, jinak obrazovka uzlu.
+## Choosing a node on the map: a battle goes straight to the battle, otherwise the node screen.
 func go_to(id: String) -> void:
 	if not run.choose(id):
 		return
@@ -141,14 +141,14 @@ func go_to(id: String) -> void:
 			show_campfire()
 
 
-# ================================================================ mapa aktu
+# ================================================================ act map
 
 func show_map() -> void:
 	var v := _new_screen(60)
 	var head := HBoxContainer.new()
-	head.add_child(_label("%s · %s" % [run.act["name"], "začátek" if run.node_id == "" else "patro %d ze %d" % [run.current_floor(), run.floor_count()]], 26))
+	head.add_child(_label("%s · %s" % [run.act["name"], "start" if run.node_id == "" else "floor %d of %d" % [run.current_floor(), run.floor_count()]], 26))
 	v.add_child(head)
-	v.add_child(_label("Vyber, kudy rod půjde dál. Najetím na uzel uvidíš, co tě tam čeká.", 14, MUTED))
+	v.add_child(_label("Choose where the house goes next. Hover a node to see what awaits you there.", 14, MUTED))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 20)
 	v.add_child(row)
@@ -179,28 +179,28 @@ func _node_info(id: String) -> String:
 			var sc: Dictionary = run.scenario_info(String(n["scenario"]))
 			var extra := ""
 			if sc.has("returnees") and not run.fled.is_empty():
-				extra = "\nVrátí se uprchlíci: %d" % run.fled.size()
-			var reward := "Odměna: 2 z %d nabídek." % int(run.act.get("elite_offers", 4)) if t == "elita" else "Odměna: 1 z %d nabídek." % int(run.act.get("offers", 3))
+				extra = "\nFled enemies return: %d" % run.fled.size()
+			var reward := "Reward: 2 of %d offers." % int(run.act.get("elite_offers", 4)) if t == "elita" else "Reward: 1 of %d offers." % int(run.act.get("offers", 3))
 			if t == "boss":
-				reward = "Boss aktu."
+				reward = "Act boss."
 			var md: Dictionary = run.units_data.get("battle_modes", {}).get(String(sc.get("mode", "stret")), {})
-			return "%s: %s\n%s: %s\n%s\nÚkol: %s\n%s%s" % [run.NODE_NAMES[t], sc.get("name", ""), md.get("name", ""), md.get("desc", ""), sc.get("subtitle", ""), sc.get("optional_task", {}).get("text", ""), reward, extra]
+			return "%s: %s\n%s: %s\n%s\nTask: %s\n%s%s" % [run.NODE_NAMES[t], sc.get("name", ""), md.get("name", ""), md.get("desc", ""), sc.get("subtitle", ""), sc.get("optional_task", {}).get("text", ""), reward, extra]
 		"udalost":
-			return "Událost: %s\nRozhodnutí s cenou." % run.events_data[n["event"]]["name"]
+			return "Event: %s\nA decision with a price." % run.events_data[n["event"]]["name"]
 		"tabor":
-			return "Tábor\nOdpočinek: zranění se zahojí."
+			return "Camp\nRest: wounds heal."
 	return ""
 
 
-# ================================================================ po bitvě: dědictví a odměna
+# ================================================================ after the battle: legacy and reward
 
 func show_after_battle() -> void:
 	var v := _new_screen()
 	var last := run.node_label()
-	v.add_child(_label("Po bitvě: %s" % last, 30))
-	v.add_child(_label("%s · patro %d ze %d" % [run.act["name"], run.current_floor(), run.floor_count()], 14, MUTED))
+	v.add_child(_label("After the battle: %s" % last, 30))
+	v.add_child(_label("%s · floor %d of %d" % [run.act["name"], run.current_floor(), run.floor_count()], 14, MUTED))
 
-	# co se v bitvě stalo
+	# what happened in the battle
 	var news := VBoxContainer.new()
 	for e: Dictionary in run.chronicle:
 		if e["stage"] == last:
@@ -214,18 +214,18 @@ func show_after_battle() -> void:
 	elif not run.offers().is_empty():
 		_reward_block(v)
 	else:
-		var go := _primary("Na mapu")
+		var go := _primary("To the map")
 		go.pressed.connect(show_map)
 		v.add_child(go)
 	v.add_child(_roster())
 
 
-# ================================================================ událost
+# ================================================================ event
 
 func show_event() -> void:
 	var v := _new_screen()
 	var ev: Dictionary = run.event()
-	v.add_child(_label("Událost", 14, MUTED))
+	v.add_child(_label("Event", 14, MUTED))
 	v.add_child(_label(String(ev["name"]), 30, GLORY))
 	v.add_child(_panel(_label(String(ev["text"]), 16, INK, true)))
 	var opts: Array = ev["options"]
@@ -255,27 +255,27 @@ func show_event_result() -> void:
 		news.add_child(_label("• " + String(e["text"]), 15, INK, true))
 	if news.get_child_count() > 0:
 		v.add_child(_panel(news))
-	var go := _primary("Na mapu")
+	var go := _primary("To the map")
 	go.pressed.connect(show_map)
 	v.add_child(go)
 	v.add_child(_roster())
 
 
-# ================================================================ tábor
+# ================================================================ camp
 
 func show_campfire() -> void:
 	var v := _new_screen()
-	v.add_child(_label("Tábor", 30, OK))
-	v.add_child(_label("Rod rozdělá oheň. Odpočinek zahojí zranění všech hrdinů.", 16, INK, true))
+	v.add_child(_label("Camp", 30, OK))
+	v.add_child(_label("The house lights a fire. Rest heals the wounds of all heroes.", 16, INK, true))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	var rest := _primary("Odpočinout si")
+	var rest := _primary("Rest")
 	rest.disabled = run.camp_done
 	rest.pressed.connect(func() -> void:
 		run.camp_rest()
 		show_campfire())
 	row.add_child(rest)
-	var go := _button("Na mapu")
+	var go := _button("To the map")
 	go.pressed.connect(show_map)
 	row.add_child(go)
 	v.add_child(row)
@@ -286,8 +286,8 @@ func _legacy_block(v: VBoxContainer) -> void:
 	var l := run.legacy_current()
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
-	box.add_child(_label("Dědictví přísahy", 22, GLORY))
-	box.add_child(_label("%s padl a nechal po sobě přísahu %s: %s Kdo ji převezme? Hrdina může mít jen jednu přísahu." % [l["from"], run.passive_name(l["oath"]), run.passive_desc(l["oath"])], 15, INK, true))
+	box.add_child(_label("Oath legacy", 22, GLORY))
+	box.add_child(_label("%s fell and left behind the oath %s: %s Who will take it up? A hero can have only one oath." % [l["from"], run.passive_name(l["oath"]), run.passive_desc(l["oath"])], 15, INK, true))
 	var row := HFlowContainer.new()
 	row.add_theme_constant_override("h_separation", 8)
 	for cls: String in run.legacy_candidates():
@@ -296,7 +296,7 @@ func _legacy_block(v: VBoxContainer) -> void:
 			run.resolve_legacy(cls)
 			show_after_battle())
 		row.add_child(b)
-	var no := _button("Nechat přísahu zemřít")
+	var no := _button("Let the oath die")
 	no.pressed.connect(func() -> void:
 		run.resolve_legacy("")
 		show_after_battle())
@@ -305,13 +305,13 @@ func _legacy_block(v: VBoxContainer) -> void:
 	v.add_child(_panel(box))
 
 
-## Pouto: dvojice vyhrála dost bitev spolu, hráč vybere typ ze dvou (nebo odloží).
+## Bond: the pair won enough battles together, the player picks the type out of two (or postpones).
 func _bond_block(v: VBoxContainer) -> void:
 	var o := run.bond_offer()
 	var a: String = o["a"]
 	var b: String = o["b"]
-	v.add_child(_label("Pouto: %s a %s" % [run.hero_name(a), run.hero_name(b)], 22, GLORY))
-	v.add_child(_label("Společná vítězství: %d. Jaké pouto mezi nimi vznikne? Pouto sílí dalšími společnými vítězstvími (úroveň 2 odemkne kombo); když jeden padne, druhý ponese žal." % int(o["wins"]), 15, INK, true))
+	v.add_child(_label("Bond: %s and %s" % [run.hero_name(a), run.hero_name(b)], 22, GLORY))
+	v.add_child(_label("Shared victories: %d. What bond will form between them? A bond grows with more shared victories (level 2 unlocks a combo); when one falls, the other carries grief." % int(o["wins"]), 15, INK, true))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	for t: String in o["choices"]:
@@ -319,8 +319,8 @@ func _bond_block(v: VBoxContainer) -> void:
 		card.add_theme_constant_override("separation", 6)
 		card.add_child(_label(run.bond_name(t), 19, GLORY, true))
 		card.add_child(_label(run.bond_desc(t), 14, INK, true))
-		card.add_child(_label("Žal: " + String(run.units_data["bonds"][t].get("grief_desc", "")), 13, MUTED, true))
-		var pick := _primary("Vybrat")
+		card.add_child(_label("Grief: " + String(run.units_data["bonds"][t].get("grief_desc", "")), 13, MUTED, true))
+		var pick := _primary("Choose")
 		pick.pressed.connect(func() -> void:
 			run.choose_bond(t)
 			show_after_battle())
@@ -329,7 +329,7 @@ func _bond_block(v: VBoxContainer) -> void:
 		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(p)
 	v.add_child(row)
-	var later := _button("Zatím ne (nabídne se po dalším společném vítězství)")
+	var later := _button("Not yet (offered again after the next shared victory)")
 	later.pressed.connect(func() -> void:
 		run.choose_bond("")
 		show_after_battle())
@@ -338,7 +338,7 @@ func _bond_block(v: VBoxContainer) -> void:
 
 func _reward_block(v: VBoxContainer) -> void:
 	var offers := run.offers()
-	v.add_child(_label("Odměna: vyber jednu" if run.picks_left() <= 1 else "Odměna elity: vyber %d" % run.picks_left(), 22, GLORY))
+	v.add_child(_label("Reward: choose one" if run.picks_left() <= 1 else "Elite reward: choose %d" % run.picks_left(), 22, GLORY))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	for i in offers.size():
@@ -351,9 +351,9 @@ func _reward_block(v: VBoxContainer) -> void:
 		head.add_child(Icon.make(cls, INK, 22))
 		head.add_child(_label("%s" % run.hero_name(cls), 17))
 		card.add_child(head)
-		card.add_child(_label(("Přísaha: " if run.is_oath(key) else "") + run.passive_name(key), 19, BANNER if run.is_oath(key) else GLORY, true))
+		card.add_child(_label(("Oath: " if run.is_oath(key) else "") + run.passive_name(key), 19, BANNER if run.is_oath(key) else GLORY, true))
 		card.add_child(_label(run.passive_desc(key), 14, MUTED, true))
-		var pick := _primary("Vybrat")
+		var pick := _primary("Choose")
 		pick.pressed.connect(func() -> void:
 			run.pick_offer(i)
 			show_after_battle())
@@ -367,12 +367,12 @@ func _reward_block(v: VBoxContainer) -> void:
 func _roster() -> Control:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	box.add_child(_label("Rod Vlka · sláva %d" % int(run.glory), 18, GLORY))
+	box.add_child(_label("House of the Wolf · glory %d" % int(run.glory), 18, GLORY))
 	for cls: String in run.heroes:
 		var h: Dictionary = run.heroes[cls]
 		var names: Array = []
 		for k: String in h["passives"]:
-			names.append(("Přísaha: " if run.is_oath(k) else "") + run.passive_name(k))
+			names.append(("Oath: " if run.is_oath(k) else "") + run.passive_name(k))
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
 		row.add_child(Icon.make(cls, INK, 18))
@@ -384,12 +384,12 @@ func _roster() -> Control:
 		hpb.value = run.hp_of(cls)
 		hpb.custom_minimum_size = Vector2(70, 8)
 		hpb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		hpb.tooltip_text = "Zdraví %d %%" % roundi(run.hp_of(cls) * 100.0)
+		hpb.tooltip_text = "Health %d %%" % roundi(run.hp_of(cls) * 100.0)
 		row.add_child(hpb)
 		var bd: Dictionary = h.get("bond", {})
 		if not bd.is_empty():
-			names.append("Pouto %s · %s (úr. %d, společná vítězství: %d)" % [run.bond_name(bd["type"]), run.hero_name(bd["with"]), run.bond_level(cls), run.wins_of(cls, bd["with"])])
-		var pl := _label(", ".join(names) if not names.is_empty() else "bez pasivek", 14, MUTED, true)
+			names.append("Bond %s · %s (lvl %d, shared victories: %d)" % [run.bond_name(bd["type"]), run.hero_name(bd["with"]), run.bond_level(cls), run.wins_of(cls, bd["with"])])
+		var pl := _label(", ".join(names) if not names.is_empty() else "no passives", 14, MUTED, true)
 		pl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(pl)
 		box.add_child(row)
@@ -397,9 +397,9 @@ func _roster() -> Control:
 		var f: Array = []
 		for d: Dictionary in run.fallen:
 			f.append("%s (%s)" % [d["name"], d["stage"]])
-		box.add_child(_label("Padlí: " + ", ".join(f), 14, BAD, true))
+		box.add_child(_label("Fallen: " + ", ".join(f), 14, BAD, true))
 	if not run.fled.is_empty():
-		box.add_child(_label("Uprchlíků, kteří se mohou vrátit: %d" % run.fled.size(), 14, MUTED))
+		box.add_child(_label("Fled enemies who may return: %d" % run.fled.size(), 14, MUTED))
 	return _panel(box)
 
 
@@ -408,8 +408,8 @@ func _roster() -> Control:
 func show_chronicle() -> void:
 	var v := _new_screen()
 	var win := run.over == "win"
-	v.add_child(_label("Kronika rodu", 16, MUTED))
-	v.add_child(_label("Rod Vlka zvítězil" if win else "Rod Vlka padl", 36, OK if win else BAD))
+	v.add_child(_label("House chronicle", 16, MUTED))
+	v.add_child(_label("The House of the Wolf is victorious" if win else "The House of the Wolf has fallen", 36, OK if win else BAD))
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
 	var cur := "-"
@@ -423,16 +423,16 @@ func show_chronicle() -> void:
 	v.add_child(_roster())
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	var again := _primary("Nový běh")
+	var again := _primary("New run")
 	again.pressed.connect(start_run)
 	row.add_child(again)
-	var menu := _button("Hlavní menu")
+	var menu := _button("Main menu")
 	menu.pressed.connect(show_start)
 	row.add_child(menu)
 	v.add_child(row)
 
 
-# ================================================================ pomocníci
+# ================================================================ helpers
 
 func _label(text: String, size: int = 15, color: Color = INK, wrap: bool = false) -> Label:
 	return _ui_helper._label(text, size, color, wrap)

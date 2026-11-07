@@ -1,6 +1,6 @@
 {
-  "_info": "Rod Vlka: sestava je v units.json (knights), tady sláva a výchozí pasivky. Sláva je společná rezerva rodu: plní se činy hrdinů, platí se jí v událostech a za porušenou přísahu (schopnosti už neplatí), carry_max = kolik slávy si rod nese do další bitvy běhu. successors = jména nástupců padlých podle třídy (popořadě), start_passives = pasivky a přísahy hrdinů na začátku (v prototypu má tank přísahu Nikdy neustoupí jen na zkoušku; ve hře budou odměnou v běhu). trial_bonds = pouta na zkoušku ve volné bitvě (aby šla vyzkoušet komba); v běhu pouta vznikají společnými vítězstvími.",
-  "name": "Rod Vlka",
+  "_info": "House of the Wolf: the roster is in units.json (knights), here glory and starting passives. Glory is the house's shared reserve: filled by the heroes' deeds, spent in events and on broken oaths (abilities no longer cost it), carry_max = how much glory the house carries into the next battle of the run. successors = names of the successors of the fallen by class (in order), start_passives = heroes' passives and oaths at the start (in the prototype the tank has Never Retreat only for trial; in the game they are run rewards). trial_bonds = trial bonds in the free battle (so combos can be tried); in a run bonds form through shared victories.",
+  "name": "House of the Wolf",
   "glory": {
     "start": 25,
     "max": 100,
@@ -11,7 +11,7 @@
   },
   "successors": {
     "tank": ["Sir Vítek", "Sir Ctibor", "Sir Hynek", "Sir Dobeš"],
-    "knez": ["Bratr Prokop", "Otec Havel", "Bratr Lukáš", "Otec Řehoř"],
+    "knez": ["Brother Prokop", "Father Havel", "Brother Lukáš", "Father Řehoř"],
     "lucistnik": ["Ondřej", "Mikuláš", "Šimon", "Bartoloměj"],
     "jezdec": ["Sir Zbyněk", "Sir Oldřich", "Sir Bušek", "Sir Smil"],
     "asasin": ["Jakub", "Vavřinec", "Štěpán", "Řehoř"]

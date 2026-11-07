@@ -11,7 +11,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 2. **Signály:** `tutorial_skip_pressed`, `tutorial_ok_pressed`, `knight_clicked`, `ability_pressed`, `passive_toggled`, `scenario_changed`, `order_pressed`, `order_clear_pressed`, `start_pressed`, `pause_pressed`, `charge_pressed`, `resume_pressed`, `speed_changed`, `continue_pressed`, `retry_pressed`, `redeploy_pressed`, `run_continue_pressed`.
 3. **Rozvržení:** nahoře uprostřed lišta velení (`top_row`: v rozestavení a úvodní pauze Začít bitvu; v bitvě čas, Pauza / Pokračovat, Do boje!, rychlost), vlevo nahoře karta bitvy (`info_box`), dole karty hrdinů (`cards_row`), vpravo nahoře sbalitelný deník. Přestavuje se jen při změně stavu (`show_deploy`, `show_battle`); plynulé věci aktualizuje `update_dynamic` (každých 0,1 s) a `update_hp_bars` (každý snímek). Ikonky se mění jen při změně podpisu (`_sig`).
 4. **Hráč se soustředí na hrdiny:** žádné bonusy pro celý oddíl v UI. Musí vždy vidět: použití a nabíjení schopností na kartách, stav úkolu, zda čas stojí (pauza).
-5. **Texty česky,** krátce. Zkratky kláves na tlačítkách odpovídají `battle.gd`.
+5. **Texty anglicky** (od 07.11.2026, názvy podle `docs/glosar.md`), krátce. Zkratky kláves na tlačítkách odpovídají `battle.gd`.
 6. **Font:** systémový (Segoe UI na Windows), musí umět českou diakritiku.
 7. **Karta hrdiny:** rámeček a jméno v barvě hrdiny (`color` z dat; vybraný silnější rámeček), ikona třídy, zdraví, ikonky stavu a tlačítko schopnosti s použitími (●), nabíjením („●● 12 s“) nebo „vyčerpáno“ a s klávesou 1–5 v rámečku (`_add_keycap`, pořadí karet = `_ability_by_index`); při cílení je tlačítko zvýrazněné. Text rozkazu, Poslat ani ✕ na kartě nejsou (zrušeno 30.10.2026, Tom: ovládání pravým tlačítkem stačí; rozkaz je vidět kruhem cíle). V rozestavení a úvodní pauze menu Pasivky (na zkoušku, zaškrtávací). Ikonky pasivek a přísahy s popisem, ikonka „Vlastnosti“ s bonusy k Útoku, Moci, Odolnosti a Pohotovosti (`sim.stats_of`). Ikonka pouta (typ, druh, úroveň, efekt a žal). Za kartami panel „Komba pout“ (`_build_combos`): tlačítko s klávesou Q/E, názvem komba a dvojicí, neaktivní s důvodem v popisku (`sim.combo_problem`). Dialog přísahy (`ask_oath(jméno, přísaha, proč, porušit, zachovat, text tlačítka)`) říká, co přísahu poruší. Klik na kartu = výběr hrdiny (Shift přidá); vybraní mají zvýrazněný rámeček (`selection`).
 8. **Žádné tlačítko nesmí brát fokus klávesnice** (`_no_focus` po každé přestavbě panelu).
@@ -30,6 +30,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 - Místní proměnná se nesmí jmenovat jako metoda `CanvasLayer` (`hide`, `show`).
 
 ## Historie významných změn
+- 07.11.2026: texty a komentáře přeložené do angličtiny (`docs/glosar.md`).
 - 30.10.2026: panel výcviku.
 - 30.10.2026: karta bez textu rozkazu, Poslat a ✕; klávesa schopnosti v rámečku na tlačítku.
 - 29.10.2026: bitva ve fázích: pryč ukazatel slávy a dialog před bitvou, schopnost ukazuje použití a nabíjení, ikonky spící skupinky, velitele a chystané schopnosti, počet čekajících skupinek, úvodní pauza s výběrem bitvy.

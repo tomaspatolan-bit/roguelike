@@ -1,6 +1,6 @@
 extends Control
-## Kreslení mapy aktu: uzly jako tlačítka, cesty jako čáry. Jen vykresluje a hlásí klik (node_pressed).
-## Zástupný vzhled, finální navrhne Tom.
+## Drawing the act map: nodes as buttons, paths as lines. Only draws and reports clicks (node_pressed).
+## Placeholder look, Tom will design the final one.
 
 signal node_pressed(id: String)
 signal node_hovered(id: String)
@@ -16,7 +16,7 @@ const TYPE_ICONS := {"bitva": "zarod", "elita": "fanatik", "udalost": "signal", 
 const Icon := preload("res://scripts/battle/ui_icon.gd")
 
 var run: RefCounted
-var _pos := {}       # id -> střed tlačítka (v souřadnicích prvku)
+var _pos := {}       # id -> button centre (in control coordinates)
 const BTN := Vector2(132, 44)
 
 
@@ -89,11 +89,11 @@ func _tooltip(n: Dictionary) -> String:
 		"bitva", "elita", "boss":
 			var sc: Dictionary = run.scenario_info(String(n["scenario"]))
 			var md: Dictionary = run.units_data.get("battle_modes", {}).get(String(sc.get("mode", "stret")), {})
-			return "%s (%s)\n%s\nÚkol: %s" % [sc.get("name", ""), md.get("name", ""), sc.get("subtitle", ""), sc.get("optional_task", {}).get("text", "")]
+			return "%s (%s)\n%s\nTask: %s" % [sc.get("name", ""), md.get("name", ""), sc.get("subtitle", ""), sc.get("optional_task", {}).get("text", "")]
 		"udalost":
-			return "Událost: %s" % run.events_data[n["event"]]["name"]
+			return "Event: %s" % run.events_data[n["event"]]["name"]
 		"tabor":
-			return "Tábor: odpočinek, zranění se zahojí."
+			return "Camp: rest, wounds heal."
 	return ""
 
 
@@ -114,7 +114,7 @@ func _draw() -> void:
 				col = Color(1, 1, 1, 0.6)
 				w = 3.0
 			draw_line(_pos[id] + Vector2(0, -BTN.y / 2.0), _pos[nx] + Vector2(0, BTN.y / 2.0), col, w, true)
-	# z místa před prvním patrem
+	# from the spot before the first floor
 	if run.node_id == "":
 		for id: String in run.available():
 			draw_line(Vector2(size.x / 2.0, size.y), _pos[id] + Vector2(0, BTN.y / 2.0), Color(1, 1, 1, 0.35), 2.0, true)

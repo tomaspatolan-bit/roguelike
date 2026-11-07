@@ -41,6 +41,7 @@ Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, 
 - Krok simulace je pevný (1/60 s ze scény, 1/30 s v testu). Logika nesmí záviset na velikosti kroku víc, než je nutné.
 
 ## Historie významných změn
+- 07.11.2026: texty a komentáře přeložené do angličtiny (`docs/glosar.md`).
 - 07.11.2026: pouta (8 typů, úrovně 1–3, žal) a komba pout na Q/E (5 komb výchozích schopností). Schopnosti rozdělené na sdílené části kvůli kombům. Balanc beze změny (testy bez pout).
 - 07.11.2026: vlastnosti hrdinů (Útok, Moc, Odolnost, Pohotovost, Síla) místo `stat_mult` a `dmg_bonus`; 18 přísah (3 rodu, 15 osobních) s omezeními a porušením; Moc zvětšuje čísla schopností z `power`. Balanc beze změny (výchozí hodnoty se nezměnily).
 - 30.10.2026: kněz útočí na dálku (hůl, 6 m); hrdinové sami nenapadají spící skupinky (kněz na dálku v Brodu a lese budil tábor a bitva padla na 0/40). Přísaha Nikdy neustoupí určuje směr „dozadu“ podle všech nepřátel (i spících). Most přes řeku pak bez schopností vyhrával (dřív ho ztěžovaly náhodně probuzené skupinky), proto nepřátelé ×2,45 místo ×2,3.

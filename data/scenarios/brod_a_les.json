@@ -1,13 +1,13 @@
 {
-  "_info": "Bitva Brod a les. Řeku jde přejít dvěma brody po stranách (zpomalí) a úzkou lávkou uprostřed. Za lávkou je les se stezkou. Nepřátelé jsou ve skupinkách (pods): hlídka u levého brodu, kopiníci u pravého, tábor za lesem se setníkem. Skupinka spí, dokud se k ní hrdina nepřiblíží na wake m, dokud ji někdo nezraní nebo dokud do alarm_radius m od ní nebojuje jiný nepřítel. Asasína les nezpomaluje. Řádek nepřítele: [typ, x, y, (vlastnosti), {pod, arrive}]. foe_hp, foe_dmg = obtížnost bitvy (násobky zdraví a poškození nepřátel).",
+  "_info": "Battle Ford and Forest. The river can be crossed at two fords on the sides (slow) and a narrow footbridge in the middle. Beyond the footbridge is a forest with a trail. Enemies are in groups (pods): a patrol at the left ford, spearmen at the right one, a camp beyond the forest with the sergeant. A group sleeps until a hero comes within wake m, someone wounds it, or another enemy fights within alarm_radius m of it. The forest does not slow the assassin. Enemy row: [type, x, y, (traits), {pod, arrive}]. foe_hp, foe_dmg = battle difficulty (multipliers of enemy health and damage).",
   "alarm_radius": 6,
   "mode": "utok",
   "foe_hp": 2.2, "foe_dmg": 2.2,
   "auto_plan": "hold",
-  "name": "Brod a les",
-  "subtitle": "Lapkové a kopiníci od Černého brodu · 4 pěšáci, 2 kopiníci, 2 střelci",
-  "stage_label": "Akt 1",
-  "win_title": "Vítězství u brodu",
+  "name": "Ford and Forest",
+  "subtitle": "Brigands and spearmen from the Black Ford · 4 footmen, 2 spearmen, 2 bowmen",
+  "stage_label": "Act 1",
+  "win_title": "Victory at the Ford",
   "river": {"y0": 5.0, "y1": 8.5, "crossings": [
     {"x0": -10.5, "x1": -6.5, "kind": "brod", "speed": 0.55},
     {"x0": -0.6, "x1": 0.6, "kind": "lavka", "speed": 0.8},
@@ -27,12 +27,12 @@
     "knez": {"pos": [-0.5, -2.0]},
     "lucistnik": {"pos": [0.0, -3.5]}
   },
-  "optional_task": {"text": "Nikdo nepadne.", "reward": "vzácné znamení", "protect": "all"},
+  "optional_task": {"text": "No one falls.", "reward": "rare relic", "protect": "all"},
   "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
   "pods": [
-    {"name": "Hlídka u levého brodu", "wake": 7.0},
-    {"name": "Kopiníci u pravého brodu", "wake": 7.0},
-    {"name": "Tábor za lesem", "wake": 8.0}
+    {"name": "Patrol at the left ford", "wake": 7.0},
+    {"name": "Spearmen at the right ford", "wake": 7.0},
+    {"name": "Camp beyond the forest", "wake": 8.0}
   ],
   "enemies": [
     ["lapka", -8.8, 10.5, {"pod": 0}],

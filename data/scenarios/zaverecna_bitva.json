@@ -1,12 +1,12 @@
 {
-  "_info": "Boss aktu 1. Za potokem předsunutá hlídka, napravo střelci na skalách, vzadu tábor Hejtmana Kuna se stráží. Když Hejtman padne, morálka nepřátel se zlomí. returnees = kde se objeví uprchlíci z předchozích bitev běhu (pos = střed, spread = rozestup, max = kolik se jich nejvýš vrátí, pod = do které skupinky se přidají).",
+  "_info": "Boss of act 1. An advance patrol beyond the brook, bowmen on the rocks to the right, Captain Kuno's camp with his guard at the back. When the Captain falls, enemy morale breaks. returnees = where enemies who fled earlier battles of the run appear (pos = centre, spread = spacing, max = how many return at most, pod = which group they join).",
   "alarm_radius": 6,
   "mode": "utok",
   "foe_hp": 1.8, "foe_dmg": 1.8,
-  "name": "Tábor na Vraní skále",
-  "subtitle": "Hejtman Kuno a jeho tlupa · 4 pěšáci, 2 kopiníci, 2 střelci, vůdce",
-  "stage_label": "Akt 1 · Boss",
-  "win_title": "Hejtman Kuno je poražen",
+  "name": "Camp on Raven Rock",
+  "subtitle": "Captain Kuno and his band · 4 footmen, 2 spearmen, 2 bowmen, leader",
+  "stage_label": "Act 1 · Boss",
+  "win_title": "Captain Kuno is defeated",
   "river": {"y0": 5.0, "y1": 7.5, "crossings": [
     {"x0": -1.5, "x1": 1.5, "kind": "most", "speed": 1.0},
     {"x0": 6.0, "x1": 9.5, "kind": "brod", "speed": 0.6}
@@ -25,13 +25,13 @@
     "jezdec": {"pos": [4.0, -1.5]},
     "asasin": {"pos": [2.0, -0.5]}
   },
-  "optional_task": {"text": "Hejtman Kuno padne.", "reward": "vzácné znamení", "kill": "vudce"},
+  "optional_task": {"text": "Captain Kuno falls.", "reward": "rare relic", "kill": "vudce"},
   "returnees": {"pos": [0.0, 24.0], "spread": 1.2, "max": 2, "pod": 2},
   "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
   "pods": [
-    {"name": "Předsunutá hlídka", "wake": 7.0},
-    {"name": "Střelci na skalách", "wake": 9.0},
-    {"name": "Hejtmanův tábor", "wake": 8.0}
+    {"name": "Advance patrol", "wake": 7.0},
+    {"name": "Bowmen on the rocks", "wake": 9.0},
+    {"name": "The Captain's camp", "wake": 8.0}
   ],
   "enemies": [
     ["lapka", -1.0, 9.5, {"pod": 0}],

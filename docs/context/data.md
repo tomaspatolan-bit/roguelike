@@ -11,7 +11,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 2. **Jednotky:** vzdálenosti v metrech, čas v sekundách, rychlost v m/s, `armor` je podíl 0–1, bonusy jsou podíly (0.5 = +50 %).
 3. **`palette_row`** odpovídá řádku paletové textury: 0 rod Vlka, 1 tank, 2 lučištník, 3 kněz, 4 jezdec, 5 asasín (6–7 volné).
 4. **Každá změna čísla v bitvě = spustit test balancu** a výsledek zapsat do commitu.
-5. Texty jsou česky, jak je uvidí hráč.
+5. Texty jsou anglicky, jak je uvidí hráč (od 07.11.2026); názvy podle `docs/glosar.md`. `_info` je anglický popis pro vývojáře. Klíče zůstávají česky.
 6. **Hrdina** (`knights.<klíč>`): statistiky, `ability` (klíč z `abilities`). Bonusy rodu se zapékají přímo do hodnot hrdinů, žádné bonusy pro celý oddíl.
 7. **Jádro tříd Rodu Vlka je pevné:** tank, kněz, lučištník, jezdec, asasín. Přidat nebo odebrat třídu jde jen po rozhodnutí v deníku (Tom).
 8. **Rozkazy** (`orders` v `units.json`): `hold_radius`, `on_way`, `on_way_ranged`, `ally_dist`, `ally_dist_back`, `ally_guard`, `ally_leash`, `focus_leash`, `focus_time`, `hint_support`, `hint_dive_hp` (rada pro auto-hraní: pod tímto podílem zdraví hrdina neskáče), `melee_slots` (kolik pěších smí útočit na jednoho hrdinu), `wait_gap` (odstup čekajících), `body_gap` (odtlačování těl), `avoid_look`, `avoid_strength`, `settle`, `group_link` a `names` (texty rozkazů pro hráče). Nepřítel má `plural` (název skupiny). Výchozí chování tříd (`behaviors`) je zrušené.
@@ -42,6 +42,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 - Při exportu hry musí být `*.json` ve filtru exportovaných souborů (`include_filter` v `export_presets.cfg`, viz `testy.md`, Export).
 
 ## Historie významných změn
+- 07.11.2026: všechny texty a `_info` přeložené do angličtiny (glosář `docs/glosar.md`), jména s tituly (Father Jan, Captain Kuno), rod House of the Wolf, akt The Count's Forest, odměna úkolu „rare relic“.
 - 07.11.2026: `bonds` (8 typů pout), `bond_rules`, `combos` (5 komb výchozích schopností), `trial_bonds` v rodu.
 - 07.11.2026: `stats`, `stat_weights`, `abilities` u hrdinů, `power` u schopností; pasivky převedené na vlastnosti (Milosrdenství = Moc +50 %, Rychlé ruce = Pohotovost +25 %, Veterán = Odolnost +15 %, Lovec a Mstitel podmíněný Útok); 18 přísah podle návrhu 06.11 (Pomsta = Krevní dluh asasína, Slib odříkání nahradil Slib chudoby kněze, Nikdy neustoupí je osobní přísaha tanka).
 - 30.10.2026: asasín má vlastní model, dvě dýky (`offhand_model`) a animace `A_Assassin_*`; starší `anim_attack`, `anim_ability`, `weapon` u něj pryč.

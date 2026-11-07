@@ -1,6 +1,6 @@
 extends Node3D
-## Vizuál jedné jednotky. Rytíř = model z GLB s barvou role, nepřítel = kostičkový panák.
-## Pozici a stav bere každý snímek ze simulace (sync).
+## Visuals of one unit. Hero = GLB model with the role colour, enemy = a blocky figure.
+## Takes position and state from the simulation every frame (sync).
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
 const Field := preload("res://scripts/battle/battlefield.gd")
@@ -29,19 +29,19 @@ var _anim_idle := ANIM_IDLE
 var _anim_walk := ANIM_WALK
 var _anim_hit := ANIM_HIT
 var _anim_death := ANIM_DEATH
-var _oneshot_t := 0.0      # jak dlouho ještě hraje jednorázová animace (útok, zásah, schopnost)
+var _oneshot_t := 0.0      # how much longer a one-shot animation plays (attack, hit, ability)
 var _prev_atk := 0.0
 var _prev_hit := 0.0
 var _dead_played := false
 var _ragdoll := false
 var _foe_body: RigidBody3D = null
-var _figure: Node3D = null          # postava hrdiny (u jezdce jezdec na koni, jinak totéž co body)
-# kůň jezdce (mount_model): vlastní kostra a animace, jezdec sedí na kosti `saddle`
+var _figure: Node3D = null          # the hero's figure (for the cavalier the rider on the horse, otherwise the same as body)
+# the cavalier's horse (mount_model): own skeleton and animations, the rider sits on the `saddle` bone
 var _mount_anim: AnimationPlayer = null
 var _mount_names := {"idle": "A_Horse_Idle", "walk": "A_Horse_Walk", "gallop": "A_Horse_Gallop", "hit": "A_Horse_Hit", "death": "A_Horse_Death"}
 var _mount_walk_speed := 5.0
 var _mount_hit_t := 0.0
-# tětiva luku (lučištník): konce v prostoru modelu luku, úseky horní a dolní
+# bow string (archer): ends in bow model space, upper and lower segment
 var _bow: Node3D = null
 var _bow_top := Vector3.ZERO
 var _bow_bottom := Vector3.ZERO
@@ -49,11 +49,11 @@ var _string_a: MeshInstance3D = null
 var _string_b: MeshInstance3D = null
 var _skel: Skeleton3D = null
 var _hand_r := -1
-const STRING_PLANE := 0.2    # jak blízko roviny luku musí být pravá ruka, aby tětivu táhla (m)
-const STRING_DRAW_MAX := 0.75   # dál než plné natažení: ruka je pryč (po vypuštění), tětiva rovně
+const STRING_PLANE := 0.2    # how close to the bow plane the right hand must be to draw the string (m)
+const STRING_DRAW_MAX := 0.75   # farther than full draw: the hand is away (after release), the string is straight
 
-## Ragdoll: kosti, které dostanou fyzikální tělo [kost, poloměr, hmotnost, kloub].
-## Kloub: "cone" (kulový s omezením), "hinge" (loket, koleno).
+## Ragdoll: bones that get a physics body [bone, radius, mass, joint].
+## Joint: "cone" (ball with a limit), "hinge" (elbow, knee).
 const RAGDOLL := [
 	["pelvis", 0.16, 9.0, "cone"], ["spine_02", 0.17, 7.0, "cone"], ["spine_03", 0.17, 6.0, "cone"], ["head", 0.13, 3.0, "cone"],
 	["upperarm_l", 0.08, 2.0, "cone"], ["lowerarm_l", 0.07, 1.5, "hinge"],
@@ -61,7 +61,7 @@ const RAGDOLL := [
 	["thigh_l", 0.1, 4.0, "cone"], ["calf_l", 0.08, 3.0, "hinge"],
 	["thigh_r", 0.1, 4.0, "cone"], ["calf_r", 0.08, 3.0, "hinge"],
 ]
-const RAGDOLL_LAYER := 2   # těla padlých narážejí jen do země (vrstva 1), ne do sebe
+const RAGDOLL_LAYER := 2   # bodies of the fallen collide only with the ground (layer 1), not with each other
 
 
 func setup(u: Sim.Unit) -> void:
@@ -73,11 +73,11 @@ func setup(u: Sim.Unit) -> void:
 	else:
 		_build_foe(u)
 		if u.leader:
-			scale = Vector3.ONE * 1.3   # vůdce nepřátel je vidět z dálky (zástupné, finální vzhled ve fázi 3)
+			scale = Vector3.ONE * 1.3   # the enemy leader is visible from afar (placeholder, final look in phase 3)
 
 
 func _build_knight(u: Sim.Unit) -> void:
-	# model třídy z dat (`model`), jinak společný rytíř; stejná kostra a paleta pro všechny
+	# class model from the data (`model`), otherwise the shared knight; same skeleton and palette for all
 	var scene: PackedScene = KNIGHT_SCENE
 	var model := String(u.base.get("model", ""))
 	if model != "" and ResourceLoader.exists(model):
@@ -85,7 +85,7 @@ func _build_knight(u: Sim.Unit) -> void:
 	var figure := scene.instantiate() as Node3D
 	var mount_path := String(u.base.get("mount_model", ""))
 	if mount_path != "" and ResourceLoader.exists(mount_path):
-		# jezdec na koni: kůň je tělo jednotky, jezdec sedí na kosti `saddle`
+		# cavalier on a horse: the horse is the unit's body, the rider sits on the `saddle` bone
 		body = (load(mount_path) as PackedScene).instantiate() as Node3D
 		add_child(body)
 		_mount_setup(u, figure)
@@ -125,13 +125,13 @@ func _build_knight(u: Sim.Unit) -> void:
 			_setup_bow_string(w, bs)
 		var om := String(u.base.get("offhand_model", ""))
 		if om != "" and ResourceLoader.exists(om):
-			_attach_weapon_model(om, String(u.base.get("offhand_bone", "hand_l")))   # druhá zbraň (asasín: dýka v levé)
+			_attach_weapon_model(om, String(u.base.get("offhand_bone", "hand_l")))   # second weapon (assassin: dagger in the left hand)
 	else:
 		_attach_weapon(String(u.base.get("weapon", "")))
 
 
-## Kůň: jezdce posadí na kost `saddle` (rider_offset = počátek jezdce od počátku koně v klidové póze,
-## souřadnice Godotu) a připraví animace koně (mount_anims, mount_walk_speed = rychlost, při které klus hraje 1×).
+## Horse: seats the rider on the `saddle` bone (rider_offset = rider origin relative to the horse origin in the rest pose,
+## Godot coordinates) and prepares the horse animations (mount_anims, mount_walk_speed = speed at which the trot plays at 1×).
 func _mount_setup(u: Sim.Unit, rider: Node3D) -> void:
 	var names: Dictionary = u.base.get("mount_anims", {})
 	for k: String in names:
@@ -165,7 +165,7 @@ func _mount_setup(u: Sim.Unit, rider: Node3D) -> void:
 			_mount_anim.seek(randf() * _mount_anim.current_animation_length, true)
 
 
-## Kůň podle stavu jednotky: klid, klus, cval při Nájezdu, zásah; smrt spouští _start_ragdoll.
+## Horse by unit state: idle, trot, gallop during Charge, hit; death starts _start_ragdoll.
 func _sync_mount(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> void:
 	if _mount_anim == null or not u.alive():
 		return
@@ -191,8 +191,8 @@ func _sync_mount(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float
 		_mount_anim.speed_scale = maxf(scale, 0.01)
 
 
-## Zbraň z modelu (GLB z Blenderu, paleta jako postava). Úchop: počátek zbraně je v pěsti
-## (0,08 m po ose Y kosti od zápěstí), osa zbraně (+Z v Blenderu, po importu +Y) leží v ose Z kosti ruky.
+## Weapon from a model (GLB from Blender, palette like the figure). Grip: the weapon origin is in the fist
+## (0.08 m along the bone's Y from the wrist), the weapon axis (+Z in Blender, +Y after import) lies along the hand bone's Z.
 func _attach_weapon_model(path: String, hand: String) -> Node3D:
 	var skels := _figure.find_children("*", "Skeleton3D", true, false)
 	if skels.is_empty():
@@ -212,8 +212,8 @@ func _attach_weapon_model(path: String, hand: String) -> Node3D:
 	return w
 
 
-## Tětiva luku: dva tenké úseky od konců luku. Leží-li pravá ruka u roviny luku za tětivou
-## (natahuje), vede tětiva přes ni, jinak je rovně. Řídí to póza animace, ne simulace.
+## Bow string: two thin segments from the bow ends. If the right hand is near the bow plane behind the string
+## (drawing), the string runs through it, otherwise it is straight. Driven by the animation pose, not the simulation.
 func _setup_bow_string(w: Node3D, bs: Dictionary) -> void:
 	var top: Array = bs.get("top", [])
 	var bottom: Array = bs.get("bottom", [])
@@ -240,7 +240,7 @@ func _setup_bow_string(w: Node3D, bs: Dictionary) -> void:
 		add_child(mi)
 
 
-## Bod, přes který vede tětiva (globálně); Vector3.INF = tětiva rovně.
+## Point the string runs through (global); Vector3.INF = straight string.
 func bow_pull_point() -> Vector3:
 	if _bow == null or _hand_r < 0:
 		return Vector3.INF
@@ -261,7 +261,7 @@ func bow_pull_point() -> Vector3:
 	if k < 0.15 or k > 0.85:
 		return Vector3.INF
 	var on_line := b + axis * k
-	var back := on_line - grip   # směr od rukojeti k tětivě (k lučištníkovi)
+	var back := on_line - grip   # direction from the grip to the string (towards the archer)
 	var pull := (p - on_line).dot(back.normalized())
 	if pull < 0.0 or pull > STRING_DRAW_MAX:
 		return Vector3.INF
@@ -299,7 +299,7 @@ static func _place_segment(mi: MeshInstance3D, a: Vector3, b: Vector3) -> void:
 	mi.global_transform = Transform3D(Basis(x, y * l, z), (a + b) * 0.5)
 
 
-## Zbraň v ruce hrdiny (zástupná primitiva na kosti ruky; finální modely ve fázi 3).
+## Weapon in the hero's hand (placeholder primitives on the hand bone; final models in phase 3).
 func _attach_weapon(kind: String) -> void:
 	if kind == "":
 		return
@@ -316,7 +316,7 @@ func _attach_weapon(kind: String) -> void:
 	var att := BoneAttachment3D.new()
 	att.bone_name = hand
 	skel.add_child(att)
-	# kost ruky míří po své ose Y od zápěstí k prstům: čepel pokračuje z pěsti
+	# the hand bone points along its Y axis from wrist to fingers: the blade continues out of the fist
 	match kind:
 		"sword":
 			Field.box(att, Vector3(0.05, 0.16, 0.05), Vector3(0, 0.08, 0), grip)
@@ -330,7 +330,7 @@ func _attach_weapon(kind: String) -> void:
 			Field.box(att, Vector3(0.045, 0.6, 0.045), Vector3(0, 0.3, 0), wood)
 			Field.box(att, Vector3(0.13, 0.16, 0.13), Vector3(0, 0.62, 0), steel)
 		"bow":
-			# luk napříč pěstí, oblouk ze dvou ramen
+			# bow across the fist, the arc made of two limbs
 			Field.box(att, Vector3(0.035, 0.035, 0.6), Vector3(0, 0.08, 0.28), wood, Vector3(0.25, 0, 0))
 			Field.box(att, Vector3(0.035, 0.035, 0.6), Vector3(0, 0.08, -0.28), wood, Vector3(-0.25, 0, 0))
 			Field.box(att, Vector3(0.006, 0.006, 1.1), Vector3(0, -0.05, 0), Field.mat(Color("#e8e2d0"), 0.9))
@@ -338,7 +338,7 @@ func _attach_weapon(kind: String) -> void:
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
 
-## Jednorázová animace (útok, zásah, schopnost); po doběhnutí se vrátí klid nebo chůze.
+## One-shot animation (attack, hit, ability); when it ends, idle or walk resumes.
 func _play_once(a_name: String, time_scale: float) -> void:
 	if anim == null or not anim.has_animation(a_name) or _dead_played:
 		return
@@ -347,7 +347,7 @@ func _play_once(a_name: String, time_scale: float) -> void:
 	_oneshot_t = anim.get_animation(a_name).length
 
 
-## Schopnost hrdiny (volá scéna při události ability).
+## Hero ability (called by the scene on the ability event).
 func play_ability(time_scale: float = 1.0) -> void:
 	_play_once(_anim_ability, time_scale)
 
@@ -368,7 +368,7 @@ func _build_foe(u: Sim.Unit) -> void:
 	if u.ranged:
 		Field.box(body, Vector3(0.04, 1.1, 0.04), Vector3(-0.34, 1.15, 0.14), _foe_mats["wood"], Vector3(0, 0, 0.15))
 	elif u.vs_mounted > 1.0:
-		# kopiník: dlouhé kopí skloněné dopředu a kovová přilba
+		# spearman: a long spear tilted forward and a metal helmet
 		Field.box(body, Vector3(0.05, 0.05, 2.6), Vector3(0.3, 1.2, 0.7), _foe_mats["wood"], Vector3(-0.12, 0, 0))
 		Field.box(body, Vector3(0.08, 0.08, 0.25), Vector3(0.3, 1.35, 1.98), _foe_mats["steel"], Vector3(-0.12, 0, 0))
 		Field.box(body, Vector3(0.32, 0.14, 0.32), Vector3(0, 1.76, 0), _foe_mats["steel"])
@@ -376,7 +376,7 @@ func _build_foe(u: Sim.Unit) -> void:
 		Field.box(body, Vector3(0.05, 0.9, 0.05), Vector3(0.32, 1.15, 0.14), _foe_mats["steel"], Vector3(0.5, 0, 0))
 
 
-## Natočení: model kouká po +Z, směr v simulaci (x, y) je ve světě (x, -y).
+## Facing: the model looks along +Z, the simulation direction (x, y) is (x, -y) in the world.
 static func yaw_for(face: Vector2) -> float:
 	return atan2(face.x, -face.y)
 
@@ -384,7 +384,7 @@ static func yaw_for(face: Vector2) -> float:
 func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> void:
 	visible = not u.fled
 	if u.fled or _ragdoll:
-		return   # ragdoll už řídí fyzika
+		return   # the ragdoll is already driven by physics
 	var lunge := 0.0
 	if u.atk > 0.0:
 		lunge = sin(u.atk / 0.25 * PI) * 0.3
@@ -400,7 +400,7 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 				palette_mat.set_shader_parameter("flash", Color(0, 0, 0, 0))
 			return
 		if anim != null and anim.has_animation(_anim_death):
-			# hrdina padne animací a zůstane ležet (poslední snímek)
+			# the hero falls with an animation and stays down (last frame)
 			if not _dead_played:
 				_dead_played = true
 				anim.play(_anim_death, 0.08)
@@ -417,7 +417,7 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 
 	_sync_mount(u, delta, sim_running, time_scale)
 	if anim != null:
-		# jednorázové animace: útok (náběh u.atk), zásah (náběh u.hit, jen když neútočí)
+		# one-shot animations: attack (triggered by u.atk), hit (triggered by u.hit, only when not attacking)
 		if sim_running:
 			if u.atk > _prev_atk + 0.01:
 				_play_once(_anim_attack, time_scale)
@@ -455,14 +455,14 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 		body.scale = Vector3.ONE * sc
 
 
-## Smrt jako ragdoll: hrdina dostane fyzikální kosti a padne podle toho, odkud dostal ránu.
-## Nepřítel (kostičkový panák) padne jako jedno tuhé tělo. Když to nejde, zůstává animace smrti.
+## Death as a ragdoll: the hero gets physics bones and falls according to where the blow came from.
+## An enemy (blocky figure) falls as one rigid body. When that is not possible, the death animation stays.
 func _start_ragdoll(u: Sim.Unit) -> void:
-	var push := Vector3(-u.face.x, 0.0, u.face.y)   # dozadu od směru, kterým se díval (k nepříteli)
+	var push := Vector3(-u.face.x, 0.0, u.face.y)   # backwards from the direction he faced (towards the enemy)
 	if is_knight:
 		_ragdoll = _knight_ragdoll(push)
 		if _mount_anim != null and _mount_anim.has_animation(_mount_names["death"]):
-			_mount_anim.play(_mount_names["death"], 0.1)   # kůň padne na bok, jezdec z něj spadne
+			_mount_anim.play(_mount_names["death"], 0.1)   # the horse falls on its side, the rider falls off
 			_mount_anim.speed_scale = 1.0
 	else:
 		_ragdoll = _foe_ragdoll(push)
@@ -493,7 +493,7 @@ func _knight_ragdoll(push: Vector3) -> bool:
 		pb.friction = 0.9
 		pb.collision_layer = RAGDOLL_LAYER
 		pb.collision_mask = 1
-		# délka kosti = vzdálenost k jejímu prvnímu dítěti (v klidové póze)
+		# bone length = distance to its first child (in the rest pose)
 		var length := 0.2
 		var kids := skel.get_bone_children(idx)
 		if not kids.is_empty():
@@ -509,7 +509,7 @@ func _knight_ragdoll(push: Vector3) -> bool:
 			cap.radius = r
 			cap.height = maxf(length, r * 2.0 + 0.01)
 			cs.shape = cap
-		cs.position = Vector3(0, length * 0.5, 0)   # kost míří po své ose Y
+		cs.position = Vector3(0, length * 0.5, 0)   # the bone points along its Y axis
 		pb.add_child(cs)
 		if spec[3] == "hinge":
 			pb.joint_type = PhysicalBone3D.JOINT_TYPE_HINGE
@@ -551,13 +551,13 @@ func _foe_ragdoll(push: Vector3) -> bool:
 	var gt := body.global_transform
 	remove_child(body)
 	rb.add_child(body)
-	rb.top_level = true   # pohyb uzlu jednotky nesmí tělo vracet zpátky
+	rb.top_level = true   # moving the unit node must not pull the body back
 	add_child(rb)
 	rb.global_transform = gt
 	body.transform = Transform3D.IDENTITY
 	_foe_body = rb
-	# náraz dozadu a nahoru u hlavy: panák se překotí
-	# rychlost místo impulzu: tělo ještě není ve fyzikálním světě, impulz by se ztratil
+	# a push backwards and up at the head: the figure topples over
+	# velocity instead of an impulse: the body is not in the physics world yet, an impulse would be lost
 	rb.linear_velocity = push * 1.2 + Vector3(0, 0.6, 0)
 	rb.angular_velocity = Vector3.UP.cross(push).normalized() * 3.5
 	return true

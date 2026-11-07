@@ -30,6 +30,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 - Limity testů počítej v čase bitvy, ne ve snímcích (monitor může mít 144 Hz).
 
 ## Historie významných změn
+- 07.11.2026: texty a komentáře přeložené do angličtiny (`docs/glosar.md`).
 - 30.10.2026: druhá zbraň v ruce (`offhand_model`, asasín).
 - 30.10.2026: jezdec na koni (`_mount_setup`, `_sync_mount`, `_figure`); zástupné zvětšení jezdce pryč.
 - 30.10.2026: tětiva luku v `unit_view` (dva úseky, při natažení přes pravou ruku podle pózy animace, `bow_pull_point`); šíp lučištníka je model z `projectile_model` (`_projectile_model` v `battle.gd`), `projectile_views` drží `Node3D`.

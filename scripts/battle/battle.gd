@@ -1,6 +1,6 @@
 extends Node3D
-## Řídí bitvu: fáze (rozestavení → bitva ↔ pauza → konec), vstup hráče,
-## krokování simulace a propojení simulace s 3D scénou a rozhraním.
+## Runs the battle: phases (deployment → battle ↔ pause → end), player input,
+## stepping the simulation and wiring the simulation to the 3D scene and the UI.
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
 const Field := preload("res://scripts/battle/battlefield.gd")
@@ -9,17 +9,17 @@ const BattleUI := preload("res://scripts/battle/battle_ui.gd")
 const OrbitCamera := preload("res://scripts/battle/orbit_camera.gd")
 
 const STEP := 1.0 / 60.0
-const SETTINGS := "user://nastaveni.cfg"   # hráčova nastavení (výcvik hotový)
+const SETTINGS := "user://nastaveni.cfg"   # player settings (tutorial done)
 
-## Výcvik (data/vycvik.json): 0 = jen dokud ho hráč nedokončí nebo nepřeskočí, 1 = vždy, -1 = nikdy (testy).
+## Tutorial (data/vycvik.json): 0 = only until the player finishes or skips it, 1 = always, -1 = never (tests).
 static var tutorial_mode := 0
 var _tut_steps: Array = []
-var _tut_i := -1                     # krok výcviku (-1 = výcvik neběží)
-var _tut_flags: Dictionary = {}      # co už hráč udělal (klíče done z dat)
+var _tut_i := -1                     # tutorial step (-1 = tutorial not running)
+var _tut_flags: Dictionary = {}      # what the player has already done (done keys from the data)
 var _tut_data: Dictionary = {}
-var _tut_fired: Dictionary = {}      # kroky, jejichž situace (trigger) už nastala
-var _tut_shown := ""                 # co panel právě ukazuje (krok:wait/go), ať se nepřestavuje každý snímek
-var _tut_paused := false             # bitvu zastavil výcvik (test podle toho pokračuje)
+var _tut_fired: Dictionary = {}      # steps whose situation (trigger) has already happened
+var _tut_shown := ""                 # what the panel is showing now (step:wait/go), so it is not rebuilt every frame
+var _tut_paused := false             # the tutorial paused the battle (the test continues accordingly)
 
 enum Phase { DEPLOY, BATTLE, PAUSE, OVER }
 
@@ -27,22 +27,22 @@ var data: Dictionary
 var setup: Dictionary
 var sim: Sim
 var phase := Phase.DEPLOY
-var selected := ""                 # hlavní vybraný hrdina (karta, přetažení)
-var selection: Array = []          # všichni vybraní hrdinové (pravé tlačítko jim dá rozkaz)
+var selected := ""                 # main selected hero (card, dragging)
+var selection: Array = []          # all selected heroes (the right button gives them an order)
 var speed := 1.0
-var paused := false        # automatická pauza nebo otevřený dialog
+var paused := false        # automatic pause or an open dialog
 var log_lines: Array = []
 
 var cam: Camera3D
 var ui: BattleUI
 var views: Dictionary = {}
 var projectile_views: Dictionary = {}
-var aim_ring: MeshInstance3D      # cílení schopnosti: kruh pod kurzorem
-var _fx: Array = []                # krátké efekty schopností [MeshInstance3D, zbývající čas]
-var _aim_id := ""                  # hrdina, jehož schopnost se právě cílí
-var _aim_combo := ""                # kombo pouta, které se právě míří (spolu s _aim_id = kdo míří)
+var aim_ring: MeshInstance3D      # ability targeting: circle under the cursor
+var _fx: Array = []                # short ability effects [MeshInstance3D, time left]
+var _aim_id := ""                  # the hero whose ability is being aimed
+var _aim_combo := ""                # bond combo being aimed (with _aim_id = who aims)
 var _aim_point := Vector2.ZERO
-var _zone_meshes: Array = []      # hořící zem ze simulace (sim.zones)
+var _zone_meshes: Array = []      # burning ground from the simulation (sim.zones)
 var select_ring: MeshInstance3D
 var hold_marker: MeshInstance3D
 var hover_ring: MeshInstance3D
@@ -50,27 +50,27 @@ var drop_ring: MeshInstance3D
 var order_line: MeshInstance3D
 var zone: MeshInstance3D
 var field_root: Node3D
-var _order_marks: Array = []        # kruhy cílů rozkazů (barva hrdiny)
-var _warn_marks: Array = []         # ohlášené schopnosti velitelů: [kruh, plocha]
-var _order_flash: Dictionary = {}    # id hrdiny -> jak dlouho ještě ukazovat cíl právě daného rozkazu (s)
+var _order_marks: Array = []        # order target circles (hero colour)
+var _warn_marks: Array = []         # announced commander abilities: [ring, area]
+var _order_flash: Dictionary = {}    # hero id -> how much longer to show the target of the order just given (s)
 var scenario_id: String = Sim.DEFAULT_SCENARIO
 
-# výběr cíle rozkazu (Poslat na kartě): hrdina, kterému se vybírá cíl
+# order target picking (Send on the card): the hero whose target is being picked
 var _order_id := ""
-var _pointer := Vector2.ZERO        # poslední místo kurzoru na zemi
+var _pointer := Vector2.ZERO        # last cursor position on the ground
 var _acc := 0.0
-## Běh (scripts/run/run_state.gd), když je bitva jeho součástí; jinak null (volná bitva).
-## Nastavuje run_main.gd před přidáním do stromu.
+## The run (scripts/run/run_state.gd) when the battle is part of one; otherwise null (free battle).
+## Set by run_main.gd before adding to the tree.
 var run: RefCounted = null
 
-## Bitva v běhu skončila a hráč pokračuje: výsledek ze sim.result().
+## A run battle ended and the player continues: the result from sim.result().
 signal battle_done(result: Dictionary)
 var _ui_t := 0.0
 
-# drag & drop rytířů (rozestavení; v bitvě přetažení = rozkaz na místo)
-const PICK_PX := 30.0          # tolerance výběru rytíře na obrazovce (px)
-const MATE_PICK_PX := 16.0     # rozkaz ke spojenci jen při kliku přímo na něj (jinak je to rozkaz na místo)
-const DRAG_START_PX := 6.0     # o kolik se musí myš pohnout, aby začalo táhnutí
+# drag & drop of heroes (deployment; in battle dragging = order to a place)
+const PICK_PX := 30.0          # hero picking tolerance on screen (px)
+const MATE_PICK_PX := 16.0     # order to an ally only when clicking right on him (otherwise it is an order to a place)
+const DRAG_START_PX := 6.0     # how far the mouse must move for a drag to start
 var hover_id := ""
 var _drag_id := ""
 var _drag_active := false
@@ -78,11 +78,11 @@ var _drag_press := Vector2.ZERO
 var _drag_origin := Vector2.ZERO
 var _drag_target := Vector2.ZERO
 var _drag_target_raw := Vector2.ZERO
-var _sel_rings: Array = []           # kroužky pod vybranými hrdiny
-var _box_pending := false            # levé tlačítko stisknuté na zemi: klik, nebo tažení obdélníku výběru
+var _sel_rings: Array = []           # rings under the selected heroes
+var _box_pending := false            # left button pressed on the ground: click, or dragging a selection box
 var _box_active := false
-var _box_on_hero := false            # obdélník začal stiskem na hrdinovi (klik bez tažení výběr neruší)
-var _hover_cmd: Array = []           # co by teď udělalo pravé tlačítko: [druh, místo, poloměr]
+var _box_on_hero := false            # the box started with a press on a hero (a click without dragging does not clear the selection)
+var _hover_cmd: Array = []           # what the right button would do now: [kind, place, radius]
 var _box_start := Vector2.ZERO
 
 
@@ -128,7 +128,7 @@ func _ready() -> void:
 	ui = BattleUI.new()
 	if run != null:
 		ui.run_mode = true
-		ui.run_label = "%s · %s · patro %d ze %d" % [run.act["name"], run.NODE_NAMES.get(run.node_type(), ""), run.current_floor(), run.floor_count()]
+		ui.run_label = "%s · %s · floor %d of %d" % [run.act["name"], run.NODE_NAMES.get(run.node_type(), ""), run.current_floor(), run.floor_count()]
 	add_child(ui)
 	ui.run_continue_pressed.connect(func() -> void: battle_done.emit(sim.result()))
 	ui.knight_clicked.connect(_select)
@@ -169,9 +169,9 @@ func _ready() -> void:
 	_tut_init()
 
 
-# ================================================================ výcvik
+# ================================================================ tutorial
 
-## Je výcvik hotový (dokončený nebo přeskočený)? Uloženo v nastavení hráče.
+## Is the tutorial done (finished or skipped)? Stored in the player settings.
 static func tutorial_done() -> bool:
 	var cfg := ConfigFile.new()
 	if cfg.load(SETTINGS) != OK:
@@ -203,8 +203,8 @@ func _tut_step() -> Dictionary:
 	return _tut_steps[_tut_i]
 
 
-## Každý snímek: čeká krok na situaci (trigger)? Když nastane, bitva se zastaví a krok se ukáže.
-## Karta výcviku se přišpendlí k tomu, čeho se krok týká (anchor).
+## Every frame: is a step waiting for a situation (trigger)? When it happens, the battle pauses and the step shows.
+## The tutorial card is pinned to what the step is about (anchor).
 func _tut_update() -> void:
 	if _tut_i < 0:
 		return
@@ -215,21 +215,21 @@ func _tut_update() -> void:
 		waiting = false
 		_tut_fired[_tut_i] = true
 		if phase == Phase.BATTLE:
-			phase = Phase.PAUSE   # ať hráč stihne zareagovat
+			phase = Phase.PAUSE   # so the player has time to react
 			_tut_paused = true
 			_refresh_panel()
 		var wp: Variant = _tut_world(String(st.get("anchor", "")))
 		if wp != null:
-			_focus_camera(wp)   # ať je vidět, co se děje
+			_focus_camera(wp)   # so it is visible what is going on
 	var key := "%d:%s" % [_tut_i, "wait" if waiting else "go"]
 	if key != _tut_shown:
 		_tut_shown = key
 		var text := String(st.get("wait_text", "")) if waiting else String(st["text"])
-		ui.show_tutorial(String(_tut_data.get("title", "Výcvik")), _tut_i + 1, _tut_steps.size(), text, not waiting and String(st["done"]) == "ok")
+		ui.show_tutorial(String(_tut_data.get("title", "Tutorial")), _tut_i + 1, _tut_steps.size(), text, not waiting and String(st["done"]) == "ok")
 	ui.point_tutorial(null if waiting else _tut_anchor(String(st.get("anchor", ""))))
 
 
-## Nastala situace, na kterou krok čeká?
+## Has the situation the step waits for happened?
 func _tut_trigger(trig: String) -> bool:
 	match trig:
 		"contact":
@@ -248,7 +248,7 @@ func _tut_trigger(trig: String) -> bool:
 	return false
 
 
-## Místo na bojišti, kterého se krok týká (hrdinové, místo před nimi, nepřítel, kruh velitele), nebo null.
+## The battlefield spot the step is about (heroes, the spot ahead of them, an enemy, a commander's circle), or null.
 func _tut_world(anchor: String) -> Variant:
 	var ks := sim.living(Sim.SIDE_KNIGHT)
 	var c := Vector2.ZERO
@@ -263,7 +263,7 @@ func _tut_world(anchor: String) -> Variant:
 			var front := -INF
 			for k in ks:
 				front = maxf(front, k.pos.y)
-			return Vector2(c.x, front + 3.0)   # před nejpřednějším hrdinou, ať klik nepadne na spojence
+			return Vector2(c.x, front + 3.0)   # in front of the foremost hero, so the click does not land on an ally
 		"foe":
 			var best: Sim.Unit = null
 			for f in sim.living(Sim.SIDE_FOE):
@@ -279,7 +279,7 @@ func _tut_world(anchor: String) -> Variant:
 	return null
 
 
-## Bod na obrazovce, ke kterému patří karta výcviku (nebo null = výchozí místo pod deníkem).
+## The screen point the tutorial card belongs to (or null = default spot below the log).
 func _tut_anchor(anchor: String) -> Variant:
 	var ks := sim.living(Sim.SIDE_KNIGHT)
 	match anchor:
@@ -308,7 +308,7 @@ func _tut_screen(p: Vector2, h: float) -> Variant:
 	return cam.unproject_position(w)
 
 
-## Hráč udělal něco, co výcvik hlídá; když to je cíl kroku, jde se dál (a přes kroky, které už splnil).
+## The player did something the tutorial watches; when it is the step's goal, move on (also over steps already done).
 func _tut_mark(key: String) -> void:
 	if _tut_i < 0 or _tut_flags.has(key):
 		return
@@ -332,7 +332,7 @@ func _tut_finish() -> void:
 		set_tutorial_done(true)
 
 
-# ================================================================ stav
+# ================================================================ state
 
 func _build_zone() -> void:
 	var z: Dictionary = data["scenario"]["deploy_zone"]
@@ -342,12 +342,12 @@ func _build_zone() -> void:
 	zone.position = Field.to_world(Vector2((float(z["x0"]) + float(z["x1"])) / 2.0, (float(z["y0"]) + float(z["y1"])) / 2.0), 0.03)
 
 
-## Kamera podle mapy: pevný úhel, výchozí výřez a hranice posunu (units.json `camera` + scénář `camera`).
+## Camera by map: fixed angle, default view and pan bounds (units.json `camera` + scenario `camera`).
 func _configure_camera() -> void:
 	(cam as OrbitCamera).configure(data["units"].get("camera", {}), data["scenario"].get("camera", {}))
 
 
-## Výběr bitvy (volná bitva, před začátkem): načte scénář a postaví bojiště znovu.
+## Battle choice (free battle, before the start): loads the scenario and rebuilds the battlefield.
 func _load_scenario(id: String) -> void:
 	if id == scenario_id or not (phase == Phase.DEPLOY or (phase == Phase.PAUSE and sim.t == 0.0)):
 		return
@@ -364,7 +364,7 @@ func _load_scenario(id: String) -> void:
 	_fresh_deploy()
 
 
-## Zruší rozkaz: hrdina drží místo, kde stojí.
+## Cancels the order: the hero holds the place where he stands.
 func _clear_order(id: String) -> void:
 	if not _can_command():
 		return
@@ -374,7 +374,7 @@ func _clear_order(id: String) -> void:
 	_refresh_panel()
 
 
-## Klik při výběru cíle rozkazu: nepřítel = jeho skupina, hrdina = spojenec, jinak místo na zemi.
+## Click while picking an order target: enemy = his group, hero = ally, otherwise a spot on the ground.
 func _order_click(screen_pos: Vector2) -> void:
 	var id := _order_id
 	var kind := "point"
@@ -400,7 +400,7 @@ func _order_click(screen_pos: Vector2) -> void:
 	_give_order(sim.by_id(id), kind, target)
 
 
-## Dá rozkaz (když by porušil přísahu, v bitvě se zeptá, jestli ji porušit; v rozestavení ho odmítne).
+## Gives an order (if it would break an oath, in battle asks whether to break it; in deployment refuses it).
 func _give_order(u: Sim.Unit, kind: String, target: Variant) -> void:
 	var problem := sim.order_problem(u.id, kind, target)
 	if problem != "":
@@ -418,7 +418,7 @@ func _give_order(u: Sim.Unit, kind: String, target: Variant) -> void:
 		_refresh_panel()
 	var conflict := sim.order_oath_conflict(u.id, kind, target)
 	if conflict != "" and phase == Phase.DEPLOY:
-		ui.flash_hint("%s složil přísahu „%s“: %s." % [u.name, sim.oath_of(u.id).get("name", ""), conflict])
+		ui.flash_hint("%s has sworn the oath “%s”: %s." % [u.name, sim.oath_of(u.id).get("name", ""), conflict])
 		_refresh_panel()
 	elif conflict != "":
 		paused = true
@@ -433,7 +433,7 @@ func _give_order(u: Sim.Unit, kind: String, target: Variant) -> void:
 		apply.call()
 
 
-## Použije schopnost; když by porušila přísahu, nejdřív se zeptá (Porušit / Zrušit).
+## Uses an ability; if it would break an oath, asks first (Break / Cancel).
 func _use_ability_asking(id: String, target: Variant) -> void:
 	var conflict := sim.ability_oath_conflict(id, target)
 	var go := func() -> void:
@@ -449,7 +449,7 @@ func _use_ability_asking(id: String, target: Variant) -> void:
 	var keep := func() -> void:
 		paused = false
 		_refresh_panel()
-	ui.ask_oath(u.name, sim.oath_of(id), conflict, go, keep, "Zrušit schopnost")
+	ui.ask_oath(u.name, sim.oath_of(id), conflict, go, keep, "Cancel ability")
 
 func _new_sim() -> void:
 	sim = Sim.new(data, setup)
@@ -471,7 +471,7 @@ func _new_sim() -> void:
 	_acc = 0.0
 
 
-## Rozestavení má jen obrana (nepřítel přijde k vám); jinak bitva začne rovnou v pauze.
+## Only defense has deployment (the enemy comes to you); otherwise the battle starts paused.
 func _needs_deploy() -> bool:
 	return String(data["scenario"].get("mode", "stret")) == "obrana"
 
@@ -483,7 +483,7 @@ func _fresh_deploy() -> void:
 	_refresh_panel()
 
 
-## Začít bitvu (z rozestavení obrany).
+## Start the battle (from defense deployment).
 func _try_start() -> void:
 	if phase != Phase.DEPLOY:
 		return
@@ -491,7 +491,7 @@ func _try_start() -> void:
 	_start_battle()
 
 
-## Bitva od začátku: z rozestavení se rovnou běží, jinak začne v pauze (opakování bitvy).
+## Battle from the start: from deployment it runs straight away, otherwise it starts paused (battle retry).
 func _start_battle() -> void:
 	for u in sim.knights():
 		setup["pos"][u.id] = u.pos
@@ -503,7 +503,7 @@ func _start_battle() -> void:
 	_refresh_panel()
 
 
-## Setup volné bitvy: výchozí rozestavení a na zkoušku pouta z rodu (trial_bonds), aby šla vyzkoušet komba.
+## Free battle setup: default deployment plus trial bonds from the house (trial_bonds) so combos can be tried.
 static func _free_setup(d: Dictionary) -> Dictionary:
 	var st := Sim.default_setup(d)
 	st["bonds"] = (d["house"].get("trial_bonds", {}) as Dictionary).duplicate(true)
@@ -518,10 +518,10 @@ func _refresh_panel() -> void:
 	ui.update_dynamic(sim, phase == Phase.PAUSE, paused)
 
 
-# ================================================================ příkazy
+# ================================================================ commands
 
-## Klik na kartu: vybere jen tohoto hrdinu (Shift přidá nebo ubere), druhý klik na vybraného
-## na něj posune výřez kamery. Výběr ruší Esc nebo klik na zem.
+## Click on a card: selects only this hero (Shift adds or removes), a second click on the selected one
+## pans the camera to him. Esc or a click on the ground clears the selection.
 func _select(id: String) -> void:
 	var u := sim.by_id(id)
 	if u == null or not u.alive() or phase == Phase.OVER:
@@ -537,7 +537,7 @@ func _select(id: String) -> void:
 	_refresh_panel()
 
 
-## Klik na hrdinu na bojišti: vybere jen jeho (jako v RTS); Shift ho přidá nebo ubere.
+## Click on a hero on the battlefield: selects only him (as in an RTS); Shift adds or removes him.
 func _set_selected(id: String) -> void:
 	if Input.is_key_pressed(KEY_SHIFT):
 		_toggle_in_selection(id)
@@ -549,7 +549,7 @@ func _set_selected(id: String) -> void:
 	_refresh_panel()
 
 
-## H: vybraní hrdinové zruší rozkaz a drží místo, kde stojí.
+## H: the selected heroes cancel their orders and hold where they stand.
 func _hold_selected() -> void:
 	if not _selection_alive().is_empty():
 		_tut_mark("hold")
@@ -557,7 +557,7 @@ func _hold_selected() -> void:
 		_clear_order(id)
 
 
-## Ctrl+A: vybere všechny živé hrdiny.
+## Ctrl+A: selects all living heroes.
 func _select_all() -> void:
 	if phase == Phase.OVER:
 		return
@@ -571,7 +571,7 @@ func _select_all() -> void:
 	_refresh_panel()
 
 
-## Kamera se natočí na místo na bojišti (druhý klik na kartu vybraného hrdiny).
+## The camera turns to a spot on the battlefield (second click on the selected hero's card).
 func _focus_camera(p: Vector2) -> void:
 	var oc := cam as OrbitCamera
 	oc.target = Vector3(p.x, 0.0, -p.y)
@@ -592,7 +592,7 @@ func _clear_selection() -> void:
 	selected = ""
 
 
-## Výběr tažením: hrdinové, jejichž postava (střed těla) je v obdélníku; Shift přidá k výběru.
+## Box selection: heroes whose figure (body centre) is in the box; Shift adds to the selection.
 func _box_select(rect: Rect2) -> void:
 	var picked: Array = []
 	for u in sim.knights():
@@ -614,7 +614,7 @@ func _box_select(rect: Rect2) -> void:
 	_refresh_panel()
 
 
-## Vybraní hrdinové, kteří žijí.
+## Selected heroes who are alive.
 func _selection_alive() -> Array:
 	var out: Array = []
 	for id: String in selection:
@@ -624,10 +624,10 @@ func _selection_alive() -> Array:
 	return out
 
 
-## Pasivka zapnutá nebo vypnutá v rozestavení (na zkoušku; ve hře budou odměnou v běhu).
+## Passive toggled in deployment (for trial; in the game they are run rewards).
 func _on_passive(id: String, key: String, on: bool) -> void:
 	if run != null:
-		return   # v běhu se pasivky získávají jen jako odměna
+		return   # in a run passives come only as rewards
 	if not (phase == Phase.DEPLOY or (phase == Phase.PAUSE and sim.t == 0.0)):
 		return
 	if on:
@@ -639,7 +639,7 @@ func _on_passive(id: String, key: String, on: bool) -> void:
 	_refresh_panel()
 
 
-## Schopnost hrdiny (karta nebo klávesa 1–5). Bez cíle se použije hned, jinak začne cílení.
+## Hero ability (card or key 1–5). Without a target it is used at once, otherwise targeting starts.
 func _ability(id: String) -> void:
 	if (phase != Phase.BATTLE and phase != Phase.PAUSE) or paused:
 		return
@@ -654,7 +654,7 @@ func _ability(id: String) -> void:
 	_refresh_panel()
 
 
-## Kombo pouta (tlačítko nebo Q / E): bez míření se spustí hned, jinak začne cílení schopností, kterou se kombo míří.
+## Bond combo (button or Q / E): without aiming it fires at once, otherwise targeting with the aiming ability starts.
 func _combo(cid: String) -> void:
 	if (phase != Phase.BATTLE and phase != Phase.PAUSE) or paused:
 		return
@@ -691,7 +691,7 @@ func _ability_by_index(i: int) -> void:
 		_ability(ks[i].id)
 
 
-## Klik při cílení: místo na zemi, nebo nepřítel pod kurzorem.
+## Click while targeting: a spot on the ground, or the enemy under the cursor.
 func _aim_click(screen_pos: Vector2) -> void:
 	var id := _aim_id
 	var target: Variant = null
@@ -749,13 +749,13 @@ func _charge() -> void:
 		_refresh_panel()
 
 
-## Pauza (mezerník): čas stojí, rozkazy a schopnosti jdou dávat dál.
+## Pause (Space): time stops, orders and abilities can still be given.
 func _toggle_pause() -> void:
 	if paused:
 		return
 	_tut_paused = false
 	if phase == Phase.DEPLOY:
-		_try_start()   # mezerník v rozestavení (obrana) spustí bitvu
+		_try_start()   # Space in deployment (defense) starts the battle
 		return
 	if phase == Phase.BATTLE:
 		phase = Phase.PAUSE
@@ -775,7 +775,7 @@ func _resume_pause() -> void:
 	_refresh_panel()
 
 
-## Přetažení hrdiny v bitvě = rozkaz na místo.
+## Dragging a hero in battle = order to a place.
 func _order_move(u: Sim.Unit, target: Vector2) -> void:
 	if sim._in_water(target):
 		return
@@ -835,11 +835,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			_pointer_down(mb.position)
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
-			_command_click(mb.position)   # pravé tlačítko = rozkaz (kamera se jím nehýbe)
+			_command_click(mb.position)   # right button = order (the camera does not move with it)
 
 
 func _input(event: InputEvent) -> void:
-	# Pohyb a puštění se sledují i nad panelem, aby táhnutí nikdy "neuvízlo".
+	# Motion and release are tracked over the panel too, so a drag never "gets stuck".
 	if event is InputEventMouseMotion:
 		_pointer_move((event as InputEventMouseMotion).position)
 	elif event is InputEventMouseButton:
@@ -853,10 +853,10 @@ func _can_command() -> bool:
 	return phase != Phase.OVER and not paused
 
 
-## Pravé tlačítko s vybranými hrdiny: na nepřítele = jeho skupina, na hrdinu = ke spojenci,
-## na zem = na místo (víc hrdinů se rozestaví do řady napříč směrem pohybu).
-## Pravé tlačítko vždy provede akci: cílí-li se schopnost, použije ji; vybírá-li se cíl tlačítkem
-## Poslat, dá rozkaz; jinak pošle vybrané hrdiny (rozhodnutí 30.10.2026: jedno tlačítko pro akci).
+## Right button with selected heroes: on an enemy = his group, on a hero = with ally,
+## on the ground = to a place (several heroes line up across the direction of movement).
+## The right button always performs an action: if an ability is being aimed, uses it; if a target is being picked with
+## Send, gives the order; otherwise sends the selected heroes (decision 30.10.2026: one button for actions).
 func _command_click(screen_pos: Vector2) -> void:
 	if not _can_command():
 		return
@@ -886,7 +886,7 @@ func _command_click(screen_pos: Vector2) -> void:
 		return
 	var p: Vector2 = gp
 	if sim._in_water(p):
-		ui.flash_hint("Do vody to nejde.")
+		ui.flash_hint("Can't go into the water.")
 		return
 	var c := Vector2.ZERO
 	for id: String in ids:
@@ -901,7 +901,7 @@ func _command_click(screen_pos: Vector2) -> void:
 		_give_order(sim.by_id(String(ids[i])), "point", q)
 
 
-## Náhled pravého tlačítka pod kurzorem (pro kruh): skupina nepřátel, spojenec, nebo místo.
+## Preview of the right button under the cursor (for the circle): enemy group, ally, or place.
 func _preview_command(screen_pos: Vector2) -> Array:
 	if _aim_id != "" or _order_id != "" or _selection_alive().is_empty() or phase == Phase.DEPLOY:
 		return []
@@ -927,8 +927,8 @@ static func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
 	return p.distance_to(a + ab * t)
 
 
-## Rytíř pod kurzorem: měří se vzdálenost od jeho postavy na obrazovce (od nohou po hlavu),
-## takže jde chytit kdekoli na těle, ne jen u nohou.
+## Hero under the cursor: measured from his figure on screen (from feet to head),
+## so he can be grabbed anywhere on the body, not just at the feet.
 func _pick_knight(screen_pos: Vector2, exclude: String = "", tol: float = PICK_PX) -> String:
 	var best := ""
 	var bd := tol
@@ -971,7 +971,7 @@ func _pointer_down(screen_pos: Vector2) -> void:
 		return
 	var id := _pick_knight(screen_pos)
 	if id != "" and phase != Phase.DEPLOY:
-		# v bitvě se hrdinové netahají (náhodné rozkazy); stisk na hrdinovi = výběr, tažení = obdélník
+		# heroes are not dragged in battle (accidental orders); a press on a hero = selection, a drag = box
 		_set_selected(id)
 		_box_pending = true
 		_box_active = false
@@ -985,14 +985,14 @@ func _pointer_down(screen_pos: Vector2) -> void:
 		_drag_origin = sim.by_id(id).pos
 		_set_selected(id)
 		return
-	# na zemi: tažení = obdélník výběru, klik = viz _ground_click (rozhodne se při puštění)
+	# on the ground: drag = selection box, click = see _ground_click (decided on release)
 	_box_pending = true
 	_box_active = false
 	_box_start = screen_pos
 	_box_on_hero = false
 
 
-## Klik na zem: v rozestavení přesune vybraného hrdinu, v bitvě zruší výběr.
+## Click on the ground: in deployment moves the selected hero, in battle clears the selection.
 func _ground_click(screen_pos: Vector2) -> void:
 	if selected == "":
 		return
@@ -1069,7 +1069,7 @@ func _pointer_up(screen_pos: Vector2) -> void:
 		return
 	var u := sim.by_id(id)
 	if phase == Phase.DEPLOY:
-		# puštění na jiného rytíře = prohodit místa
+		# dropping on another hero = swap places
 		var other_id := _pick_knight(screen_pos, id)
 		if other_id != "":
 			var o := sim.by_id(other_id)
@@ -1083,7 +1083,7 @@ func _pointer_up(screen_pos: Vector2) -> void:
 		_order_move(u, _drag_target)
 
 
-# ================================================================ smyčka
+# ================================================================ loop
 
 func _process(delta: float) -> void:
 	var running := phase == Phase.BATTLE and not paused and sim.over == ""
@@ -1105,7 +1105,7 @@ func _process(delta: float) -> void:
 		if phase == Phase.BATTLE:
 			_tut_mark("running")
 		if phase == Phase.OVER:
-			_tut_i = -1   # bitva skončila dřív: výcvik se ukáže znovu v další bitvě
+			_tut_i = -1   # the battle ended early: the tutorial shows again in the next battle
 			ui.hide_tutorial()
 		else:
 			_tut_update()
@@ -1125,7 +1125,7 @@ func _flush_events() -> void:
 				log_lines.append(ev)
 				relog = true
 			"arrive":
-				# další vlna nepřátel vstoupila na bojiště
+				# another enemy wave entered the battlefield
 				var nu := sim.by_id(String(ev["id"]))
 				if nu != null and not views.has(nu.id):
 					var nv := UnitView.new()
@@ -1143,7 +1143,7 @@ func _flush_events() -> void:
 			"oath_broken":
 				var bu := sim.by_id(String(ev.get("id", "")))
 				if bu != null and String(ev.get("text", "")) != "":
-					ui.flash_hint("%s porušil přísahu: %s." % [bu.name, ev["text"]])
+					ui.flash_hint("%s broke his oath: %s." % [bu.name, ev["text"]])
 				relog = true
 			"skill":
 				var sr := Field.ring(maxf(float(ev.get("radius", 1.0)), 0.9), 0.2, Color(1.0, 0.3, 0.2, 0.85))
@@ -1151,7 +1151,7 @@ func _flush_events() -> void:
 				add_child(sr)
 				_fx.append([sr, 0.6])
 			"decided":
-				# rozhodnutá bitva se dohraje zrychleně
+				# a decided battle plays out faster
 				speed = maxf(speed, 2.0)
 				relog = true
 			"heal":
@@ -1168,8 +1168,8 @@ func _flush_events() -> void:
 		_refresh_panel()
 
 
-## Střela z modelu (projectile_model střelce, GLB s hrotem po ose Y): uzel míří po -Z jako look_at.
-## Barva z palety střelce (jeho řádek role). Bez modelu null (pak zástupný tvar).
+## Projectile from a model (the shooter's projectile_model, GLB with the tip along Y): the node points along -Z like look_at.
+## Colour from the shooter's palette (his role row). Without a model null (then a placeholder shape).
 func _projectile_model(shooter: Sim.Unit) -> Node3D:
 	if shooter == null:
 		return null
@@ -1199,7 +1199,7 @@ func _sync_projectiles() -> void:
 			mi = MeshInstance3D.new()
 			var shooter := sim.by_id(p.from_id)
 			if shooter != null and String(shooter.base.get("projectile", "")) == "svetlo":
-				# kněz: zlaté světlo z hole
+				# priest: golden light from the staff
 				var sm := SphereMesh.new()
 				sm.radius = 0.13
 				sm.height = 0.26
@@ -1233,7 +1233,7 @@ func _sync_projectiles() -> void:
 
 func _sync_markers() -> void:
 	zone.visible = phase == Phase.DEPLOY
-	# efekty schopností doznívají
+	# ability effects fade out
 	for i in range(_fx.size() - 1, -1, -1):
 		var fx: Array = _fx[i]
 		fx[1] = float(fx[1]) - get_process_delta_time()
@@ -1242,7 +1242,7 @@ func _sync_markers() -> void:
 		if float(fx[1]) <= 0.0:
 			mi.queue_free()
 			_fx.remove_at(i)
-	# hořící zem (Ohnivá salva)
+	# burning ground (Fire Volley)
 	while _zone_meshes.size() < sim.zones.size():
 		var zd := Field.disc(1.0, Color(1.0, 0.45, 0.1, 0.35))
 		add_child(zd)
@@ -1254,7 +1254,7 @@ func _sync_markers() -> void:
 			var z: Dictionary = sim.zones[i]
 			zm.position = Field.to_world(z["pos"], 0.05)
 			zm.scale = Vector3(float(z["r"]), 1.0, float(z["r"]))
-	# cílení schopnosti: kruh pod kurzorem (velikost podle schopnosti), červený mimo dosah
+	# ability targeting: circle under the cursor (sized by the ability), red out of range
 	aim_ring.visible = _aim_id != "" and sim.by_id(_aim_id) != null
 	if aim_ring.visible:
 		var a := sim.ability_of(_aim_id)
@@ -1291,7 +1291,7 @@ func _sync_markers() -> void:
 	_sync_order_marks()
 	_sync_warnings()
 
-	# kroužky pod vybranými hrdiny v barvě hrdiny (hlavní výběr silnější)
+	# rings under the selected heroes in the hero's colour (main selection stronger)
 	var sel_alive := _selection_alive() if phase != Phase.OVER else []
 	while _sel_rings.size() < sel_alive.size():
 		var r := Field.ring(0.65, 0.09, Color(1, 1, 1, 0.8))
@@ -1314,7 +1314,7 @@ func _sync_markers() -> void:
 		hold_marker.position = Field.to_world(su.home, 0.06)
 
 
-## Ohlášené schopnosti velitelů: červený kruh a plocha, které sílí, jak se blíží dopad.
+## Announced commander abilities: a red ring and area that intensify as the impact nears.
 func _sync_warnings() -> void:
 	var ws: Array = sim.warnings() if phase != Phase.OVER else []
 	while _warn_marks.size() < ws.size():
@@ -1341,23 +1341,23 @@ func _sync_warnings() -> void:
 		(area.material_override as StandardMaterial3D).albedo_color = Color(1.0, 0.2, 0.15, 0.15 + 0.35 * urgency)
 
 
-## Barva hrdiny pro kruhy na bojišti (zesvětlená barva z dat, aby byla vidět na trávě).
+## Hero colour for circles on the battlefield (the data colour lightened so it shows on grass).
 static func hero_color(u: Sim.Unit, alpha: float) -> Color:
 	var c := u.color.lightened(0.3)
 	c.a = alpha
 	return c
 
 
-## Kruhy cílů rozkazů v barvě hrdiny: na místo malý kruh, na skupinu kruh kolem jejího středu, ke spojenci
-## kruh pod spojencem (víc hrdinů se stejným cílem = soustředné kruhy). V rozestavení a v pauze u všech,
-## v běžící bitvě u vybraných a chvíli po daném rozkazu. Při výběru cíle (Poslat) kruh pod kurzorem.
+## Order target circles in the hero's colour: to a place a small circle, at a group a circle around its centre, with an ally
+## a circle under the ally (several heroes with the same target = concentric circles). In deployment and pause for all,
+## in a running battle for the selected and briefly after an order. While picking a target (Send) a circle under the cursor.
 func _sync_order_marks() -> void:
 	var dt := get_process_delta_time()
 	for id: String in _order_flash.keys():
 		_order_flash[id] = float(_order_flash[id]) - dt
 		if float(_order_flash[id]) <= 0.0:
 			_order_flash.erase(id)
-	var marks: Array = []   # [místo, poloměr, barva]
+	var marks: Array = []   # [place, radius, colour]
 	if phase != Phase.OVER:
 		var all := phase == Phase.DEPLOY or phase == Phase.PAUSE
 		var ks := sim.knights()
@@ -1406,7 +1406,7 @@ func _sync_order_marks() -> void:
 			(ring.material_override as StandardMaterial3D).albedo_color = m[2]
 
 
-## Krátký efekt schopnosti: kruh na zemi, který zmizí.
+## A short ability effect: a circle on the ground that fades.
 func _spawn_fx(key: String, pos: Vector2) -> void:
 	var a: Dictionary = sim.units_data["abilities"].get(key, {})
 	var r := float(a.get("radius", 1.2))

@@ -1,9 +1,9 @@
-# Válečný kůň jezdce: vlastní kostra Armature_Horse a síť SK_Horse (paleta jako hrdinové, tuhé váhy).
-# Spuštění v Blenderu (Knight.blend): exec(open(r"<repo>/art/cavalier/build_horse.py", encoding="utf-8").read(), {"KIT": r"<repo>/art/tools/hero_kit.py"})
-# Kůň kouká po −Y (jako rytíř), levá strana = +X, kopyta v z = 0, kohoutek ~1,55 m, délka trupu ~2,3 m.
-# Výbava: čabraka v barvě jezdce (sloupce 3–4, řádek role) s navy lemem a kosočtvercem řádu, ocelová maska
-# se zlatým hřebenem, kožené sedlo na navy podsedlové dece. Srst sloupec 11, hříva, ocas a kopyta sloupec 12.
-# Kost `saddle` (nedeformuje) je místo, kam hra posadí jezdce (BoneAttachment3D).
+# The cavalier's warhorse: own skeleton Armature_Horse and mesh SK_Horse (palette like the heroes, rigid weights).
+# Run in Blender (Knight.blend): exec(open(r"<repo>/art/cavalier/build_horse.py", encoding="utf-8").read(), {"KIT": r"<repo>/art/tools/hero_kit.py"})
+# The horse faces −Y (like the knight), left side = +X, hooves at z = 0, withers ~1.55 m, body length ~2.3 m.
+# Barding: caparison in the cavalier's colour (columns 3–4, role row) with navy trim and the order's lozenge, steel chanfron
+# with a gold crest, leather saddle on a navy saddle blanket. Coat column 11, mane, tail and hooves column 12.
+# The `saddle` bone (non-deforming) is where the game seats the rider (BoneAttachment3D).
 import math
 import bpy
 import bmesh
@@ -15,7 +15,7 @@ COL = "HORSE_game"
 
 # --- kostra
 BONES = [
-    # jméno, hlava, ocas, rodič, deformuje
+    # name, head, tail, parent, deforms
     ("root", (0, 0, 0), (0, 0.3, 0), None, False),
     ("pelvis", (0, 0.45, 1.2), (0, 0.1, 1.22), "root", True),
     ("spine", (0, 0.1, 1.22), (0, -0.4, 1.28), "pelvis", True),
@@ -68,7 +68,7 @@ for name, h, t, parent, deform in BONES:
         b.use_connect = False
 bpy.ops.object.mode_set(mode="OBJECT")
 
-# --- síť
+# --- mesh
 me = bpy.data.meshes.new("SK_Horse")
 ob = bpy.data.objects.new("SK_Horse", me)
 col.objects.link(ob)
@@ -83,16 +83,16 @@ B = Builder(ob, bm)
 
 
 def body_w(v):
-    """Trup: vzadu pánev, vpředu páteř, mezi nimi plynule."""
+    """Body: pelvis at the back, spine at the front, smoothly in between."""
     k = min(1.0, max(0.0, (v.co.y - (-0.05)) / 0.35))
     return {"pelvis": k, "spine": 1.0 - k}
 
 
-# trup, záď, hruď
+# body, rump, chest
 B.cylinder((0, 0.55, 1.2), (0, -0.5, 1.24), 0.3, COAT, body_w, segs=12)
 B.cylinder((0, 0.66, 1.21), (0, 0.42, 1.22), 0.29, COAT, {"pelvis": 1.0}, r1=0.3, segs=12)
 B.cylinder((0, -0.42, 1.23), (0, -0.62, 1.32), 0.29, COAT, {"spine": 1.0}, r1=0.24, segs=12)
-# krk, hlava, uši, hříva
+# neck, head, ears, mane
 B.cylinder((0, -0.45, 1.36), (0, -0.8, 1.8), 0.21, COAT, {"neck": 1.0}, r1=0.13, segs=10)
 B.cylinder((0, -0.76, 1.83), (0, -1.12, 1.46), 0.125, COAT, {"head": 1.0}, r1=0.075, segs=10)
 for s in (1, -1):
@@ -102,11 +102,11 @@ neck_dir = (Vector((0, -0.8, 1.8)) - Vector((0, -0.45, 1.36))).normalized()
 neck_rot = neck_dir.to_track_quat("Z", "Y").to_euler()
 neck_up = Vector((0, -neck_dir.z, neck_dir.y)) if neck_dir.y > 0 else Vector((0, neck_dir.z, -neck_dir.y))
 B.box(Vector((0, -0.45, 1.36)) + neck_dir * 0.32 + neck_up * 0.16, (0.05, 0.07, 0.5), MANE, {"neck": 1.0}, rot=neck_rot)
-B.box((0, -0.82, 1.94), (0.05, 0.1, 0.06), MANE, {"head": 1.0})            # čupřina
+B.box((0, -0.82, 1.94), (0.05, 0.1, 0.06), MANE, {"head": 1.0})            # forelock
 # ocas
 B.cylinder((0, 0.62, 1.34), (0, 0.8, 0.85), 0.065, MANE, {"tail": 1.0}, r1=0.035, segs=6)
 
-# nohy: stehno/předloktí, holeň, kopyto (tuhé)
+# legs: thigh/forearm, cannon, hoof (rigid)
 for sfx, s in (("l", 1), ("r", -1)):
     x = 0.17 * s
     for fb, y0, y1, y2 in (("f", -0.42, -0.44, -0.43), ("b", 0.45, 0.56, 0.5)):
@@ -114,8 +114,8 @@ for sfx, s in (("l", 1), ("r", -1)):
         B.cylinder((x, y1, 0.57), (x, y2, 0.1), 0.05, COAT, {"lowerleg_%s_%s" % (fb, sfx): 1.0}, r1=0.045, segs=8)
         B.cylinder((x, y2, 0.11), (x, y2 - 0.02, 0.0), 0.06, MANE, {"hoof_%s_%s" % (fb, sfx): 1.0}, r1=0.07, segs=8)
 
-# --- čabraka (barva jezdce): pokrývka přes záď a přes hruď, sukně po bocích s navy lemem, kosočtverec řádu.
-# Pod sedlem mezera (tam je vidět srst a noha jezdce).
+# --- caparison (cavalier colour): cover over the rump and the chest, skirts on the sides with navy trim, the order's lozenge.
+# A gap under the saddle (the coat and the rider's leg show there).
 B.cylinder((0, 0.71, 1.22), (0, 0.11, 1.22), 0.345, ROLE, body_w, segs=14)
 B.cylinder((0, -0.19, 1.24), (0, -0.67, 1.27), 0.335, ROLE, {"spine": 1.0}, r1=0.3, segs=14)
 for s in (1, -1):
@@ -128,16 +128,16 @@ for s in (1, -1):
                 0.03, (1, 0, 0), NAVY, wts)
     B.box((0.36 * s, 0.42, 1.04), (0.012, 0.24, 0.24), NAVY, {"pelvis": 1.0}, rot=Euler((math.pi / 4, 0, 0)))
     B.box((0.367 * s, 0.42, 1.04), (0.012, 0.13, 0.13), GOLD, {"pelvis": 1.0}, rot=Euler((math.pi / 4, 0, 0)))
-B.box((0, -0.64, 0.98), (0.56, 0.03, 0.3), ROLE, {"spine": 1.0})          # náprsník
+B.box((0, -0.64, 0.98), (0.56, 0.03, 0.3), ROLE, {"spine": 1.0})          # breast piece
 B.box((0, -0.645, 0.84), (0.57, 0.035, 0.06), NAVY, {"spine": 1.0})
-B.box((0, 0.7, 1.0), (0.6, 0.03, 0.34), ROLE, {"pelvis": 1.0})           # zadní díl
+B.box((0, 0.7, 1.0), (0.6, 0.03, 0.34), ROLE, {"pelvis": 1.0})           # rear piece
 B.box((0, 0.705, 0.84), (0.61, 0.035, 0.06), NAVY, {"pelvis": 1.0})
-# sedlo na navy dece
-B.cylinder((0, 0.12, 1.22), (0, -0.2, 1.24), 0.325, NAVY, body_w, segs=14)          # deka a podbřišník
+# saddle on a navy blanket
+B.cylinder((0, 0.12, 1.22), (0, -0.2, 1.24), 0.325, NAVY, body_w, segs=14)          # blanket and girth
 B.box((0, -0.05, 1.58), (0.34, 0.42, 0.07), LEATHER, {"spine": 1.0})
 B.box((0, 0.14, 1.65), (0.3, 0.05, 0.13), LEATHER, {"spine": 1.0})
 B.box((0, -0.25, 1.64), (0.16, 0.05, 0.11), GOLD, {"spine": 1.0})
-# ocelová maska (chanfron) se zlatým hřebenem
+# steel mask (chanfron) with a gold crest
 head_d = (Vector((0, -1.12, 1.46)) - Vector((0, -0.76, 1.83))).normalized()
 up_n = Vector((0, head_d.z, -head_d.y))
 if up_n.z < 0:

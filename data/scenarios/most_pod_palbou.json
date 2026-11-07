@@ -1,17 +1,17 @@
 {
-  "_info": "Varianta mostu: terén a rozestavení z base. Lapkové u mostu jdou hned proti vám, za řekou řada střelců s ostrostřelcem, vzadu tábor.",
+  "_info": "Bridge variant: terrain and deployment from base. Brigands at the bridge come at you at once, beyond the river a line of bowmen with the marksman, a camp at the back.",
   "base": "most_pres_reku",
   "mode": "stret",
   "foe_hp": 2.5, "foe_dmg": 2.5,
-  "name": "Most pod palbou",
-  "subtitle": "Lapkové se střelci na druhém břehu · 5 pěšáků, 3 střelci",
+  "name": "Bridge Under Fire",
+  "subtitle": "Brigands with bowmen on the far bank · 5 footmen, 3 bowmen",
   "auto_plan": "attack",
-  "win_title": "Most je volný",
-  "optional_task": {"text": "Matěj nesmí padnout.", "reward": "vzácné znamení", "protect": "lucistnik"},
+  "win_title": "The Bridge is clear",
+  "optional_task": {"text": "Matěj must not fall.", "reward": "rare relic", "protect": "lucistnik"},
   "pods": [
-    {"name": "Lapkové u mostu", "awake": true},
-    {"name": "Řada střelců", "wake": 10.0},
-    {"name": "Tábor lapků", "wake": 8.0}
+    {"name": "Brigands at the bridge", "awake": true},
+    {"name": "Line of bowmen", "wake": 10.0},
+    {"name": "Brigand camp", "wake": 8.0}
   ],
   "alarm_radius": 6,
   "enemy_morale": {"break_losses": 0.7, "flee_y": 34.0},
