@@ -1,0 +1,138 @@
+{
+  "_info": "Battlefield looks (style test 2.0s, medieval diorama): light, fog and palette by time of day. A scenario picks one with \"look\" (default noon). sun = [pitch°, yaw°], colours as hex. ground = grass colours (two for variation), bank = river bank, cliff = the diorama's rock walls (top, ledge, bottom), water = shallow/deep/foam, leaves = tree colours, fog = fog colour and density, bg = background gradient (top, bottom). grade = saturation, contrast, brightness.",
+  "noon": {
+    "sun": [
+      -52,
+      32
+    ],
+    "sun_color": "#fff3dc",
+    "sun_energy": 2.1,
+    "ambient": "#b9c6c4",
+    "ambient_energy": 0.46,
+    "ground": [
+      "#8fbc5c",
+      "#80ad55"
+    ],
+    "ground_dark": "#5f8a45",
+    "bank": "#e6cf96",
+    "path": "#c7ad80", "planks": "#c49a68",
+    "cliff": [
+      "#eee7d6",
+      "#ddd3bd",
+      "#b9b2a2"
+    ],
+    "water": [
+      "#78bdb3",
+      "#3f8e95",
+      "#f7f8f2"
+    ],
+    "leaves": [
+      "#4f8a4a",
+      "#3f7442",
+      "#2f5e3b"
+    ],
+    "trunk": "#7a5636",
+    "rock": "#d6cdb8",
+    "fog": "#a9c4c6",
+    "fog_density": 0.0025,
+    "bg": [
+      "#9dbfc2",
+      "#d6e2dc"
+    ],
+    "grade": [
+      1.2,
+      1.06,
+      1.02
+    ]
+  },
+  "dawn": {
+    "sun": [
+      -18,
+      70
+    ],
+    "sun_color": "#ffd1b0",
+    "sun_energy": 1.81,
+    "ambient": "#b9a8c4",
+    "ambient_energy": 0.45,
+    "ground": [
+      "#8fae6a",
+      "#82a262"
+    ],
+    "ground_dark": "#64844f",
+    "bank": "#d2b892",
+    "path": "#c9a886", "planks": "#c49a68",
+    "cliff": [
+      "#f1e1d8",
+      "#e0cbbf",
+      "#bba79f"
+    ],
+    "water": [
+      "#a3c4c8",
+      "#5e8ea3",
+      "#fbf3ee"
+    ],
+    "leaves": [
+      "#5b8a55",
+      "#4a744b",
+      "#385e44"
+    ],
+    "trunk": "#7a5636",
+    "rock": "#d8c9c0",
+    "fog": "#e6c7c4",
+    "fog_density": 0.004,
+    "bg": [
+      "#e7b9b4",
+      "#f4ddcf"
+    ],
+    "grade": [
+      1.22,
+      1.06,
+      1.0
+    ]
+  },
+  "dusk": {
+    "sun": [
+      -14,
+      -60
+    ],
+    "sun_color": "#ffb37a",
+    "sun_energy": 1.89,
+    "ambient": "#8a87b0",
+    "ambient_energy": 0.43,
+    "ground": [
+      "#7f9e5a",
+      "#728f52"
+    ],
+    "ground_dark": "#566f43",
+    "bank": "#c9a77f",
+    "path": "#bf9874", "planks": "#c49a68",
+    "cliff": [
+      "#e9d4c2",
+      "#d2b9a6",
+      "#a8918a"
+    ],
+    "water": [
+      "#7fa6b6",
+      "#3d6688",
+      "#fbeee2"
+    ],
+    "leaves": [
+      "#4a7a4a",
+      "#3b6542",
+      "#2c4e3c"
+    ],
+    "trunk": "#6e4c33",
+    "rock": "#c7b4a8",
+    "fog": "#b79cad",
+    "fog_density": 0.004,
+    "bg": [
+      "#8e86b2",
+      "#efc39f"
+    ],
+    "grade": [
+      1.27,
+      1.1,
+      0.98
+    ]
+  }
+}

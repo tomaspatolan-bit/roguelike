@@ -1,5 +1,6 @@
 extends Node3D
-## Visuals of one unit. Hero = GLB model with the role colour, enemy = a blocky figure.
+## Visuals of one unit. Hero = GLB model with the role colour. Enemy = GLB model when the data give `model`
+## (brigands: SK_Brigand on the knight skeleton, palette row 6 or 7), otherwise a blocky figure.
 ## Takes position and state from the simulation every frame (sync).
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
@@ -68,12 +69,12 @@ func setup(u: Sim.Unit) -> void:
 	unit_id = u.id
 	name = "Unit_" + u.id
 	is_knight = u.side == Sim.SIDE_KNIGHT
-	if is_knight:
-		_build_knight(u)
+	if is_knight or String(u.base.get("model", "")) != "":
+		_build_knight(u)   # skinned model with animations (heroes and enemies with a model alike)
 	else:
 		_build_foe(u)
-		if u.leader:
-			scale = Vector3.ONE * 1.3   # the enemy leader is visible from afar (placeholder, final look in phase 3)
+	if not is_knight and u.leader:
+		scale = Vector3.ONE * 1.3   # the enemy leader is visible from afar
 
 
 func _build_knight(u: Sim.Unit) -> void:
@@ -456,10 +457,10 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 
 
 ## Death as a ragdoll: the hero gets physics bones and falls according to where the blow came from.
-## An enemy (blocky figure) falls as one rigid body. When that is not possible, the death animation stays.
+## An enemy without a model (blocky figure) falls as one rigid body. When that is not possible, the death animation stays.
 func _start_ragdoll(u: Sim.Unit) -> void:
 	var push := Vector3(-u.face.x, 0.0, u.face.y)   # backwards from the direction he faced (towards the enemy)
-	if is_knight:
+	if _figure != null:
 		_ragdoll = _knight_ragdoll(push)
 		if _mount_anim != null and _mount_anim.has_animation(_mount_names["death"]):
 			_mount_anim.play(_mount_names["death"], 0.1)   # the horse falls on its side, the rider falls off

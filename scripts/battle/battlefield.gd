@@ -1,4 +1,5 @@
 extends RefCounted
+const Diorama := preload("res://scripts/battle/diorama.gd")
 ## Builds the static battlefield: light, environment, ground, river, bridge, trees, rocks.
 ## Converts simulation coordinates to 3D: Vector3(x, height, -y).
 
@@ -51,7 +52,7 @@ static func cylinder(parent: Node3D, r_top: float, r_bottom: float, h: float, po
 	return mi
 
 
-static func build(root: Node3D, scenario: Dictionary) -> void:
+static func build(root: Node3D, scenario: Dictionary, camera_defaults: Dictionary = {}) -> void:
 	# --- physics ground (falling bodies, ragdoll) ---
 	var floor_body := StaticBody3D.new()
 	floor_body.collision_layer = 1
@@ -60,6 +61,10 @@ static func build(root: Node3D, scenario: Dictionary) -> void:
 	gs.shape = WorldBoundaryShape3D.new()
 	floor_body.add_child(gs)
 	root.add_child(floor_body)
+	if scenario.has("look"):
+		# style test 2.0s: the map as a diorama (scripts/battle/diorama.gd); maps without a look keep the old field
+		Diorama.build(root, scenario, camera_defaults)
+		return
 	# --- environment and light ---
 	var env := Environment.new()
 	var sky_mat := ProceduralSkyMaterial.new()

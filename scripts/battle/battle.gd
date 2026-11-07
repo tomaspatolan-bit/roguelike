@@ -62,6 +62,7 @@ var _order_marks: Array = []        # order target circles (hero colour)
 var _warn_marks: Array = []         # announced commander abilities: [ring, area]
 var _order_flash: Dictionary = {}    # hero id -> how much longer to show the target of the order just given (s)
 var _engage_warned: Dictionary = {}   # hero id -> true: Never Retreat warning already shown this battle
+var _outline: MeshInstance3D          # dark outline around silhouettes (diorama look, style test 2.0s)
 var scenario_id: String = Sim.DEFAULT_SCENARIO
 
 # order target picking (Send on the card): the hero whose target is being picked
@@ -105,12 +106,14 @@ func _ready() -> void:
 		setup = _free_setup(data)
 	field_root = Node3D.new()
 	add_child(field_root)
-	Field.build(field_root, data["scenario"])
+	Field.build(field_root, data["scenario"], data["units"].get("camera", {}))
 
 	cam = OrbitCamera.new()
 	add_child(cam)
 	cam.make_current()
 	_configure_camera()
+	_outline = Field.Diorama.attach_outline(cam)
+	_outline.visible = data["scenario"].has("look")
 
 	zone = MeshInstance3D.new()
 	zone.material_override = Field.transparent_mat(Color(0.31, 0.47, 0.78, 0.28))
@@ -369,7 +372,8 @@ func _load_scenario(id: String) -> void:
 	field_root.queue_free()
 	field_root = Node3D.new()
 	add_child(field_root)
-	Field.build(field_root, data["scenario"])
+	Field.build(field_root, data["scenario"], data["units"].get("camera", {}))
+	_outline.visible = data["scenario"].has("look")
 	_build_zone()
 	_configure_camera()
 	_order_id = ""

@@ -1,6 +1,6 @@
 # Kontext: scéna bitvy
 
-Soubory: `scenes/battle/battle.tscn`, `scripts/battle/battle.gd`, `unit_view.gd`, `battlefield.gd`, `orbit_camera.gd` (taktická kamera), `art/knight/knight_palette.gdshader`
+Soubory: `scenes/battle/battle.tscn`, `scripts/battle/battle.gd`, `unit_view.gd`, `battlefield.gd`, `orbit_camera.gd` (taktická kamera), `diorama.gd` (bojiště dioráma), `art/knight/knight_palette.gdshader`, `art/look/*.gdshader`
 Hlídá: `tests/screenshot_battle.gd` (načtení, odehrání, snímky)
 
 ## Účel
@@ -24,12 +24,16 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 11. **Rozhodnutá bitva** (událost `decided`) přepne rychlost aspoň na 2×. Uprchlá jednotka (`fled`) je skrytá.
 12. **Výběr bitvy** jen v rozestavení nebo v úvodní pauze (`t == 0`) (`_load_scenario`, bojiště v `field_root`). **Rozkazy:** pravým tlačítkem (viz 7), **H** = vybraní drží místo (`_hold_selected`); cesta přes `_order_id` (dřív tlačítko Poslat, teď ho volají jen testy) → klik: na nepřítele = jeho skupina, na hrdinu = spojenec, jinak místo na zemi (`_order_click` → `_give_order`); v rozestavení se rozkaz uloží do `setup.orders` (simulace se při startu staví znovu). Rozkaz, který by porušil přísahu (`sim.order_oath_conflict`: u Nikdy neustoupí odchod ze střetu, v bitvě Slib mlčení, bdělost, čtvrtý rozkaz u Přísahy mlčení): v rozestavení odmítnut s nápovědou, v bitvě dialog přísahy (Porušit / Zrušit rozkaz). Schopnost, která by přísahu porušila (`sim.ability_oath_conflict`), se zeptá stejně (`_use_ability_asking`, Zrušit schopnost). Rozkaz na nepřítele hrdinovi s Nikdy neustoupí poprvé za bitvu ukáže na 4 s upozornění, že ze střetu už neodejde (`sim.engage_warning`, `_engage_warned`). Událost `oath_broken` ukáže nápovědu, proč hrdina přísahu porušil. **Komba pout:** Q a E (`_combo_by_index`) nebo tlačítko komba; bez míření se spustí hned, jinak cílení jako schopnost (`_aim_combo` + `_aim_id` = hrdina, kterým se míří). Volná bitva má pouta na zkoušku (`_free_setup`, `trial_bonds`). Kruhy cílů rozkazů v barvě hrdiny (`_sync_order_marks`, `hero_color`): na místo malý kruh, na skupinu kruh kolem jejího středu, ke spojenci kruh pod ním (víc hrdinů = soustředné kruhy); v rozestavení a v pauze u všech, v běžící bitvě u vybraných a 2 s po rozkazu (`_order_flash`); při výběru cíle kruh pod kurzorem. Kroužky výběru pod hrdiny v jeho barvě.
 
+17. **Nepřítel s modelem** (`model` v datech, lapkové) se staví stejně jako hrdina (`_build_knight`: paleta podle `palette_row`, zbraň, animace z `anims`, při smrti ragdoll kostí); bez modelu kostička, která padne jako tuhé tělo. Vůdce nepřátel je vždy 1,3× větší.
+18. **Bojiště dioráma:** když má scénář `look`, `battlefield.build` po fyzikální zemi zavolá `Diorama.build(root, scenario, camera_defaults)` (vzhled z `data/looks.json`) a `battle.gd` zapne obrys na kameře (`Diorama.attach_outline`). Dioráma je jen grafika, kolize a terén pro simulaci se nemění.
+
 ## Úskalí
 - Proměnná s typem `Node3D` nezná metody skriptu: použij typ skriptu (`var v := UnitView.new()`).
 - Víceřádkové lambdy jako argumenty funkce raději ulož nejdřív do proměnné.
 - Limity testů počítej v čase bitvy, ne ve snímcích (monitor může mít 144 Hz).
 
 ## Historie významných změn
+- 07.11.2026: nepřátelé s modelem z dat (lapkové `SK_Brigand`), bojiště dioráma pro scénáře s `look` (zkouška stylu, Most přes řeku).
 - 07.11.2026: otázka přísahy je panel UI místo okna `ConfirmationDialog`: dokud je otevřená (`ui.oath_open()`), vstup do bojiště stojí, Esc přísahu zachová (`ui.oath_keep()`).
 - 07.11.2026: zóny ze simulace mají barvu podle druhu (`ZONE_COLORS`: oheň, kruh, světlo, kouř, hradba); efekt nových schopností je zástupný kruh, animace je zatím schopnost třídy. Ve volné bitvě jde vyměnit schopnost (`_on_ability_chosen`), vybrané schopnosti zůstanou i po změně bitvy.
 - 07.11.2026: texty a komentáře přeložené do angličtiny (`docs/glosar.md`).

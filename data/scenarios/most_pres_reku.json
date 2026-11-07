@@ -1,6 +1,7 @@
 {
   "_info": "Battle The River Bridge. Coordinates in metres: x to the right, y forward (towards the enemy). The river runs across between river.y0 and y1 and can be crossed only at crossings (crossings: x0–x1, kind most = bridge / brod = ford / lavka = footbridge, speed = speed multiplier). forests = forests (rectangle, speed, path = trail x0–x1 without slowdown). optional_task.protect = hero id, or 'all' (no one may fall). enemy_morale = when the enemy breaks (share of losses) and where it flees (y of the field edge). pods = enemy groups (battle phases): name, wake (how many m from a hero it wakes), awake (awake from the start). An enemy joins a group with {\"pod\": n}. alarm_radius = how close to a group fighting must happen for it to join. foe_hp, foe_dmg = battle difficulty. auto_plan = only for the automatic commander in tests.",
   "mode": "stret",
+  "look": "noon",
   "foe_hp": 2.45, "foe_dmg": 2.45,
   "name": "The River Bridge",
   "subtitle": "Brigands of the Count's Forest · 6 footmen, 2 bowmen",

@@ -2,6 +2,14 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 07.11.2026 – Směr zkoušky stylu (2.0s)
+- **Dioráma:** bojiště je ostrov, jehož okraje padají útesy do mlhy (Bad North). Důvod: mapa je jasně ohraničená, kamera má co rámovat a hrací plocha se čte jako stolní hra.
+- **Tenký tmavý obrys** (hrany z hloubky a normál) na všem. Důvod: postavy a předměty se čtou z výšky i na malém monitoru, obrys spojuje low-poly s ilustrovanými referencemi.
+- **Paleta a světlo podle denní doby mapy** (`data/looks.json`: poledne, svítání, soumrak), ne jedna globální. Důvod: každá bitva má vlastní náladu bez nových assetů.
+- **Zkušební mapa Most přes řeku.** Ostatní mapy zůstávají zástupné, dokud Tom směr neschválí.
+- **Lapkové mají vlastní model** z tanka (stejná kostra, paleta a animace), ne kostičky: kápě, železný klobouk s krempou, otevřená tvář s vousem, bez plátu. Řádky palety 6 (lapkové) a 7 (velitelé) předefinují celý řádek včetně navy sloupců, protože lapkové nepatří k řádu; sloupec 13 je kůže. Tom může vrátit.
+- Rozhodl Claude podle Tomova „na dotazy pokračuj podle nejlepšího uvážení“ (07.11.2026); Tom schvaluje na snímcích.
+
 ## 07.11.2026 – Znamení rodu a balanc běhu (2.3e)
 - **8 znamení rodu podle návrhu** (Korouhev předků, Kronikář, Polní kaplan, Krvavá linie, Těžká korouhev, Prokletý relikviář, Mladá krev, Rohy z hradu), polovina je obchod. Bojové bonusy jsou zapečené do hodnot hrdinů (rozhodnutí 07.11.2026): Korouhev předků je Síla +10 % všem (návrh měl +10 % útoku jen v první fázi bitvy). Krvavá linie dává nástupci náhodnou pasivku padlého (návrh: vybereš), aby po bitvě nepřibyla další obrazovka; přísahy se dál dědí přes dědictví.
 - **Kde se získávají:** elita má mezi 4 nabídkami vždy jednu novou schopnost a jedno znamení (návrh: jedno nebo druhé; s jedním aktem by hráč viděl znamení skoro nikdy), Lesní kaple a Opuštěný tábor lapků nabídnou výběr ze 2. Boss zatím nic, dokud je jen jeden akt.

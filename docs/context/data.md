@@ -9,7 +9,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 ## Invarianty
 1. **Klíče, na které se odkazuje kód, se nepřejmenovávají** bez úpravy kódu: hrdinové `tank`, `knez`, `lucistnik`, `jezdec`, `asasin`; nepřátelé `lapka`, `strelec`, `kopinik`; schopnosti `vyzva`, `pozehnani`, `salva`, `najezd`, `uder`; vlastnosti `zoufalec`, `fanatik`, `zbabelec`; scénáře `most_pres_reku`, `brod_a_les`; pasivky a přísahy podle `passives` (klíče, na které se odkazuje kód: `ochrance`, `druhy_dech`, `posledni_pomazani`, `probodnuti`, `rozbeh`, `ze_stinu`, `ukryt`, `mstitel`; přísahy kód pozná podle efektů, ne podle klíče).
 2. **Jednotky:** vzdálenosti v metrech, čas v sekundách, rychlost v m/s, `armor` je podíl 0–1, bonusy jsou podíly (0.5 = +50 %).
-3. **`palette_row`** odpovídá řádku paletové textury: 0 rod Vlka, 1 tank, 2 lučištník, 3 kněz, 4 jezdec, 5 asasín (6–7 volné).
+3. **`palette_row`** odpovídá řádku paletové textury: 0 rod Vlka, 1 tank, 2 lučištník, 3 kněz, 4 jezdec, 5 asasín, 6 lapkové, 7 velitelé lapků. Nepřítel s `model` (lapkové: `SK_Brigand`) se vykreslí jako postava se zbraní a animacemi z dat stejně jako hrdina (`weapon_model`, `weapon_bone`, `bow_string`, `projectile_model`, `anims`); bez `model` zůstane kostička.
 4. **Každá změna čísla v bitvě = spustit test balancu** a výsledek zapsat do commitu.
 5. Texty jsou anglicky, jak je uvidí hráč (od 07.11.2026); názvy podle `docs/glosar.md`. `_info` je anglický popis pro vývojáře. Klíče zůstávají česky.
 6. **Hrdina** (`knights.<klíč>`): statistiky, `ability` (klíč z `abilities`). Bonusy rodu se zapékají přímo do hodnot hrdinů, žádné bonusy pro celý oddíl.
@@ -36,6 +36,8 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 25. **Pouta** (`bonds` v `units.json`): `name`, `who` [[skupina A], [skupina B]] (`"*"` = kdokoli), volitelně `successor` (jeden z dvojice je nástupce), `desc`, `grief_desc` a čísla pro úroveň 1/2/3 jako seznam (`stats`, `heal_bonus`, `share`, `mark_mult`, `recharge`, `extra_uses`, `heal_share`) nebo jedno číslo (`near_radius`, `rage_t`, `rage_utok`, `mourn_t`, `share_radius`, `mark_t`, `grief_utok`, `rescue_at`, `rescue_t`, `grief_hp`, `rival_glory`, `no_help_below`). `bond_rules`: `levels` (společná vítězství pro úroveň 1, 2, 3), `choices` (kolik typů se nabízí), `combo_level`, `grief_half`, `grief_sila`. Nový typ pouta = data; nový druh efektu = kód v simulaci.
 26. **Komba** (`combos` v `units.json`): `name`, `a`, `b` (schopnosti), `aim` (`none` / `point`), `aim_by`, `desc`, `max_gap` a čísla komba (`radius`, `dmg_mult`, `mult`, `heal_radius`, `heal_frac`). Nové kombo = záznam + větev v `use_combo`.
 27. **Pouta na zkoušku** (`trial_bonds` v `rod_vlka.json`): ve volné bitvě (ne v testech balancu), aby šla vyzkoušet komba.
+
+25. **Vzhled bojiště** (`data/looks.json`, zkouška stylu 2.0s): předvolby podle denní doby (`noon`, `dawn`, `dusk`) se sluncem (`sun` = natočení světla ve stupních [sklon, otočení], `sun_color`, `sun_energy`), okolním světlem (`ambient`, `ambient_energy`), barvami terénu (`ground` ×2, `ground_dark`, `bank`, `path`, `planks`, `cliff` ×3), vody (`water`: mělká, hluboká, pěna), stromů (`leaves` ×3, `trunk`), kamenů (`rock`), mlhou (`fog`, `fog_density`), pozadím (`bg`) a barevnou korekcí (`grade`); volitelně `tonemap`, `exposure`, `ssao`. Scénář s klíčem `look` dostane bojiště dioráma, volitelně `diorama` (rozsah ostrova), jinak zůstane zástupné.
 
 ## Úskalí
 - JSON nemá komentáře: popis patří do klíče `_info`.
