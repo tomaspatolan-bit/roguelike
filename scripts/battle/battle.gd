@@ -61,6 +61,7 @@ var field_root: Node3D
 var _order_marks: Array = []        # order target circles (hero colour)
 var _warn_marks: Array = []         # announced commander abilities: [ring, area]
 var _order_flash: Dictionary = {}    # hero id -> how much longer to show the target of the order just given (s)
+var _engage_warned: Dictionary = {}   # hero id -> true: Never Retreat warning already shown this battle
 var scenario_id: String = Sim.DEFAULT_SCENARIO
 
 # order target picking (Send on the card): the hero whose target is being picked
@@ -441,7 +442,12 @@ func _give_order(u: Sim.Unit, kind: String, target: Variant) -> void:
 			_refresh_panel()
 		ui.ask_oath(u.name, sim.oath_of(u.id), conflict, on_break, on_keep)
 	else:
+		# Never Retreat: the first time in a battle he is sent at an enemy, say that the clash is final
+		var warn := sim.engage_warning(u.id, kind)
 		apply.call()
+		if warn != "" and not _engage_warned.has(u.id):
+			_engage_warned[u.id] = true
+			ui.flash_hint(warn, 4.0)
 
 
 ## Uses an ability; if it would break an oath, asks first (Break / Cancel).
@@ -464,6 +470,7 @@ func _use_ability_asking(id: String, target: Variant) -> void:
 
 func _new_sim() -> void:
 	sim = Sim.new(data, setup)
+	_engage_warned.clear()
 	for id: String in views:
 		(views[id] as Node3D).queue_free()
 	views.clear()

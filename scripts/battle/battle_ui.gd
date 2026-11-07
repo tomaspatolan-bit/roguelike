@@ -425,6 +425,8 @@ func _status_icons(sim: Sim, u: Sim.Unit, in_battle: bool) -> Array:
 		if in_battle and u.alive():
 			if u.taunt_t > 0.0:
 				out.append(["ability_challenge", STEEL, false, "Challenge: enemies attack him, half damage"])
+			if u.locked:
+				out.append(["hud_lock", BAD, false, "Locked in the fight (Never Retreat): he does not leave it until his foes or he fall"])
 		if u.alive():
 			out.append([ORDER_ICONS.get("" if u.order_done else u.order, "hold"), ORDER_COL, false, sim.order_text(u.id)])
 	else:
@@ -1184,6 +1186,6 @@ func hide_box() -> void:
 	select_box.visible = false
 
 
-func flash_hint(text: String) -> void:
+func flash_hint(text: String, secs: float = 2.0) -> void:
 	_hint.text = text
-	_hint_t = 2.0
+	_hint_t = secs

@@ -48,6 +48,7 @@ class Unit:
 	var order_done: bool = false  # order done (arrived, group fell, ally fell): holds place `home`
 	var regroup: bool = false     # returning to the ally (strayed) until he reaches him
 	var focus_id: String = ""     # after Shadow Strike and Charge keeps fighting the target before returning to the order
+	var locked: bool = false      # Never Retreat: in melee contact, does not leave the fight while foes stand by him
 	var focus_t: float = 0.0      # how much longer (s)
 	var group: int = -1           # enemy: group (for the group order)
 	var t: float = 0.0
@@ -830,6 +831,48 @@ func _no_retreat(u: Unit) -> bool:
 	return bool(oath_of(u.id).get("no_retreat", false))
 
 
+## Awake, not fleeing enemies within r of the hero.
+func _foes_near(u: Unit, foes: Array[Unit], r: float) -> Array[Unit]:
+	var out: Array[Unit] = []
+	for f in foes:
+		if not f.fleeing and not f.asleep and f.alive() and f.pos.distance_to(u.pos) <= r:
+			out.append(f)
+	return out
+
+
+## Never Retreat (decision 07.11.2026): free to move until he clashes; once an enemy is within `engage_radius`
+## he is locked in the fight and stays until no enemy is left within `release_radius` (they fell or fled) or he falls.
+func _update_lock(u: Unit, foes: Array[Unit]) -> void:
+	var o := oath_of(u.id)
+	if not bool(o.get("no_retreat", false)) or t <= 0.0:
+		u.locked = false
+		return
+	if u.locked:
+		if _foes_near(u, foes, float(o.get("release_radius", 4.0))).is_empty():
+			u.locked = false
+			_log("%s: the fight around him is over, he can move again" % u.name, false)
+	elif not _foes_near(u, foes, float(o.get("engage_radius", 2.5))).is_empty():
+		u.locked = true
+		_log("%s clashed with the enemy: Never Retreat holds him in the fight" % u.name, true)
+
+
+## The hero is locked in a fight (Never Retreat): which enemy groups he is fighting.
+func _lock_groups(u: Unit) -> Array:
+	var out: Array = []
+	for f in _foes_near(u, living(SIDE_FOE), float(oath_of(u.id).get("release_radius", 4.0))):
+		if not out.has(f.group):
+			out.append(f.group)
+	return out
+
+
+## Warning before sending a Never Retreat hero at an enemy ("" = none): once he clashes he does not leave the fight.
+func engage_warning(id: String, kind: String) -> String:
+	var u := by_id(id)
+	if u == null or u.locked or kind != "group" or not bool(oath_of(id).get("no_retreat", false)):
+		return ""
+	return "%s won't leave the fight once he clashes, until his foes or he fall (Never Retreat)." % u.name
+
+
 ## Oath of Vigilance: once the battle starts the hero does not move.
 func _no_move(u: Unit) -> bool:
 	return u.bulwark_t > 0.0 or (t > 0.0 and bool(oath_of(u.id).get("no_move", false)))
@@ -874,8 +917,11 @@ func order_oath_conflict(id: String, kind: String, target: Variant = null) -> St
 	var o := oath_of(id)
 	if u == null or o.is_empty():
 		return ""
-	if bool(o.get("no_retreat", false)) and kind == "point" and target is Vector2 and is_retreat(id, target):
-		return "an order may not lead back"
+	if bool(o.get("no_retreat", false)) and u.locked:
+		if kind == "point" or kind == "ally":
+			return "he is locked in the fight and may not leave it while his foes stand"
+		if kind == "group" and not _lock_groups(u).has(_group_arg(target)):
+			return "he is locked in the fight and may not leave it for another group"
 	if t <= 0.0:
 		return ""   # before the battle starts orders are free
 	if bool(o.get("no_orders", false)):
@@ -1266,7 +1312,7 @@ func ability_hint(id: String) -> Array:
 				if k.pos.distance_to(u.pos) > float(a["range"]):
 					continue
 				var n := _attackers_on(k)
-				if u.ability == "kour" and k.hp > k.maxhp * 0.5:
+				if u.ability == "kour" and k.hp > k.maxhp * 0.6:
 					continue
 				if n > best_n:
 					best_n = n
@@ -2103,6 +2149,9 @@ func auto_command() -> void:
 func apply_orders(orders: Dictionary) -> void:
 	for id: String in orders:
 		var o: Array = orders[id]
+		var u := by_id(id)
+		if u != null and u.locked and order_oath_conflict(id, String(o[0]), o[1] if o.size() > 1 else null) != "":
+			continue   # a hero locked in a fight (Never Retreat) keeps fighting; the plan does not break his oath
 		set_order(id, String(o[0]), o[1] if o.size() > 1 else null)
 
 
@@ -2512,8 +2561,8 @@ func _go(u: Unit, p: Vector2, dt: float, stop: float, _foes: Array[Unit]) -> voi
 	if u.pos.distance_to(p) <= stop:
 		u.moving = false
 		return
-	if _no_retreat(u):
-		var f := _nearest(living(SIDE_FOE), u.pos)   # the direction to the enemy counts the sleeping ones too
+	if u.locked and _no_retreat(u):
+		var f := _nearest(living(SIDE_FOE), u.pos)
 		if f != null and p.distance_to(f.pos) > u.pos.distance_to(f.pos) + 0.3:
 			u.moving = false
 			return
@@ -2573,6 +2622,13 @@ func _knight_think(u: Unit, dt: float) -> void:
 		else:
 			u.regroup = false
 			_engage(u, fo, dt)
+			return
+	# Never Retreat: locked in the fight, he fights whoever stands by him and orders wait
+	_update_lock(u, foes)
+	if u.locked:
+		var lt := _choose_target(u, _foes_near(u, foes, float(oath_of(u.id).get("release_radius", 4.0))))
+		if lt != null:
+			_engage(u, lt, dt)
 			return
 	# Blood Debt: while whoever wounded an ally lives, he goes after him and orders do not apply.
 	if bool(oath_of(u.id).get("ignores_orders", false)):

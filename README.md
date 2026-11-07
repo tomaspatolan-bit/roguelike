@@ -38,7 +38,7 @@ Mapa hlídá, aby hráč měl vždy na výběr (nikdy tři klidné uzly za sebou
 **Pět tříd:** tank, kněz, lučištník, jezdec, asasín. Každý hrdina má:
 - **Schopnost** na klávese 1–5: jedna ze 3 schopností své třídy (15 celkem), vyměnit ji jde v běhu.
 - **Zušlechtění:** 2 na každou schopnost, při výměně schopnosti propadnou.
-- **Přísahu** (nejvýš jednu): 3 přísahy rodu a 3 osobní pro každou třídu. Dává sílu za omezení (zakázané cíle, žádný ústup, žádné rozkazy…). Rozkaz, který by ji porušil, se zeptá; porušení stojí slávu a přísaha zmizí.
+- **Přísahu** (nejvýš jednu): 3 přísahy rodu a 3 osobní pro každou třídu. Dává sílu za omezení (zakázané cíle, kdo se střetne, neodejde z boje, žádné rozkazy…). Rozkaz, který by ji porušil, se zeptá; porušení stojí slávu a přísaha zmizí.
 - **Pasivky** a **vlastnosti** (Útok, Moc, Odolnost, Pohotovost; Síla = Útok i Moc).
 - **Pouto** s jiným hrdinou. Roste ze společně vyhraných bitev (úroveň 1 až 3, 8 typů). Od úrovně 2 dává **kombo** na Q a E, kdy se obě schopnosti spojí (15 komb). Když jeden padne, druhý nese žal.
 

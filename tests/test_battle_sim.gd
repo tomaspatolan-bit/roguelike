@@ -483,22 +483,35 @@ func _test_orders(data: Dictionary) -> void:
 	_check(tk.pos.distance_to(culprit.pos) < d0 - 2.0 or s5.t - tk.combat_t < 0.5, "přísaha pomsty: jde po viníkovi")
 
 
-## A tank with Never Retreat does not back off on his own.
+## A tank with Never Retreat does not leave a fight once he has clashed (decision 07.11.2026): while locked he never moves away from the enemy.
 func _test_stand_firm(data: Dictionary) -> void:
 	var max_back := 0.0
+	var locked_t := 0.0
 	for i in 10:
 		var s := Sim.new(data, Sim.default_setup(data), 200 + i)
 		var tank := s.by_id("tank")
-		var start_y := tank.pos.y
+		var away := 0.0
 		while s.over == "" and s.t < 400.0:
+			var was_locked := tank.locked and tank.alive() and s.has_oath("tank") and s.decided == "" and not s.charging
+			var foe: Sim.Unit = null
+			var d_before := 0.0
+			if was_locked:
+				var near: Array[Sim.Unit] = s._foes_near(tank, s.living(Sim.SIDE_FOE), 50.0)
+				foe = s._nearest(near, tank.pos)
+				if foe != null:
+					d_before = tank.pos.distance_to(foe.pos)
+			var foe_pos := foe.pos if foe != null else Vector2.ZERO
 			s.step(DT)
 			s.events.clear()
 			s.auto_command()
 			_auto_abilities(s)
-			if tank.alive() and s.has_oath("tank") and s.decided == "" and not s.charging:
-				max_back = maxf(max_back, start_y - tank.pos.y)
-	print("Nikdy neustoupí: největší odsun dozadu %.2f m" % max_back)
-	_check(max_back < 1.0, "tank s přísahou nesmí couvnout (odsun tlačenicí do 1 m je tolerovaný)")
+			if was_locked and foe != null:
+				locked_t += DT
+				away += maxf(0.0, tank.pos.distance_to(foe_pos) - d_before)
+		max_back = maxf(max_back, away)
+	print("Nikdy neustoupí: v boji nejvíc od nepřítele %.2f m za bitvu, v boji %.0f s (10 bitev)" % [max_back, locked_t])
+	_check(locked_t > 10.0, "tank s přísahou se v bitvách opravdu zaklesne do boje")
+	_check(max_back < 1.5, "zaklesnutý tank s přísahou necouvá od nepřítele (tlačenice do 1,5 m za bitvu tolerovaná)")
 
 
 ## Fords slow, the footbridge and fords cross the river, the forest slows everyone except the assassin, the trail does not.
@@ -543,20 +556,62 @@ func _park(u: Sim.Unit) -> void:
 func _test_retreat_order(data: Dictionary) -> void:
 	var s := Sim.new(data, Sim.default_setup(data), 31)
 	var tank := s.by_id("tank")
+	for u in s.units:
+		if u.side == Sim.SIDE_FOE and u.id != "e0":
+			_park(u)
+	var e0 := s.by_id("e0")
+	_park(e0)
+	s.step(DT)
+	# before the clash he moves freely, even back
 	var back := tank.pos + Vector2(0.0, -6.0)
-	_check(s.has_oath("tank") and s.is_retreat("tank", back), "rozkaz dozadu je ústup")
+	_check(s.has_oath("tank") and s.order_oath_conflict("tank", "point", back) == "", "Nikdy neustoupí: před střetem jde i dozadu bez porušení")
+	_check(s.engage_warning("tank", "group") != "" and s.engage_warning("tank", "point") == "", "rozkaz na nepřítele varuje, že ze střetu už neodejde")
 	s.set_order("tank", "point", back)
 	var y0 := tank.pos.y
 	for i in 60:
 		s.step(DT)
 		s.events.clear()
-	_check(tank.pos.y > y0 - 1.0 and tank.order_done, "s přísahou nejde dozadu, drží místo (y %.1f -> %.1f)" % [y0, tank.pos.y])
-	s.break_oath("tank")
-	s.set_order("tank", "point", back)
+	_check(tank.pos.y < y0 - 3.0, "před střetem rozkaz dozadu poslechne (y %.1f -> %.1f)" % [y0, tank.pos.y])
+	# an order back given before the clash, then an enemy steps next to him: the lock wins over the pending order
+	s.set_order("tank", "point", tank.pos + Vector2(0.0, -8.0))
+	e0.asleep = false
+	e0.pod = 0
+	e0.pos = tank.pos + Vector2(0.0, 2.0)
+	e0.home = e0.pos
+	for i in 6:
+		s.step(DT)
+		s.events.clear()
+	_check(tank.locked, "po střetu je tank zaklesnutý v boji")
+	for i in 60:
+		s.step(DT)
+		s.events.clear()
+	_check(tank.pos.distance_to(e0.pos) < 4.0 or not e0.alive(), "zaklesnutý tank boj neopustí, i když měl rozkaz dozadu (vzdálenost %.1f m)" % tank.pos.distance_to(e0.pos))
+	_check(s.order_oath_conflict("tank", "point", tank.pos + Vector2(0.0, -6.0)) != "" and s.order_oath_conflict("tank", "ally", "knez") != "", "zaklesnutý: rozkaz na místo i ke spojenci by přísahu porušil")
+	_check(s.order_oath_conflict("tank", "group", "e0") == "", "zaklesnutý: rozkaz na skupinu, se kterou bojuje, je v pořádku")
+	# the enemy falls: free again
+	e0.hp = 0.0
+	for i in 6:
+		s.step(DT)
+		s.events.clear()
+	_check(not tank.locked, "když nepřítel padne, tank je volný")
+	# locked again, an order out of the fight breaks the oath and is obeyed
+	var e1 := s.by_id("e1")
+	e1.asleep = false
+	e1.pod = 0
+	e1.speed = 0.0
+	e1.pos = tank.pos + Vector2(0.0, 2.0)
+	e1.home = e1.pos
+	for i in 6:
+		s.step(DT)
+		s.events.clear()
+	_check(tank.locked, "druhý střet tank znovu zaklesne")
+	var back2 := tank.pos + Vector2(0.0, -6.0)
+	s.set_order("tank", "point", back2)
+	_check(not s.has_oath("tank"), "rozkaz ze střetu přísahu poruší")
 	for i in 120:
 		s.step(DT)
 		s.events.clear()
-	_check(tank.pos.distance_to(back) < 1.0, "po porušení přísahy rozkaz dozadu poslechne")
+	_check(tank.pos.distance_to(back2) < 1.0 and not tank.locked, "po porušení přísahy rozkaz z boje poslechne")
 
 
 ## Spearmen are stronger against cavalry and do not break; a Coward flees even as a footman.

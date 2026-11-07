@@ -2,6 +2,10 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 07.11.2026 – Nikdy neustoupí platí až od střetu
+- **Nikdy neustoupí = neodejde z boje** (Tom): do střetu se hrdina hýbe volně (rozestavení, přesuny, i dozadu). Jakmile se střetne s nepřítelem (bdělý nepřítel do 2,5 m), je v boji zaklesnutý a bojuje, dokud kolem něj nepřátelé nepadnou nebo neutečou, nebo dokud nepadne on. Rozkaz na místo, ke spojenci nebo na jinou skupinu by ho z boje vytáhl, proto se zeptá a porušení stojí slávu. Nahrazuje variantu A z 28.10.2026 (nesměl couvnout od nejbližšího nepřítele od začátku bitvy, i od spící skupinky na druhém konci mapy, takže byl přilepený k místu ještě před bojem).
+- Při rozkazu na nepřítele se poprvé za bitvu ukáže upozornění, že ze střetu už neodejde (jen upozornění, ne dialog: rozkaz do boje přísahu neporušuje). Zaklesnutý hrdina má nad hlavou a na kartě ikonu zámku. Důvod: cena se platí jedním vědomým rozhodnutím (kam a kdy ho pošlu), ne neustále (pilíř Přísaha má cenu); Útok +25 % zůstává, pokud balanc nevyjde moc silný.
+
 ## 07.11.2026 – Vzhled Royal Court Enamel ve hře, morálka nepřítele, linie nástupců
 - **UI je světlé „Royal Court Enamel“** podle Figmy (Tom schválil): světlé enamel panely s tmavým obrysem, slavnostní nadpisy (Cinzel), příběhový text (EB Garamond), UI (Inter), všechna písma OFL v `art/fonts/`. Barvy a styly jsou na jednom místě (`scripts/ui/ui_theme.gd`, hodnoty = proměnné Figmy), ikony z Figmy jako SVG v kódu. Bitevní HUD je světlý a kompaktní. Důvod: Tom chtěl royal téma, ne temné jako Darkest Dungeon.
 - **Morálka nepřítele je vidět** (z návrhu UI): v liště ukazatel ztrát nepřítele s hranicí zlomu (70 %), po zlomení jednorázové odhalení a tlačítko All In! se štítkem ONCE a odpočtem, za kolik sekund hrdinové dobojují sami; pak stav „dal hráč“ nebo „sami“. Pravidla se nemění, simulace jen vydává stav (`morale_state`). Důvod: All In! se dřív objevilo bez varování a hráč nevěděl, kdy přijde (pilíř Velíš rodu).
