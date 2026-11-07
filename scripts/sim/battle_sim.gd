@@ -97,6 +97,7 @@ class Unit:
 	var rescue_t: float = 0.0
 	var dash_mult: float = 1.0    # combo: stronger Charge
 	var extra_stats: Dictionary = {}  # permanent and one-battle stat bonuses from the run (events): {stat: fraction}
+	var bonus_uses: int = 0        # extra ability uses from the run (relic Heavy Banner)
 	var oath_mult: float = 1.0    # Trial of the Oath: the oath's stat bonuses × this
 	var oath_cost: float = -1.0   # Trial of the Oath: glory cost of breaking (−1 = from the data)
 	var combo_strike: String = "" # Hammer and Anvil combo: who leaps behind the first one knocked down
@@ -192,6 +193,7 @@ var _rng := RandomNumberGenerator.new()
 
 ## setup = {"pos": {key: Vector2}, "orders": {key: [kind, target]} (optional, see set_order),
 ##          "passives": {key: [passive keys]} (optional, otherwise the house's default passives),
+##          "extra_uses": {key: n} extra ability uses (relics),
 ##          "glory": starting glory (the run carries it over), "names": {key: name} (successors),
 ##          "extra_enemies": [extra enemy rows] (fled enemies who returned)}
 func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
@@ -227,6 +229,7 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 			u.ability = String(abl[key])
 		_drop_foreign_refines(u)
 		u.extra_stats = ((setup.get("hero_stats", {}) as Dictionary).get(key, {}) as Dictionary).duplicate()
+		u.bonus_uses = int((setup.get("extra_uses", {}) as Dictionary).get(key, 0))
 		var ob: Dictionary = (setup.get("oath_boost", {}) as Dictionary).get(key, {})
 		u.oath_mult = float(ob.get("mult", 1.0))
 		u.oath_cost = float(ob.get("break_cost", -1.0))
@@ -564,6 +567,7 @@ func _apply_passives(u: Unit) -> void:
 		reach_mult *= float(d.get("reach_mult", 1.0))
 	if _bond_side(u) == 0:
 		extra += int(_bv(u, "extra_uses"))
+	extra += u.bonus_uses
 	u.maxhp = float(u.base["hp"]) * maxf(0.1, 1.0 + stat(u, "odolnost", null, true))
 	u.hp = u.maxhp
 	var quick := maxf(0.1, 1.0 + stat(u, "pohotovost", null, true))

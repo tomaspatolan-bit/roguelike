@@ -79,7 +79,7 @@ Cíl: celý krátký run od výběru rodu po bosse.
   - [x] 2.3b Pouta rostoucí společnými vítězstvími (úrovně 1–3, žal, nástupce od nuly) a komba na Q/E pro výchozí schopnosti. Hotovo, když: pouto vznikne po 2 výhrách, kombo jde spustit a test ho hlídá.
   - [x] 2.3c Nabídky odměn (2 pasivky + přísaha, zelené a červené poznámky, odmítnutí za slávu), tábor se čtyřmi volbami, sláva do 120, 12 událostí, chytrý shuffle mapy. Hotovo, když: testy běhu a obrazovek projdou. Zástupné volby (relikvie, výměna schopnosti) doplní 2.3d a 2.3e.
   - [x] 2.3d Výměna schopností (3 na třídu, 10 nových) a zušlechtění, zbylá komba, stránka rodu. Hotovo, když: testy simulace (nové schopnosti, komba, alternativní schopnosti v bitvách), běhu a snímek stránky rodu projdou. Animace nových schopností zatím zástupné.
-  - [ ] 2.3e Znamení rodu (relikvie běhu: Síla) a balanc běhu (ekonomika slávy, tank bez Výzvy u bosse).
+  - [x] 2.3e Znamení rodu (8 relikvií běhu, elita a události) a balanc běhu (ekonomika slávy, tank bez Výzvy u bosse). Hotovo, když: testy běhu (znamení, sláva za bitvu) a simulace (alternativní schopnosti u bosse) projdou.
 - [ ] 2.4 Obsah navíc (pasivky Kryt, Značka, Korouhev v kopí, Tvrdá škola a další) podle playtestu
 - [ ] 2.5 (až po druhé schopnosti, rozhodnutí 05.11.2026) Další rody jako sestavy: Medvěd (berserkr), Sokol (sokolník); meta odemykání rodů
 - [ ] 2.6 Ústup s přeživšími, rozhodnutí, jestli prohraná bitva končí běh; najímání vojáků k hrdinům

@@ -440,7 +440,7 @@ func _bond_block(v: VBoxContainer, back: Callable) -> void:
 
 const OFFER_TITLES := {"battle": "Reward: choose one", "elite": "Elite reward: choose %d", "training": "Training: choose a passive",
 	"rite": "Rite: choose", "oath": "Swear an oath: choose one", "passive": "Choose a passive", "max_hp": "Whose armour will the smith rework?",
-	"ability": "Learn a new ability: choose one"}
+	"ability": "Learn a new ability: choose one", "relic": "A relic for the house: choose one"}
 
 
 ## Offer cards (reward after a battle, training, rite, event choice): hero, what he gets, what it means for him
@@ -456,20 +456,31 @@ func _reward_block(v: VBoxContainer, back: Callable) -> void:
 		var cls: String = o["hero"]
 		var card := VBoxContainer.new()
 		card.add_theme_constant_override("separation", 6)
+		var okind := String(o.get("kind", "passive"))
 		var head := HBoxContainer.new()
 		head.add_theme_constant_override("separation", 8)
-		head.add_child(Icon.make(cls, _hero_col(cls), 24))
 		var hn := VBoxContainer.new()
 		hn.add_theme_constant_override("separation", -2)
-		hn.add_child(UI.label(run.hero_name(cls), 16, INK, false, "ui", 700))
-		hn.add_child(UI.eyebrow(run.class_name_of(cls), MUTED, 10))
+		if okind == "relic":   # a relic is for the whole house
+			head.add_child(Icon.make("hud_house", GLORY, 24))
+			hn.add_child(UI.label(String(run.house["name"]), 16, INK, false, "ui", 700))
+			hn.add_child(UI.eyebrow("The whole house", MUTED, 10))
+		else:
+			head.add_child(Icon.make(cls, _hero_col(cls), 24))
+			hn.add_child(UI.label(run.hero_name(cls), 16, INK, false, "ui", 700))
+			hn.add_child(UI.eyebrow(run.class_name_of(cls), MUTED, 10))
 		head.add_child(hn)
 		card.add_child(head)
 		card.add_child(_rule())
-		var okind := String(o.get("kind", "passive"))
-		var kind_txt := {"max_hp": "Armour", "release_oath": "Release", "ability": "New ability"}.get(okind, "Oath" if okind == "passive" and run.is_oath(String(o.get("passive", ""))) else "Passive") as String
+		var kind_txt := {"max_hp": "Armour", "release_oath": "Release", "ability": "New ability", "relic": "Relic"}.get(okind, "Oath" if okind == "passive" and run.is_oath(String(o.get("passive", ""))) else "Passive") as String
 		card.add_child(_chip_label(kind_txt.to_upper(), BANNER if kind_txt == "Oath" or kind_txt == "Release" else (STEEL_C if kind_txt == "New ability" else GLORY)))
-		match String(o.get("kind", "passive")):
+		match okind:
+			"relic":
+				var rk := String(o["relic"])
+				card.add_child(UI.label(run.relic_name(rk), 19, INK, true, "ui", 700))
+				card.add_child(_label(String(run.relic_data(rk).get("desc", "")), 14, MUTED, true))
+				for note: Array in run.offer_notes(o):
+					card.add_child(_label(("+ " if note[0] else "− ") + String(note[1]), 13, OK if note[0] else BAD, true))
 			"max_hp":
 				card.add_child(UI.label("Toughness +%d %%" % roundi(float(o.get("value", 0.1)) * 100.0), 19, INK, true, "ui", 700))
 				card.add_child(_label("More health for good.", 14, MUTED, true))
@@ -574,6 +585,19 @@ func _roster(back: Callable = Callable()) -> Control:
 		pl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(pl)
 		box.add_child(row)
+	if not run.relics.is_empty():
+		var rn: Array = []
+		for k: String in run.relics:
+			rn.append(run.relic_name(k))
+		var rr := HBoxContainer.new()
+		rr.add_theme_constant_override("separation", 6)
+		rr.add_child(Icon.make("hud_glory", GLORY, 18))
+		var rl := _label("Relics: " + ", ".join(rn), 14, INK, true)
+		rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		rl.tooltip_text = "\n".join(run.relics.map(func(k: String) -> String: return "%s: %s" % [run.relic_name(k), run.relic_data(k).get("desc", "")]))
+		rl.mouse_filter = Control.MOUSE_FILTER_PASS
+		rr.add_child(rl)
+		box.add_child(rr)
 	if not run.fallen.is_empty():
 		var f: Array = []
 		for d: Dictionary in run.fallen:
@@ -844,6 +868,36 @@ func show_house(back: Callable) -> void:
 			flow.add_child(_combo_card(c))
 		cbox.add_child(flow)
 	v.add_child(_panel(cbox))
+
+	# relics of the house
+	var rbox := VBoxContainer.new()
+	rbox.add_theme_constant_override("separation", 10)
+	rbox.add_child(UI.title("Relics", 20))
+	if run.relics.is_empty():
+		rbox.add_child(_label("No relics yet. Elites and some events offer them; a relic holds for the whole house until the end of the run.", 14, MUTED, true))
+	else:
+		var rflow := HFlowContainer.new()
+		rflow.add_theme_constant_override("h_separation", 10)
+		rflow.add_theme_constant_override("v_separation", 10)
+		for k: String in run.relics:
+			var rd := run.relic_data(k)
+			var rp := PanelContainer.new()
+			rp.add_theme_stylebox_override("panel", UI.box(UI.RAISED, UI.RADIUS, 12, UI.GILT if not bool(rd.get("trade", false)) else UI.BORDER_STRONG, 2, 2))
+			rp.custom_minimum_size = Vector2(300, 0)
+			var rv := VBoxContainer.new()
+			rv.add_theme_constant_override("separation", 4)
+			var rh := HBoxContainer.new()
+			rh.add_theme_constant_override("separation", 6)
+			rh.add_child(Icon.make("hud_glory", GLORY, 20))
+			rh.add_child(UI.label(run.relic_name(k), 16, INK, false, "ui", 700))
+			rv.add_child(rh)
+			rv.add_child(_label(String(rd.get("desc", "")), 14, UI.TEXT_2, true))
+			if bool(rd.get("trade", false)):
+				rv.add_child(_chip_label("TRADE", BANNER))
+			rp.add_child(rv)
+			rflow.add_child(rp)
+		rbox.add_child(rflow)
+	v.add_child(_panel(rbox))
 
 	if not run.fallen.is_empty():
 		# The Fallen: a memorial only (they do not fight any more); successors carry on the line

@@ -1404,8 +1404,8 @@ func _alt_balance(sid: String, cls: String, ab: String) -> void:
 		elif s.over == "win":
 			wins += 1
 	print("[%s] %s = %s: výhry %d/%d, použití za bitvu %.1f" % [sid, cls, ab, wins, n, float(used) / n])
-	# the boss only reports: it is built around Challenge and a tank without it loses there (balance in step 2.3e)
-	var need: int = 0 if sid == "zaverecna_bitva" else (n / 3 if bool(data["scenario"].get("elite", false)) else n / 2)
+	# the boss and elites need a third (2.3e: Shield Bash and Sacred Circle strengthened, a tank without Challenge can beat the boss)
+	var need: int = n / 3 if sid == "zaverecna_bitva" or bool(data["scenario"].get("elite", false)) else n / 2
 	_check(wins >= need, "[%s] %s se schopností %s by se mělo vyhrávat (%d/%d, potřeba %d)" % [sid, cls, ab, wins, n, need])
 	_check(stuck == 0, "[%s] %s = %s: žádný pat" % [sid, cls, ab])
 	_check(used >= n, "[%s] nápověda schopnost %s opravdu používá" % [sid, ab])

@@ -41,6 +41,7 @@ var bond_declined := {}         # pairs whose bond the player postponed: {"a|b":
 var next_battle := {}           # one-shot effects for the next battle (events): {"remove_pods": n, "stats": {class: {stat: v}}}
 var event_ctx := {}             # the current event's targets: {"hero", "a", "b", "fallen"}
 var used_events := {}           # events already seen in this run (each at most once)
+var relics: Array = []          # relics of the house (keys from units.json "relics"), for the whole run
 var offer_title := ""           # what the current choice is about (reward, training, rite, event)
 var offer_declinable := false   # the current offer can be declined for glory (after a battle)
 
@@ -167,6 +168,48 @@ func is_battle_node(id: String = node_id) -> bool:
 
 
 # --- house queries ---
+
+# --- relics (znamení rodu, 2.3e) ---
+
+func relic_data(key: String) -> Dictionary:
+	return (units_data.get("relics", {}) as Dictionary).get(key, {})
+
+
+func relic_name(key: String) -> String:
+	return String(relic_data(key).get("name", key))
+
+
+func has_relic_flag(field: String) -> bool:
+	for k: String in relics:
+		if bool(relic_data(k).get(field, false)):
+			return true
+	return false
+
+
+## Sum of a numeric relic field over the house's relics.
+func relic_sum(field: String) -> float:
+	var v := 0.0
+	for k: String in relics:
+		v += float(relic_data(k).get(field, 0.0))
+	return v
+
+
+## Relics the house does not hold yet, in random order.
+func relic_pool() -> Array:
+	var out: Array = []
+	for k: String in units_data.get("relics", {}):
+		if not k.begins_with("_") and not relics.has(k):
+			out.append(k)
+	_shuffle(out)
+	return out
+
+
+func gain_relic(key: String) -> void:
+	if relics.has(key) or relic_data(key).is_empty():
+		return
+	relics.append(key)
+	_note("", "The house gained a relic: %s. %s" % [relic_name(key), relic_data(key).get("desc", "")])
+
 
 ## Lineage line of a successor: "Successor of Sir X" ("" for a hero of the first generation).
 func lineage(cls: String) -> String:
@@ -297,15 +340,23 @@ func battle_setup(data: Dictionary) -> Dictionary:
 	var hs := {}
 	var boost := {}
 	var nb_stats: Dictionary = next_battle.get("stats", {})
+	var uses := {}
 	for cls: String in heroes:
 		var st: Dictionary = (heroes[cls].get("stats", {}) as Dictionary).duplicate()
 		for k: String in nb_stats.get(cls, {}):
 			st[k] = float(st.get(k, 0.0)) + float(nb_stats[cls][k])
+		for rk: String in relics:   # relic stats are baked into every hero's values (decision 07.11.2026)
+			var rs: Dictionary = relic_data(rk).get("stats", {})
+			for k: String in rs:
+				st[k] = float(st.get(k, 0.0)) + float(rs[k])
+		if relic_sum("extra_uses") > 0.0:
+			uses[cls] = int(relic_sum("extra_uses"))
 		if not st.is_empty():
 			hs[cls] = st
 		if not (heroes[cls].get("oath_boost", {}) as Dictionary).is_empty():
 			boost[cls] = heroes[cls]["oath_boost"]
 	setup["hero_stats"] = hs
+	setup["extra_uses"] = uses
 	setup["oath_boost"] = boost
 	setup["remove_pods"] = int(next_battle.get("remove_pods", 0))
 	setup["extra_enemies"] = returnee_rows(data["scenario"])
@@ -315,7 +366,7 @@ func battle_setup(data: Dictionary) -> Dictionary:
 ## Enemy rows for fled enemies who return (only in a scenario with returnees).
 func returnee_rows(scenario: Dictionary) -> Array:
 	var rows: Array = []
-	if not scenario.has("returnees"):
+	if not scenario.has("returnees") or has_relic_flag("no_returnees"):
 		return rows
 	var r: Dictionary = scenario["returnees"]
 	var c := Vector2(r["pos"][0], r["pos"][1])
@@ -341,7 +392,11 @@ func record_battle(res: Dictionary) -> void:
 	var sname := node_label()
 	var sc := scenario_info(String(node()["scenario"]))
 	var is_boss := node_type() == "boss"
-	glory = minf(float(res["glory"]), _glory_max())
+	var earned := float(res["glory"]) - glory   # glory gained in the battle (oath breaks already taken off)
+	if earned > 0.0:
+		earned *= maxf(0.0, 1.0 + relic_sum("battle_glory"))   # The Chronicler, Castle Horns
+	last_result["glory_earned"] = earned
+	glory = clampf(glory + earned, 0.0, _glory_max())
 	var gb: Dictionary = res.get("glory_by", {})
 	for cls: String in gb:
 		if heroes.has(cls):
@@ -349,6 +404,9 @@ func record_battle(res: Dictionary) -> void:
 
 	# returning fled enemies are written into the chronicle and their debt is paid
 	returned = []
+	if sc.has("returnees") and not fled.is_empty() and has_relic_flag("no_returnees"):
+		_note(sname, "The castle horns kept the fled enemies away.")
+		fled.clear()
 	if sc.has("returnees") and not fled.is_empty():
 		returned = fled.slice(0, int(sc["returnees"].get("max", 99)))
 		fled.clear()
@@ -384,12 +442,16 @@ func record_battle(res: Dictionary) -> void:
 		return
 
 	_count_wins(dead, sname)
+	if not dead.is_empty() and relic_sum("fallen_cost") > 0.0:
+		var cost := relic_sum("fallen_cost") * dead.size()
+		glory = maxf(0.0, glory - cost)
+		_note(sname, "Young Blood: the fallen cost the house %d glory." % int(cost))
 
 	# wounds carry over, a little heals after the battle
 	var hp: Dictionary = res.get("hp", {})
 	for cls: String in heroes:
 		if not dead.has(cls) and hp.has(cls):
-			heroes[cls]["hp"] = minf(1.0, float(hp[cls]) + float(act.get("regen", 0.0)))
+			heroes[cls]["hp"] = minf(1.0, float(hp[cls]) + float(act.get("regen", 0.0)) + relic_sum("regen"))
 
 	if not is_boss:
 		for cls: String in dead:
@@ -398,6 +460,28 @@ func record_battle(res: Dictionary) -> void:
 			heroes[cls] = {"name": nm, "passives": [], "glory": 0.0, "hp": 1.0, "joined": current_floor(), "bond": {}, "stats": {}, "oath_boost": {},
 				"ability": String(units_data["knights"][cls].get("ability", "")), "predecessor": pred}
 			_note(sname, "%s takes the place of the fallen %s." % [nm, pred])
+			if has_relic_flag("inherit"):   # Bloodline: a random passive of the fallen, not an oath
+				var can: Array = []
+				var fpas: Array = []
+				for fr: Dictionary in fallen:
+					if fr["cls"] == cls and fr["name"] == pred:
+						fpas = fr["passives"]
+				for k: String in fpas:
+					if not is_oath(k) and (_refine_of(k) == "" or _refine_of(k) == ability_of(cls)):
+						can.append(k)
+				if not can.is_empty():
+					var pick: String = can[_rng.randi_range(0, can.size() - 1)]
+					(heroes[cls]["passives"] as Array).append(pick)
+					_note(sname, "Bloodline: %s carries on %s from %s." % [nm, passive_name(pick), pred])
+			var ss: Dictionary = {}
+			for rk: String in relics:
+				var rs: Dictionary = relic_data(rk).get("successor_stats", {})
+				for k: String in rs:
+					ss[k] = float(ss.get(k, 0.0)) + float(rs[k])
+			if not ss.is_empty():   # Young Blood: for the successor's first battle
+				if not next_battle.has("stats"):
+					next_battle["stats"] = {}
+				next_battle["stats"][cls] = ss
 			for fi in range(fallen.size() - 1, -1, -1):
 				if fallen[fi]["cls"] == cls and fallen[fi]["name"] == pred:
 					fallen[fi]["successor"] = nm
@@ -634,7 +718,7 @@ func offers() -> Array:
 	if over != "" or _picks_left <= 0 or has_legacy() or not bond_offer().is_empty():
 		return []
 	if not _offers_ready:
-		var n := int(act.get("elite_offers", 4)) if node_type() == "elita" else int(act.get("offers", 3))
+		var n := (int(act.get("elite_offers", 4)) if node_type() == "elita" else int(act.get("offers", 3))) + int(relic_sum("extra_offers"))
 		_offers = _make_offers(n) if is_battle_node() else []
 		_offers_ready = true
 	return _offers
@@ -643,6 +727,8 @@ func offers() -> Array:
 ## Is the offer (still) valid? After the first elite pick an oath may stop fitting.
 ## Offer kinds: passive (default, also oaths), max_hp (permanent Toughness), release_oath.
 func offer_valid(o: Dictionary) -> bool:
+	if String(o.get("kind", "")) == "relic":
+		return not relics.has(String(o["relic"]))
 	var cls: String = o["hero"]
 	match String(o.get("kind", "passive")):
 		"max_hp":
@@ -696,6 +782,18 @@ func _make_offers(n: int) -> Array:
 			if out.size() >= n:
 				out.pop_back()
 			out.append(pick)
+	if node_type() == "elita" and int(act.get("elite_relic_offers", 1)) > 0:
+		# elite: and one is a relic of the house (2.3e), it takes the place of a passive
+		var rp := relic_pool()
+		if not rp.is_empty():
+			var at := out.size() - 1
+			while at >= 0 and (String(out[at].get("kind", "")) == "ability" or (out[at].has("passive") and is_oath(String(out[at]["passive"])))):
+				at -= 1
+			var rel := {"hero": "", "kind": "relic", "relic": rp[0]}
+			if out.size() < n:
+				out.append(rel)
+			elif at >= 0:
+				out[at] = rel
 	return out
 
 
@@ -731,6 +829,12 @@ func _fill_offers(out: Array, pool: Array, n: int, used_keys: Dictionary, used_h
 ## the stat matters little to the hero (stat_weights 1), strong when it matters most (3).
 func offer_notes(o: Dictionary) -> Array:
 	var out: Array = []
+	if String(o.get("kind", "")) == "relic":
+		var rd := relic_data(String(o["relic"]))
+		out.append([not bool(rd.get("trade", false)), "For the whole house, for the rest of the run."])
+		if bool(rd.get("trade", false)):
+			out.append([false, "A trade: it also takes something."])
+		return out
 	var cls: String = o["hero"]
 	if String(o.get("kind", "passive")) == "ability":
 		var nk := String(o["ability"])
@@ -844,6 +948,8 @@ func pick_offer(i: int) -> void:
 			_note("", "%s is hardened: Toughness +%d %% for good." % [hero_name(o["hero"]), roundi(float(o.get("value", 0.1)) * 100.0)])
 		"ability":
 			set_ability(o["hero"], String(o["ability"]))
+		"relic":
+			gain_relic(String(o["relic"]))
 		"release_oath":
 			var oo := oath_of(o["hero"])
 			(heroes[o["hero"]]["passives"] as Array).erase(oo)
@@ -995,6 +1101,8 @@ func _effects_problem(effects: Array) -> String:
 			return "%s has nothing more to learn." % _fill("{hero}")
 		if e.has("inherit") and _inheritable().is_empty():
 			return "Nothing of his can be passed on."
+		if e.has("relic_choice") and relic_pool().is_empty():
+			return "The house already holds every relic."
 	return ""
 
 
@@ -1052,6 +1160,12 @@ func _apply_effects(effects: Array, sname: String) -> void:
 				if String(e.get("who", "")) != "target" or String(event_ctx.get("hero", "")) == String(o["hero"]):
 					pool.append(o)
 			_open_choice("ability", pool.slice(0, int(e["ability_choice"])))
+		if e.has("relic_choice"):
+			var list: Array = []
+			for rk: String in relic_pool().slice(0, int(e["relic_choice"])):
+				list.append({"hero": "", "kind": "relic", "relic": rk})
+			if not list.is_empty():
+				_open_choice("relic", list)
 		if e.has("max_hp_choice"):
 			var list: Array = []
 			for cls: String in heroes:
@@ -1174,9 +1288,13 @@ func camp_choose(id: String, arg: String = "") -> bool:
 		return false
 	match id:
 		"rest":
+			var heal := float(c.get("heal", act.get("camp_heal", 1.0)))
+			for rk: String in relics:
+				if relic_data(rk).has("rest_heal"):
+					heal = minf(heal, float(relic_data(rk)["rest_heal"]))   # Heavy Banner
 			for cls: String in heroes:
-				heroes[cls]["hp"] = minf(1.0, hp_of(cls) + float(c.get("heal", act.get("camp_heal", 1.0))))
-			_note("Camp", "The house rested by the fire, the wounds healed.")
+				heroes[cls]["hp"] = minf(1.0, hp_of(cls) + heal)
+			_note("Camp", "The house rested by the fire, the wounds healed." if heal >= 1.0 else "The house rested by the fire, the wounds half healed.")
 		"train":
 			if not heroes.has(arg):
 				return false

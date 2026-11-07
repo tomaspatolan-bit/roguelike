@@ -40,6 +40,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 - Kontrola: exe se spustí (`--quit-after 600 --log-file …`) bez chyb, v souboru jsou JSONy. Pro testera ZIP s exe a návodem „Jak hrát.txt“ (ovládání, SmartScreen: Další informace → Přesto spustit).
 
 ## Historie významných změn
+- 07.11.2026: `test_run` `_test_relics` (8 znamení, účinky, elita a Lesní kaple) a v celých bězích sláva za bitvu (15–70) a za běh (do 300); alternativní schopnosti u bosse musí vyhrát aspoň třetinu. Build `Knights_test_2026-11-07e.zip` (2.3e).
 - 07.11.2026: test Nikdy neustoupí přepsaný na zámek v boji (`_test_stand_firm`: zaklesnutý tank necouvá od nepřítele, v bitvách se opravdu zaklesne; `_test_retreat_order`: před střetem volný pohyb, upozornění, zámek přebije starší rozkaz, uvolnění po pádu nepřítele, rozkaz ze střetu přísahu poruší). Auto-velitel (`apply_orders`) zaklesnutému hrdinovi nedává rozkazy, které by přísahu porušily.
 - 07.11.2026: písma v `art/fonts/` potřebují před testy `--headless --import` (jinak UI spadne na systémové písmo, testy projdou). Složku snímků dávat absolutně (relativní `shots` skončí v repu). Nové kontroly: `morale_state` (stavy B, D, E), linie nástupce v běhu.
 - 07.11.2026: testy kroku 2.3d (schopnosti, komba, každá alternativní schopnost v bitvách, výměna v běhu, snímek stránky rodu).

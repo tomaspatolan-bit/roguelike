@@ -19,6 +19,7 @@ func _init() -> void:
 	_test_bonds()
 	_test_offers()
 	_test_abilities_run()
+	_test_relics()
 	_test_full_runs()
 	if failures.is_empty():
 		print("VÝSLEDEK: OK")
@@ -320,6 +321,9 @@ func _test_full_runs() -> void:
 	var deaths := 0
 	var battles := 0
 	var lost_at := {}
+	var earned_sum := 0.0
+	var capped := 0
+	var relic_n := 0
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 42
 	for i in RUNS:
@@ -351,6 +355,9 @@ func _test_full_runs() -> void:
 						break
 					battles += 1
 					r.record_battle(s.result())
+					earned_sum += float(r.last_result.get("glory_earned", 0.0))
+					if r.glory >= r._glory_max() - 0.01:
+						capped += 1
 					deaths += (s.result()["dead"] as Array).size()
 					if r.over == "lose":
 						var k := "%s (%s)" % [r.node_type(), r.node()["scenario"]]
@@ -388,6 +395,7 @@ func _test_full_runs() -> void:
 					if String(pick["problem"]) != "" or not r.camp_choose(pick["id"], arg):
 						r.camp_choose("rest")
 					_finish_choices(r, rng)
+		relic_n += r.relics.size()
 		if r.over == "win":
 			wins += 1
 		if i == 0:
@@ -397,6 +405,100 @@ func _test_full_runs() -> void:
 	_check(stuck == 0, "žádný běh ani bitva neuvízne")
 	_check(wins >= RUNS * 3 / 10, "auto-hraní vyhraje aspoň 30 %% běhů (%d/%d)" % [wins, RUNS])
 	_check(wins < RUNS, "běh není jistá výhra (%d/%d)" % [wins, RUNS])
+	var avg_earned := earned_sum / maxi(battles, 1)
+	print("  sláva: průměrně %.0f za bitvu, na stropu po %d z %d bitev; znamení průměrně %.1f za běh" % [avg_earned, capped, battles, float(relic_n) / RUNS])
+	_check(avg_earned >= 15.0 and avg_earned <= 70.0, "bitva dá rozumně slávy (15–70, je %.0f)" % avg_earned)
+	_check(avg_earned * battles / RUNS <= 300.0, "za běh se nevydělá víc slávy, než jde rozumně utratit (%.0f)" % (avg_earned * battles / RUNS))
+
+
+func _node_of(r: Run, type: String) -> String:
+	for id: String in r.map["nodes"]:
+		if String(r.map["nodes"][id]["type"]) == type:
+			return id
+	return ""
+
+
+## Relics of the house (2.3e): offered at an elite and in events, baked into the heroes, run-level effects.
+func _test_relics() -> void:
+	print("Znamení rodu")
+	var r := Run.new(61)
+	_check(r.relic_pool().size() == 8 and r.relics.is_empty(), "8 znamení, na začátku žádné")
+	r.gain_relic("korouhev_predku")
+	r.gain_relic("tezka_korouhev")
+	var data := Sim.load_data(String(r.map["nodes"][r.available()[0]]["scenario"]))
+	var st := r.battle_setup(data)
+	_check(is_equal_approx(float(st["hero_stats"]["tank"].get("sila", 0.0)), 0.1) and int(st["extra_uses"]["knez"]) == 1, "znamení se zapečou do hrdinů: Síla +10 %, +1 použití schopnosti")
+	var sim := Sim.new(data, st, 5)
+	_check(sim.by_id("tank").uses == int(r.units_data["abilities"]["vyzva"]["uses"]) + 1, "simulace dá tankovi o použití víc")
+	# Heavy Banner: Rest heals only half
+	r.node_id = _node_of(r, "tabor")
+	r.camp_done = false
+	r.heroes["tank"]["hp"] = 0.2
+	r.camp_choose("rest")
+	_check(is_equal_approx(r.hp_of("tank"), 0.7), "Těžká korouhev: odpočinek léčí jen polovinu")
+	# The Chronicler: +50 % glory from battles; Young Blood: the fallen cost glory, successors Attack +20 %
+	var r2 := Run.new(62)
+	r2.choose(r2.available()[0])
+	r2.gain_relic("kronikar")
+	r2.gain_relic("mlada_krev")
+	r2.gain_relic("krvava_linie")
+	(r2.heroes["jezdec"]["passives"] as Array).append("drtivy_najezd")
+	r2.glory = 20.0
+	r2.record_battle(_fake("win", ["jezdec"], [], 40.0))
+	_check(is_equal_approx(r2.glory, 20.0 + 30.0 - 15.0), "Kronikář +50 %% slávy, Mladá krev: padlý stojí 15 (%.0f)" % r2.glory)
+	_check(is_equal_approx(float(r2.next_battle.get("stats", {}).get("jezdec", {}).get("utok", 0.0)), 0.2), "Mladá krev: nástupce má na první bitvu Útok +20 %")
+	_check((r2.heroes["jezdec"]["passives"] as Array).has("drtivy_najezd"), "Krvavá linie: nástupce převzal pasivku padlého")
+	# Castle Horns: the fled do not return
+	var r3 := Run.new(63)
+	r3.gain_relic("rohy_z_hradu")
+	r3.fled = [{"key": "lapka", "stage": "x"}]
+	var boss_sc: Dictionary = Sim.load_data(String(r3.map["boss"]["scenario"]))["scenario"]
+	_check(r3.returnee_rows(boss_sc).is_empty(), "Rohy z hradu: uprchlíci se u bosse nevrátí")
+	# Cursed Reliquary: one more offer
+	var r4 := Run.new(64)
+	r4.choose(r4.available()[0])
+	r4.gain_relic("prokleti_relikviar")
+	r4.record_battle(_fake("win", [], [], 30.0))
+	while not r4.bond_offer().is_empty():
+		r4.choose_bond(String(r4.bond_offer()["choices"][0]))
+	_check(r4.offers().size() == 4, "Prokletý relikviář: odměna má o nabídku víc")
+	var r5 := Run.new(65)
+	var sim4 := Sim.new(data, r4.battle_setup(data), 5)
+	var sim5 := Sim.new(data, r5.battle_setup(data), 5)
+	_check(sim4.by_id("tank").maxhp < sim5.by_id("tank").maxhp, "Prokletý relikviář: hrdinové mají méně zdraví")
+	# elite: the swap offer can be a relic
+	var r6 := Run.new(66)
+	r6.node_id = _node_of(r6, "elita")
+	r6.record_battle(_fake("win", [], [], 30.0))
+	while not r6.bond_offer().is_empty():
+		r6.choose_bond(String(r6.bond_offer()["choices"][0]))
+	var rel := -1
+	for i in r6.offers().size():
+		if String(r6.offers()[i].get("kind", "")) == "relic":
+			rel = i
+	var has_ab := false
+	for o: Dictionary in r6.offers():
+		has_ab = has_ab or String(o.get("kind", "")) == "ability"
+	_check(rel >= 0 and has_ab and r6.offers().size() == 4, "elita: ze 4 nabídek je jedna nová schopnost a jedna znamení")
+	if rel >= 0:
+		var key := String(r6.offers()[rel]["relic"])
+		var notes_ok := not r6.offer_notes(r6.offers()[rel]).is_empty()
+		r6.pick_offer(rel)
+		_check(r6.relics.has(key) and notes_ok, "vybrané znamení má rod a karta ho vysvětlí")
+	# event: the Forest Chapel offers a relic from 2
+	var r7 := Run.new(67)
+	r7.node_id = _node_of(r7, "udalost")
+	r7.map["nodes"][r7.node_id]["event"] = "kaple"
+	r7.event_ctx = {}
+	r7.event_done = false
+	var ev := r7.event()
+	if String(ev.get("name", "")) == "The Forest Chapel":
+		r7.event_choose(1)
+		_check(r7.offers().size() == 2 and String(r7.offers()[0].get("kind", "")) == "relic", "Lesní kaple: výběr znamení ze 2")
+		r7.pick_offer(0)
+		_check(r7.relics.size() == 1, "po výběru má rod znamení")
+	else:
+		_check(false, "Lesní kaple se nenačetla (%s)" % ev.get("name", ""))
 
 
 ## Bonds: grow through shared victories, formed with a type choice, level, death and successor.

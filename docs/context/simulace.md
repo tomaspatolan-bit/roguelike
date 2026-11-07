@@ -42,6 +42,7 @@ Změna názvu nebo významu čehokoli z tohoto seznamu = upravit i `battle.gd`, 
 - Krok simulace je pevný (1/60 s ze scény, 1/30 s v testu). Logika nesmí záviset na velikosti kroku víc, než je nutné.
 
 ## Historie významných změn
+- 07.11.2026: `setup.extra_uses` (znamení Těžká korouhev, `u.bonus_uses`).
 - 07.11.2026: Nikdy neustoupí platí až od střetu (zámek `locked`, `engage_radius`/`release_radius`), dřív zakazovala odsun od nejbližšího nepřítele od začátku bitvy.
 - 07.11.2026: `morale_state()` a `charge_auto` pro ukazatel morálky a stavy All In! v liště (pravidla beze změny).
 - 07.11.2026: krok 2.3d: 10 nových schopností (Hradba, Úder štítem, Ochranný kruh, Svaté světlo, Mířená rána, Ústupová palba, Korouhev, Průjezd, Kouř, Vrhací nože) s nápovědou pro auto-hraní, 30 zušlechtění (`kind: refine`, platí jen pro svou schopnost), výměna schopnosti (`set_ability`, `setup.abilities`), 10 nových komb (celkem 15). Nové stavy: oslepení, zranitelnost, jed, zóny kruhu a kouře, odhození. Balanc výchozích schopností beze změny; každá alternativní schopnost testovaná v bitvách zvlášť (Most, Lesní ves, boss).

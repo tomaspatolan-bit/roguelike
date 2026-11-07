@@ -69,8 +69,8 @@
     "najezd": {"name": "Charge", "desc": "Rides to the chosen spot (up to 10 m), hits enemies in the way for 17 and stuns them for 1.5 s.", "uses": 3, "cooldown": 20.0, "target": "point", "range": 10.0, "land": true, "dmg": 17, "stun": 1.5, "width": 1.0, "speed_mult": 3.0, "power": ["dmg", "stun"]},
     "uder": {"name": "Shadow Strike", "desc": "Leaps behind the chosen enemy (up to 8 m) and strikes for triple damage.", "uses": 3, "cooldown": 15.0, "target": "enemy", "range": 8.0, "mult": 3.0, "power": ["mult"]},
     "hradba": {"name": "Bulwark", "desc": "For 5 s heroes within 3 m take 50 % less damage; the tank does not move.", "uses": 3, "cooldown": 18.0, "target": "none", "radius": 3.0, "duration": 5.0, "damage_taken": 0.5, "power": ["duration"]},
-    "uder_stitem": {"name": "Shield Bash", "desc": "Stuns enemies up to 2.5 m in front of him for 2 s and hits them for 10.", "uses": 3, "cooldown": 10.0, "target": "none", "reach": 2.5, "stun": 2.0, "dmg": 10, "power": ["stun", "dmg"]},
-    "kruh": {"name": "Sacred Circle", "desc": "A 3 m circle for 6 s: enemies 30 % slower, heroes heal 3 per second. Aimed up to 10 m.", "uses": 3, "cooldown": 18.0, "target": "point", "range": 10.0, "radius": 3.0, "duration": 6.0, "slow": 0.7, "hps": 3.0, "power": ["hps"]},
+    "uder_stitem": {"name": "Shield Bash", "desc": "Stuns enemies up to 2.5 m in front of him for 2.5 s and hits them for 16.", "uses": 3, "cooldown": 10.0, "target": "none", "reach": 2.5, "stun": 2.5, "dmg": 16, "power": ["stun", "dmg"]},
+    "kruh": {"name": "Sacred Circle", "desc": "A 3.5 m circle for 6 s: enemies 30 % slower, heroes heal 6 per second. Aimed up to 10 m.", "uses": 3, "cooldown": 18.0, "target": "point", "range": 10.0, "radius": 3.5, "duration": 6.0, "slow": 0.7, "hps": 6.0, "power": ["hps"]},
     "svetlo": {"name": "Holy Light", "desc": "Enemies in a 3 m circle cannot attack for 3 s. Aimed up to 10 m.", "uses": 3, "cooldown": 16.0, "target": "point", "range": 10.0, "radius": 3.0, "duration": 3.0, "power": ["duration"]},
     "mirena": {"name": "Aimed Shot", "desc": "An arrow for 4× attack at an enemy up to 15 m; interrupts a commander's ability.", "uses": 3, "cooldown": 12.0, "target": "enemy", "range": 15.0, "mult": 4.0, "power": ["mult"]},
     "ustup": {"name": "Retreating Fire", "desc": "Leaps 4 m back from the nearest enemy and shoots 3 arrows, 9 damage each.", "uses": 3, "cooldown": 12.0, "target": "none", "leap": 4.0, "arrows": 3, "dmg": 9, "range": 9.0, "power": ["dmg"]},
@@ -169,6 +169,17 @@
     "combo_level": 2,
     "grief_half": 0.5,
     "grief_sila": -0.15
+  },
+  "relics": {
+    "_info": "Relics of the house (znamení rodu, 2.3e): hold for the whole run for the whole house, no limit. Offered at an elite (instead of the ability swap with elite_relic_chance) and in events (relic_choice n). Half are a trade. Fields: stats {stat: v} baked into every hero's values (Might = Attack and Power; decision 07.11.2026), battle_glory (share more/less glory earned in battles), regen (extra healing after a battle), inherit (a successor steps in with a random passive of the fallen, not an oath), extra_uses (every hero +n ability uses), rest_heal (camp Rest heals only this share), extra_offers (+n offers in every reward), successor_stats {stat: v} (successors for their first battle), fallen_cost (glory per fallen hero), no_returnees (fled enemies do not return).",
+    "korouhev_predku": {"name": "Banner of the Ancestors", "desc": "All heroes Might +10 %.", "stats": {"sila": 0.1}},
+    "kronikar": {"name": "The Chronicler", "desc": "+50 % glory from battles.", "battle_glory": 0.5},
+    "polni_kaplan": {"name": "Field Chaplain", "desc": "After a battle the heroes heal 15 % more.", "regen": 0.15},
+    "krvava_linie": {"name": "Bloodline", "desc": "A successor steps in with one passive of the fallen (not an oath).", "inherit": true},
+    "tezka_korouhev": {"name": "Heavy Banner", "desc": "Every hero +1 ability use. Rest at camp heals only half.", "extra_uses": 1, "rest_heal": 0.5, "trade": true},
+    "prokleti_relikviar": {"name": "Cursed Reliquary", "desc": "Every reward has one more offer. Heroes have 10 % less health.", "extra_offers": 1, "stats": {"odolnost": -0.1}, "trade": true},
+    "mlada_krev": {"name": "Young Blood", "desc": "Successors fight their first battle with Attack +20 %. Every fallen hero costs the house 15 glory.", "successor_stats": {"utok": 0.2}, "fallen_cost": 15, "trade": true},
+    "rohy_z_hradu": {"name": "Castle Horns", "desc": "Fled enemies do not return at the boss. Battles give 25 % less glory.", "no_returnees": true, "battle_glory": -0.25, "trade": true}
   },
   "bonds": {
     "_info": "Bond types. who = [group A, group B]: one hero from A, the other from B (\"*\" = anyone); successor = one of the pair must be a successor (joined later). Numbers in a list are for level 1 / 2 / 3. desc = what it gives, grief_desc = grief when one falls.",

@@ -21,6 +21,14 @@ Tenhle soubor drží názvy jednotně. Nový název ve hře = zapsat sem.
 | sekce padlých na stránce rodu | The Fallen |
 | dědictví přísahy | oath legacy |
 | znamení rodu | relic |
+| Korouhev předků | Banner of the Ancestors |
+| Kronikář | The Chronicler |
+| Polní kaplan | Field Chaplain |
+| Krvavá linie | Bloodline |
+| Těžká korouhev | Heavy Banner |
+| Prokletý relikviář | Cursed Reliquary |
+| Mladá krev | Young Blood |
+| Rohy z hradu | Castle Horns |
 
 Osobní jména zůstávají česká (s diakritikou), tituly se překládají: Sir Bořek, Father Jan (Otec), Brother Prokop (Bratr), Matěj, Kryštof. Velitelé: Vok the Burner (Pálič Vok), Jíra the Marksman (Ostrostřelec Jíra), Sergeant Bořivoj (Setník Bořivoj), Captain Kuno (Hejtman Kuno).
 

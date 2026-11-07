@@ -4,9 +4,9 @@
   "glory": {
     "start": 25,
     "max": 120,
-    "per_hit": 0.5,
-    "per_kill": 10,
-    "oath_per_second": 1.0,
+    "per_hit": 0.2,
+    "per_kill": 4,
+    "oath_per_second": 0.4,
     "carry_max": 120
   },
   "successors": {
