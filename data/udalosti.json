@@ -1,10 +1,10 @@
 {
-  "_info": "Events on the act map. options[].effects: glory (+/- glory; negative = cost, the option is unavailable without enough glory), heal / wound {who: all|random|wounded, frac}, gift {kind: passive|oath} (a random passive/oath for a random hero it fits), fled {key: count} (enemies who return at the boss). text = what is written to the chronicle.",
+  "_info": "Events on the act map (each at most once per run). target = whom the event concerns, the event appears only when the target exists: melee (a random tank, cavalier or assassin), priest, oath (a hero with an oath), unbonded_pair (two heroes without a bond), fallen_successor (the successor of the last fallen hero). Texts may use {hero}, {a}, {b}, {fallen}. options[].effects: glory (+/-; negative = cost, unavailable without enough glory), heal / wound {who: all|random|random2|wounded|target, frac}, gift (passive|oath, who: target), fled {key: count} (return at the boss), oath_choice n (choose an oath from n), passive_choice n (choose a passive from n for the target), max_hp_choice v (a chosen hero +v Toughness for good), chance p {win, lose, win_text, lose_text}, pair_wins ±n (the event's pair), next_battle {remove_pods n | pair_stats {stat: v}}, inherit (the successor inherits a passive of the fallen), perm_stats {stat: v} (target, for good), oath_boost {mult, break_cost} (target's oath), release_oath (target). text = what is written to the chronicle. Relics (2.3e) and ability swaps (2.3d) will replace the stand-ins in kaple, kovar, opusteny_tabor and mnich.",
   "poutnik": {
     "name": "The Pilgrim by the Road",
     "text": "An old pilgrim in a ragged cloak sits at the crossroads. He claims he once served the Count, and offers to hear the oath of anyone who dares.",
     "options": [
-      {"label": "Swear an oath before the pilgrim", "hint": "A hero without an oath swears a random oath.", "effects": [{"gift": "oath"}], "text": "An oath was sworn before the pilgrim at the crossroads."},
+      {"label": "Swear an oath before the pilgrim", "hint": "Choose an oath from two, for a hero without one.", "effects": [{"oath_choice": 2}], "text": "An oath was sworn before the pilgrim at the crossroads."},
       {"label": "Give him alms (15 glory)", "hint": "The pilgrim blesses the house: everyone heals 25 %.", "effects": [{"glory": -15}, {"heal": {"who": "all", "frac": 0.25}}], "text": "The house gave the pilgrim alms and he blessed it."},
       {"label": "Ride on", "hint": "Nothing happens.", "effects": [], "text": ""}
     ]
@@ -31,6 +31,76 @@
     "options": [
       {"label": "Pray", "hint": "Wounds heal by 30 %.", "effects": [{"heal": {"who": "wounded", "frac": 0.3}}], "text": "The house prayed in the forest chapel."},
       {"label": "Take the reliquary", "hint": "One hero gains a random passive, everyone loses 15 % health.", "effects": [{"gift": "passive"}, {"wound": {"who": "all", "frac": 0.15}}], "text": "The house carried off the reliquary from the forest chapel."}
+    ]
+  },
+  "turnaj": {
+    "name": "Tournament at the Ford",
+    "target": "melee",
+    "text": "Knights of the Count hold a tournament at the ford. Their herald calls out {hero} by name: will the House of the Wolf answer the challenge?",
+    "options": [
+      {"label": "Send {hero} to the lists", "hint": "60 %: +30 glory and a passive for {hero}; otherwise {hero} is wounded (50 % health).", "effects": [{"chance": 0.6, "win": [{"glory": 30}, {"gift": "passive", "who": "target"}], "lose": [{"wound": {"who": "target", "frac": 0.5}}], "win_text": "{hero} unhorsed the Count's champion.", "lose_text": "{hero} was thrown from the saddle and carried off the field."}], "text": "{hero} rode into the lists."},
+      {"label": "Decline", "hint": "Nothing happens.", "effects": [], "text": ""}
+    ]
+  },
+  "kovar": {
+    "name": "The Smith Below the Castle",
+    "text": "In the village below the castle a smith hammers mail for the Count's men. For good coin he will rework a knight's armour.",
+    "options": [
+      {"label": "Rework a hero's armour (25 glory)", "hint": "A chosen hero gets Toughness +10 % for good.", "effects": [{"glory": -25}, {"max_hp_choice": 0.1}], "text": "The smith reworked armour for the house."},
+      {"label": "Leave", "hint": "Nothing happens.", "effects": [], "text": ""}
+    ]
+  },
+  "opusteny_tabor": {
+    "name": "The Abandoned Brigand Camp",
+    "text": "A brigand camp, abandoned in a hurry. Something may still be hidden here, or someone may still be watching.",
+    "options": [
+      {"label": "Search the camp", "hint": "50 %: +20 glory; otherwise two heroes are wounded (20 % health).", "effects": [{"chance": 0.5, "win": [{"glory": 20}], "lose": [{"wound": {"who": "random2", "frac": 0.2}}], "win_text": "The house found the brigands' hidden spoils.", "lose_text": "A trap went off in the camp."}], "text": "The house searched the abandoned camp."},
+      {"label": "Burn it down", "hint": "+15 glory, but 2 brigands escape and return in the fight with the Captain.", "effects": [{"glory": 15}, {"fled": {"lapka": 2}}], "text": "The house burned the brigand camp."}
+    ]
+  },
+  "zbeh": {
+    "name": "The Deserter",
+    "text": "A brigand comes to the camp with his hands up. He swears he is done with Kuno and offers to lead one of his old bands into a trap.",
+    "options": [
+      {"label": "Trust him", "hint": "The next battle has one enemy group fewer.", "effects": [{"next_battle": {"remove_pods": 1}}], "text": "The deserter led a band of brigands away from the fight."},
+      {"label": "Execute him", "hint": "+10 glory.", "effects": [{"glory": 10}], "text": "The deserter was executed."}
+    ]
+  },
+  "mnich": {
+    "name": "The Monk with the Book",
+    "target": "priest",
+    "text": "A wandering monk carries an old book of prayers. {hero} recognises it: a rare text of the order.",
+    "options": [
+      {"label": "Let {hero} study it", "hint": "{hero} learns a passive (choose from 2), but loses 25 % health from the long vigil.", "effects": [{"wound": {"who": "target", "frac": 0.25}}, {"passive_choice": 2, "who": "target"}], "text": "{hero} spent the night over the monk's book."},
+      {"label": "Read it to the whole house", "hint": "Everyone heals 20 %.", "effects": [{"heal": {"who": "all", "frac": 0.2}}], "text": "The monk read to the house by the fire."}
+    ]
+  },
+  "spor": {
+    "name": "A Quarrel in the Tent",
+    "target": "unbonded_pair",
+    "text": "Raised voices in the tent: {a} and {b} are at each other's throats over who held the line in the last fight.",
+    "options": [
+      {"label": "Side with {a}", "hint": "{a} and {b} lose a shared victory.", "effects": [{"pair_wins": -1}], "text": "The house sided with {a}; {b} did not forget it."},
+      {"label": "Reconcile them (20 glory)", "hint": "{a} and {b} gain a shared victory.", "effects": [{"glory": -20}, {"pair_wins": 1}], "text": "{a} and {b} were reconciled over wine."},
+      {"label": "Let it be", "hint": "{a} and {b} get Attack −15 % in the next battle.", "effects": [{"next_battle": {"pair_stats": {"utok": -0.15}}}], "text": "{a} and {b} went to bed still angry."}
+    ]
+  },
+  "hrob": {
+    "name": "The Grave of an Ancestor",
+    "target": "fallen_successor",
+    "text": "By the road the house finds the fresh grave of {fallen}. His successor {hero} stands over it in silence.",
+    "options": [
+      {"label": "Honour {fallen}", "hint": "{hero} inherits one of {fallen}'s passives.", "effects": [{"inherit": true}], "text": "The house honoured {fallen} at his grave."},
+      {"label": "Take up his weapon (10 glory)", "hint": "{hero} gets Attack +15 % for good.", "effects": [{"glory": -10}, {"perm_stats": {"utok": 0.15}}], "text": "{hero} took up the weapon of {fallen}."}
+    ]
+  },
+  "soud": {
+    "name": "The Trial of the Oath",
+    "target": "oath",
+    "text": "A priest of the order asks {hero} to renew his oath before witnesses, or to lay it down.",
+    "options": [
+      {"label": "Confirm the oath", "hint": "The oath's bonuses of {hero} +50 %, but breaking it costs 40 glory.", "effects": [{"oath_boost": {"mult": 1.5, "break_cost": 40}}], "text": "{hero} renewed his oath before witnesses."},
+      {"label": "Lay it down", "hint": "{hero} is released from his oath without shame.", "effects": [{"release_oath": true}], "text": "{hero} laid down his oath."}
     ]
   }
 }

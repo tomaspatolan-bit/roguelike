@@ -2,6 +2,10 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 07.11.2026 – Chytrý shuffle mapy
+- **Hráč má mít vždy na výběr** (Tom po playtestu, kde tester dostal tři události za sebou): na cestě mapou nikdy dvakrát za sebou stejný typ bez boje (událost, elita, tábor), nejvýš 2 uzly bez boje za sebou a rozcestí vždy nabízí různé typy. Když žádný typ nesedí, zbytečná cesta z rozcestí zmizí, aby mapa nepředstírala volbu. Hlídá test na 200 mapách.
+- Odměnu po bitvě jde odmítnout za +15 slávy, padlí v bitvě odměnu nedostanou (podle návrhu 05.11).
+
 ## 07.11.2026 – Hra v angličtině
 - **Texty ve hře, data a komentáře v kódu jsou anglicky**, hra je jen anglicky (bez české lokalizace, lokalizace se řeší až před vydáním). Tom: trh bude mířený na angličtinu. Dokumentace, deník rozhodnutí, commity a naše komunikace zůstávají česky. Klíče v datech se nemění.
 - Názvy drží `docs/glosar.md`: House of the Wolf, The Count's Forest, třídy Tank, Priest, Archer, Cavalier, Assassin, vlastnosti Attack, Power, Toughness, Haste, Might, znamení rodu = relic. Osobní jména zůstávají česká, tituly se překládají (Father Jan, Captain Kuno). Pracovní název hry Knights (na Steamu rozhodne Tom).

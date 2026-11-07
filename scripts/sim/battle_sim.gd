@@ -95,6 +95,9 @@ class Unit:
 	var rescue_used: bool = false # Lance and Shield: the cavalier has already ridden to the tank's aid
 	var rescue_t: float = 0.0
 	var dash_mult: float = 1.0    # combo: stronger Charge
+	var extra_stats: Dictionary = {}  # permanent and one-battle stat bonuses from the run (events): {stat: fraction}
+	var oath_mult: float = 1.0    # Trial of the Oath: the oath's stat bonuses × this
+	var oath_cost: float = -1.0   # Trial of the Oath: glory cost of breaking (−1 = from the data)
 	var combo_strike: String = "" # Hammer and Anvil combo: who leaps behind the first one knocked down
 	var target_id: String = ""    # enemy: whom he is attacking right now
 	var leader: bool = false      # enemy leader: when he falls, morale breaks
@@ -201,6 +204,10 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		units.append(u)
 		var pas: Dictionary = setup.get("passives", house.get("start_passives", {}))
 		u.passives = (pas.get(key, []) as Array).duplicate()
+		u.extra_stats = ((setup.get("hero_stats", {}) as Dictionary).get(key, {}) as Dictionary).duplicate()
+		var ob: Dictionary = (setup.get("oath_boost", {}) as Dictionary).get(key, {})
+		u.oath_mult = float(ob.get("mult", 1.0))
+		u.oath_cost = float(ob.get("break_cost", -1.0))
 		var bd: Dictionary = (setup.get("bonds", {}) as Dictionary).get(key, {})
 		if not bd.is_empty() and (units_data.get("bonds", {}) as Dictionary).has(String(bd.get("type", ""))):
 			u.bond_with = String(bd["with"])
@@ -221,7 +228,7 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		if bool((pods[pi] as Dictionary).get("awake", false)):
 			pod_awake[pi] = true
 	var i := 0
-	var rows: Array = (scenario["enemies"] as Array).duplicate()
+	var rows: Array = _without_pods((scenario["enemies"] as Array).duplicate(), int(setup.get("remove_pods", 0)))
 	rows.append_array(setup.get("extra_enemies", []))
 	for row: Array in rows:
 		var fkey: String = row[0]
@@ -264,6 +271,50 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	for key: String in orders:
 		var o: Array = orders[key]
 		set_order(key, String(o[0]), o[1] if o.size() > 1 else null)
+
+
+## The Deserter (event): the next battle has `n` fewer enemy groups. Removes whole groups (pods) without
+## a leader or commander, the last ones first; a scenario without groups loses its last `n` × 3 footmen without a skill.
+func _without_pods(rows: Array, n: int) -> Array:
+	if n <= 0:
+		return rows
+	var foes: Dictionary = units_data["foes"]
+	var boss_pods := {}
+	var pod_ids := {}
+	for row: Array in rows:
+		var pod := -1
+		var leader := bool(foes[row[0]].get("leader", false)) or String(foes[row[0]].get("skill", "")) != ""
+		for extra: Variant in row.slice(3):
+			if extra is Dictionary:
+				pod = int((extra as Dictionary).get("pod", -1))
+				leader = leader or bool((extra as Dictionary).get("leader", false))
+		if pod >= 0:
+			pod_ids[pod] = true
+			if leader:
+				boss_pods[pod] = true
+	var drop := {}
+	var ids: Array = pod_ids.keys()
+	ids.sort()
+	ids.reverse()
+	for p: int in ids:
+		if drop.size() < n and not boss_pods.has(p):
+			drop[p] = true
+	var out: Array = []
+	var cut := 0 if not drop.is_empty() else n * 3
+	for i in range(rows.size() - 1, -1, -1):
+		var row: Array = rows[i]
+		var pod := -1
+		for extra: Variant in row.slice(3):
+			if extra is Dictionary:
+				pod = int((extra as Dictionary).get("pod", -1))
+		var plain := not bool(foes[row[0]].get("leader", false)) and String(foes[row[0]].get("skill", "")) == ""
+		if drop.has(pod):
+			continue
+		if cut > 0 and plain and pod < 0:
+			cut -= 1
+			continue
+		out.push_front(row)
+	return out
 
 
 ## scenario = scenario key (file data/scenarios/<key>.json), or a full path to the file.
@@ -477,15 +528,19 @@ func stat(u: Unit, key: String, tg: Unit = null, static_only: bool = false) -> f
 		if d.is_empty() or (static_only and d.has("when")) or not (static_only or _when_ok(u, d, tg)):
 			continue
 		var st: Dictionary = d.get("stats", {})
-		sum += float(st.get(key, 0.0))
+		var om := u.oath_mult if d.get("kind", "") == "oath" else 1.0
+		sum += float(st.get(key, 0.0)) * om
 		if key == "utok" or key == "moc":
-			sum += float(st.get("sila", 0.0))
+			sum += float(st.get("sila", 0.0)) * om
 		if d.has("per_ancestor"):
 			var n := mini(ancestors, int(d.get("ancestors_max", 3)))
 			var pa: Dictionary = d["per_ancestor"]
 			sum += n * float(pa.get(key, 0.0))
 			if key == "utok" or key == "moc":
 				sum += n * float(pa.get("sila", 0.0))
+	sum += float(u.extra_stats.get(key, 0.0))
+	if key == "utok" or key == "moc":
+		sum += float(u.extra_stats.get("sila", 0.0))
 	if static_only:
 		return sum
 	var sila := key == "utok" or key == "moc"
@@ -1582,7 +1637,7 @@ func _break(u: Unit, why: String) -> void:
 	if o.is_empty():
 		return
 	u.oath_broken = true
-	glory = maxf(0.0, glory - float(o.get("break_glory_cost", 0.0)))
+	glory = maxf(0.0, glory - (u.oath_cost if u.oath_cost >= 0.0 else float(o.get("break_glory_cost", 0.0))))
 	_apply_passives_keep_hp(u)
 	_log("%s broke his oath %s%s" % [u.name, o["name"], (" (" + why + ")") if why != "" else ""], true)
 	events.append({"type": "oath_broken", "id": u.id, "text": why})

@@ -93,7 +93,7 @@ func _tooltip(n: Dictionary) -> String:
 		"udalost":
 			return "Event: %s" % run.events_data[n["event"]]["name"]
 		"tabor":
-			return "Camp: rest, wounds heal."
+			return "Camp: one choice of rest, training, rite or feast."
 	return ""
 
 

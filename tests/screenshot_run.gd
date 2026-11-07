@@ -117,11 +117,22 @@ func _process(_delta: float) -> bool:
 		scene.call("show_event_result")
 		wait = 10
 		return false
+	if (t == "udalost" or t == "tabor") and not bool(run.call("node_finished")):
+		_shot("%02d_volba_%s.png" % [step, t])
+		if not (run.call("bond_offer") as Dictionary).is_empty():
+			var ch: Array = run.call("bond_offer")["choices"]
+			run.call("choose_bond", ch[0] if not ch.is_empty() else "")
+		else:
+			run.call("pick_offer", 0)
+		scene.call("show_event_result" if t == "udalost" else "show_campfire")
+		wait = 10
+		return false
 	if t == "udalost":
 		_shot("%02d_udalost_vysledek.png" % step)
 	if t == "tabor" and not bool(run.get("camp_done")):
 		_shot("%02d_tabor.png" % step)
-		run.call("camp_rest")
+		scene.set("_chron_mark", (run.get("chronicle") as Array).size())
+		run.call("camp_choose", "train", "tank")
 		scene.call("show_campfire")
 		wait = 10
 		return false

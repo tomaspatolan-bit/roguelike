@@ -140,3 +140,21 @@ Osobní jména zůstávají česká (s diakritikou), tituly se překládají: Si
 | Obrana Lesní vsi | Defense of Forest Village |
 | Tábor na Vraní skále | Camp on Raven Rock |
 | typ bitvy: útok, střet, obrana | Assault, Clash, Defense |
+
+## Tábor a události
+| Česky | Anglicky |
+| --- | --- |
+| Odpočinek, Výcvik, Obřad, Hostina | Rest, Training, Rite, Feast |
+| Poutník u cesty | The Pilgrim by the Road |
+| Vypálená ves | The Burned Village |
+| Zajatý lapka | The Captured Brigand |
+| Lesní kaple | The Forest Chapel |
+| Turnaj u brodu | Tournament at the Ford |
+| Kovář v podhradí | The Smith Below the Castle |
+| Opuštěný tábor lapků | The Abandoned Brigand Camp |
+| Zběh | The Deserter |
+| Mnich s knihou | The Monk with the Book |
+| Spor ve stanu | A Quarrel in the Tent |
+| Hrob předka | The Grave of an Ancestor |
+| Soud o přísahu | The Trial of the Oath |
+| odmítnout odměnu | decline the reward |

@@ -4,8 +4,8 @@ extends RefCounted
 ##
 ## Flow: available() → choose(id) → by node type:
 ##   bitva / elita / boss: battle_setup(data) → battle → record_battle(sim.result()) → legacy (legacy_*) → bond (bond_offer / choose_bond) → reward (offers / pick_offer)
-##   udalost: event() → event_option_problem(i) / event_choose(i)
-##   tabor: camp_rest()
+##   udalost: event() → event_option_problem(i) / event_choose(i) → maybe a choice (offers / pick_offer)
+##   tabor: camp_options() → camp_choose(id, arg) → maybe a choice (offers / pick_offer) or a bond (bond_offer)
 ## and back to the map. After the boss the act (for now the whole run) is won.
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")
@@ -20,7 +20,8 @@ var events_data: Dictionary
 var map: Dictionary
 
 ## Heroes by class: {"name", "passives": Array, "glory": float, "hp": health fraction 0..1, "joined": floor,
-## "bond": {} or {"with": class, "type": bond key}}
+## "bond": {} or {"with": class, "type": bond key}, "stats": {stat: fraction} permanent bonuses (events),
+## "oath_boost": {} or {"mult", "break_cost"} (Trial of the Oath)}
 var heroes := {}
 var fallen: Array = []          # [{"cls", "name", "stage", "passives", "glory"}]
 var node_id := ""               # node where the house is now ("" = before the first floor)
@@ -37,6 +38,11 @@ var event_done := false         # the event in the current node has been decided
 var camp_done := false          # the house has already rested at the current camp
 var pair_wins := {}             # shared victories of pairs: {"a|b" (classes in alphabetical order): count}
 var bond_declined := {}         # pairs whose bond the player postponed: {"a|b": victories at that time}
+var next_battle := {}           # one-shot effects for the next battle (events): {"remove_pods": n, "stats": {class: {stat: v}}}
+var event_ctx := {}             # the current event's targets: {"hero", "a", "b", "fallen"}
+var used_events := {}           # events already seen in this run (each at most once)
+var offer_title := ""           # what the current choice is about (reward, training, rite, event)
+var offer_declinable := false   # the current offer can be declined for glory (after a battle)
 
 var _offers: Array = []
 var _offers_ready := false
@@ -66,6 +72,8 @@ func _init(rng_seed: int = -1, act_key: String = "akt_1") -> void:
 			"hp": 1.0,
 			"joined": 0,
 			"bond": {},
+			"stats": {},
+			"oath_boost": {},
 		}
 	map = ActMap.generate(act, _rng)
 	_note("", "The %s sets out into %s. Five heroes, %d floors, Captain Kuno at the end." % [house["name"], act["name"], int(act["floors"])])
@@ -110,9 +118,9 @@ func node_finished() -> bool:
 		"bitva", "elita", "boss":
 			return last_result.has("node") and last_result["node"] == node_id and not has_legacy() and bond_offer().is_empty() and offers().is_empty()
 		"udalost":
-			return event_done
+			return event_done and offers().is_empty()
 		"tabor":
-			return true   # resting is a choice, you can move on without it
+			return offers().is_empty() and bond_offer().is_empty()   # the camp choice is optional, a started choice is not
 	return true
 
 
@@ -126,6 +134,12 @@ func choose(id: String) -> bool:
 	_offers = []
 	_offers_ready = false
 	_picks_left = 0
+	_bond_open = false
+	_bond_offer = {}
+	offer_title = ""
+	offer_declinable = false
+	if node_type() == "udalost":
+		_resolve_event()
 	return true
 
 
@@ -213,6 +227,20 @@ func battle_setup(data: Dictionary) -> Dictionary:
 			bonds[cls] = {"with": other, "type": b["type"], "level": bond_level(cls),
 				"student": b["type"] == "ucitel" and int(heroes[cls]["joined"]) > int(heroes[other]["joined"])}
 	setup["bonds"] = bonds
+	var hs := {}
+	var boost := {}
+	var nb_stats: Dictionary = next_battle.get("stats", {})
+	for cls: String in heroes:
+		var st: Dictionary = (heroes[cls].get("stats", {}) as Dictionary).duplicate()
+		for k: String in nb_stats.get(cls, {}):
+			st[k] = float(st.get(k, 0.0)) + float(nb_stats[cls][k])
+		if not st.is_empty():
+			hs[cls] = st
+		if not (heroes[cls].get("oath_boost", {}) as Dictionary).is_empty():
+			boost[cls] = heroes[cls]["oath_boost"]
+	setup["hero_stats"] = hs
+	setup["oath_boost"] = boost
+	setup["remove_pods"] = int(next_battle.get("remove_pods", 0))
 	setup["extra_enemies"] = returnee_rows(data["scenario"])
 	return setup
 
@@ -242,10 +270,11 @@ func returnee_rows(scenario: Dictionary) -> Array:
 func record_battle(res: Dictionary) -> void:
 	last_result = res.duplicate()
 	last_result["node"] = node_id
+	next_battle = {}
 	var sname := node_label()
 	var sc := scenario_info(String(node()["scenario"]))
 	var is_boss := node_type() == "boss"
-	glory = minf(float(res["glory"]), float(house["glory"].get("carry_max", house["glory"]["max"])))
+	glory = minf(float(res["glory"]), _glory_max())
 	var gb: Dictionary = res.get("glory_by", {})
 	for cls: String in gb:
 		if heroes.has(cls):
@@ -298,7 +327,7 @@ func record_battle(res: Dictionary) -> void:
 	if not is_boss:
 		for cls: String in dead:
 			var nm := _successor_name(cls)
-			heroes[cls] = {"name": nm, "passives": [], "glory": 0.0, "hp": 1.0, "joined": current_floor(), "bond": {}}
+			heroes[cls] = {"name": nm, "passives": [], "glory": 0.0, "hp": 1.0, "joined": current_floor(), "bond": {}, "stats": {}, "oath_boost": {}}
 			_note(sname, "%s takes the place of the fallen." % nm)
 
 	# enemies who fled this battle may return later
@@ -315,6 +344,8 @@ func record_battle(res: Dictionary) -> void:
 		return
 	var elite := node_type() == "elita"
 	_picks_left = int(act.get("elite_picks", 2)) if elite else 1
+	offer_title = "elite" if elite else "battle"
+	offer_declinable = true
 	_bond_open = true
 	_bond_offer = {}
 
@@ -531,14 +562,20 @@ func offers() -> Array:
 		return []
 	if not _offers_ready:
 		var n := int(act.get("elite_offers", 4)) if node_type() == "elita" else int(act.get("offers", 3))
-		_offers = _make_offers(n)
+		_offers = _make_offers(n) if is_battle_node() else []
 		_offers_ready = true
 	return _offers
 
 
 ## Is the offer (still) valid? After the first elite pick an oath may stop fitting.
+## Offer kinds: passive (default, also oaths), max_hp (permanent Toughness), release_oath.
 func offer_valid(o: Dictionary) -> bool:
 	var cls: String = o["hero"]
+	match String(o.get("kind", "passive")):
+		"max_hp":
+			return true
+		"release_oath":
+			return oath_of(cls) != ""
 	var key: String = o["passive"]
 	if (heroes[cls]["passives"] as Array).has(key):
 		return false
@@ -547,20 +584,38 @@ func offer_valid(o: Dictionary) -> bool:
 	return not (is_oath(key) and oath_of(cls) != "")
 
 
+## Reward after a battle (rules from the design 05.11.2026): oaths make up `offer_oaths` of the offers
+## (1 of 3, 1 of 4 at an elite), the rest are passives; different heroes and different passives first.
+## Heroes who fell in this battle get nothing (their successors only from the next battle).
 func _make_offers(n: int) -> Array:
-	var pool: Array = []
+	var dead: Array = last_result.get("dead", [])
+	var oath_pool: Array = []
+	var pas_pool: Array = []
 	for cls: String in heroes:
-		for key: String in _passives_for(cls, ""):
-			pool.append({"hero": cls, "passive": key})
-	_shuffle(pool)
+		if dead.has(cls):
+			continue
+		for key: String in _passives_for(cls, "passive"):
+			pas_pool.append({"hero": cls, "passive": key})
+		for key: String in _passives_for(cls, "oath"):
+			oath_pool.append({"hero": cls, "passive": key})
+	_shuffle(pas_pool)
+	_shuffle(oath_pool)
 	var out: Array = []
 	var used_keys := {}
 	var used_heroes := {}
-	# first different heroes and different passives, then whatever is left
+	var n_oaths := mini(int(act.get("offer_oaths", 1)), n)
+	_fill_offers(out, oath_pool, n_oaths, used_keys, used_heroes)
+	_fill_offers(out, pas_pool, n, used_keys, used_heroes)
+	_fill_offers(out, oath_pool, n, used_keys, used_heroes)   # not enough passives: more oaths
+	return out
+
+
+## Adds offers from `pool` until `out` has `n`: first different heroes and different passives, then whatever is left.
+func _fill_offers(out: Array, pool: Array, n: int, used_keys: Dictionary, used_heroes: Dictionary) -> void:
 	for pass_i in 2:
 		for o: Dictionary in pool:
 			if out.size() >= n:
-				break
+				return
 			if used_keys.has(o["passive"]) or out.has(o):
 				continue
 			if pass_i == 0 and used_heroes.has(o["hero"]):
@@ -568,7 +623,61 @@ func _make_offers(n: int) -> Array:
 			out.append(o)
 			used_keys[o["passive"]] = true
 			used_heroes[o["hero"]] = true
+
+
+## What the offer means for the hero, for the offer card: [[good (bool), text]].
+## Oath: how it works with the hero's ability (fits / clashes with the reason). Stat bonus: wasted when
+## the stat matters little to the hero (stat_weights 1), strong when it matters most (3).
+func offer_notes(o: Dictionary) -> Array:
+	var out: Array = []
+	var cls: String = o["hero"]
+	if String(o.get("kind", "passive")) != "passive":
+		return out
+	var d: Dictionary = units_data["passives"][o["passive"]]
+	var kd: Dictionary = units_data["knights"][cls]
+	var ab: String = kd.get("ability", "")
+	var ab_name := String(units_data["abilities"].get(ab, {}).get("name", ab))
+	if (d.get("fits", {}) as Dictionary).has(ab):
+		out.append([true, "Fits %s: %s" % [ab_name, d["fits"][ab]]])
+	if (d.get("clashes", {}) as Dictionary).has(ab):
+		out.append([false, "Clashes with %s: %s" % [ab_name, d["clashes"][ab]]])
+	var weights: Dictionary = kd.get("stat_weights", {})
+	for st: String in (d.get("stats", {}) as Dictionary):
+		var v := float(d["stats"][st])
+		if v <= 0.0 or st == "sila":
+			continue
+		var w := int(weights.get(st, 2))
+		var sname := String(units_data["stats"][st]["name"])
+		if w <= 1:
+			out.append([false, "%s matters little to the %s: mostly wasted." % [sname, kd.get("role", cls)]])
+		elif w >= 3:
+			out.append([true, "%s is what the %s needs most." % [sname, kd.get("role", cls)]])
+	if bool(d.get("no_bond", false)) and (heroes[cls]["bond"] as Dictionary).is_empty():
+		out.append([false, "No bond can form while he holds it."])
 	return out
+
+
+## Decline the reward after a battle for glory (`decline_glory` in the act).
+func decline_offers() -> void:
+	if not offer_declinable or offers().is_empty():
+		return
+	glory = minf(glory + float(act.get("decline_glory", 15)), _glory_max())
+	_note("", "The house declined the reward (+%d glory)." % int(act.get("decline_glory", 15)))
+	_offers = []
+	_picks_left = 0
+
+
+## Offers a choice outside the reward after a battle (event, camp): a ready list of offers, picks 1.
+func _open_choice(title: String, list: Array) -> void:
+	offer_title = title
+	offer_declinable = false
+	_offers = list
+	_offers_ready = true
+	_picks_left = 1 if not list.is_empty() else 0
+
+
+func _glory_max() -> float:
+	return float(house["glory"].get("carry_max", house["glory"]["max"]))
 
 
 ## Passives the hero can get (kind = "" all, otherwise only passive / oath).
@@ -600,7 +709,18 @@ func pick_offer(i: int) -> void:
 	if i < 0 or i >= list.size() or not offer_valid(list[i]):
 		return
 	var o: Dictionary = list[i]
-	_grant(o["hero"], o["passive"])
+	match String(o.get("kind", "passive")):
+		"max_hp":
+			var st: Dictionary = heroes[o["hero"]]["stats"]
+			st["odolnost"] = float(st.get("odolnost", 0.0)) + float(o.get("value", 0.1))
+			_note("", "%s is hardened: Toughness +%d %% for good." % [hero_name(o["hero"]), roundi(float(o.get("value", 0.1)) * 100.0)])
+		"release_oath":
+			var oo := oath_of(o["hero"])
+			(heroes[o["hero"]]["passives"] as Array).erase(oo)
+			heroes[o["hero"]]["oath_boost"] = {}
+			_note("", "%s was released from his oath %s without shame." % [hero_name(o["hero"]), passive_name(oo)])
+		_:
+			_grant(o["hero"], o["passive"])
 	_picks_left -= 1
 	list.remove_at(i)
 	if _picks_left <= 0:
@@ -626,10 +746,103 @@ func _grant(cls: String, key: String) -> void:
 
 # --- event ---
 
+## The event of the current node with its texts filled in ({hero}, {a}, {b}, {fallen}).
 func event() -> Dictionary:
 	if node_type() != "udalost":
 		return {}
-	return events_data[node()["event"]]
+	var ev: Dictionary = (events_data[node()["event"]] as Dictionary).duplicate(true)
+	ev["name"] = _fill(String(ev["name"]))
+	ev["text"] = _fill(String(ev["text"]))
+	for o: Dictionary in ev["options"]:
+		o["label"] = _fill(String(o["label"]))
+		o["hint"] = _fill(String(o.get("hint", "")))
+		o["text"] = _fill(String(o.get("text", "")))
+	return ev
+
+
+func _fill(t: String) -> String:
+	for k: String in ["hero", "a", "b", "fallen"]:
+		if event_ctx.has(k):
+			var who := String(event_ctx[k])
+			t = t.replace("{%s}" % k, hero_name(who) if heroes.has(who) and k != "fallen" else who)
+	return t
+
+
+## Picks the event for the node: the one from the map if it has not been used yet and its target exists,
+## otherwise another unused one that is possible now (conditional events react to the house's story).
+func _resolve_event() -> void:
+	var order: Array = [String(node()["event"])]
+	var rest: Array = (act["events"] as Array).duplicate()
+	_shuffle(rest)
+	order.append_array(rest)
+	for key: String in order:
+		if key == "" or used_events.has(key) or not events_data.has(key):
+			continue
+		var ctx := _event_target(events_data[key])
+		if ctx.is_empty():
+			continue
+		node()["event"] = key
+		used_events[key] = true
+		event_ctx = ctx
+		return
+	used_events[String(node()["event"])] = true   # everything used: repeat the map's event
+	event_ctx = _event_target(events_data[node()["event"]])
+
+
+## The event's target ({"ok": true, ...}), or {} when the event is not possible now.
+## target: melee (a random tank, cavalier or assassin), priest, oath (a hero holding an oath),
+## unbonded_pair (two heroes without a bond, those with the most shared victories), fallen_successor
+## (the successor of the last fallen hero, while he still lives).
+func _event_target(ev: Dictionary) -> Dictionary:
+	var ctx := {"ok": true}
+	match String(ev.get("target", "")):
+		"melee":
+			var c: Array = []
+			for cls: String in heroes:
+				if not bool(units_data["knights"][cls].get("ranged", false)) and float(units_data["knights"][cls].get("heal", 0.0)) <= 0.0:
+					c.append(cls)
+			if c.is_empty():
+				return {}
+			ctx["hero"] = c[_rng.randi_range(0, c.size() - 1)]
+		"priest":
+			for cls: String in heroes:
+				if float(units_data["knights"][cls].get("heal", 0.0)) > 0.0:
+					ctx["hero"] = cls
+			if not ctx.has("hero"):
+				return {}
+		"oath":
+			var c: Array = []
+			for cls: String in heroes:
+				if oath_of(cls) != "":
+					c.append(cls)
+			if c.is_empty():
+				return {}
+			ctx["hero"] = c[_rng.randi_range(0, c.size() - 1)]
+		"unbonded_pair":
+			var free: Array = []
+			for cls: String in heroes:
+				if (heroes[cls]["bond"] as Dictionary).is_empty():
+					free.append(cls)
+			if free.size() < 2:
+				return {}
+			var best := []
+			for i in free.size():
+				for j in range(i + 1, free.size()):
+					if best.is_empty() or wins_of(free[i], free[j]) > wins_of(best[0], best[1]):
+						best = [free[i], free[j]]
+			ctx["a"] = best[0]
+			ctx["b"] = best[1]
+		"fallen_successor":
+			if fallen.is_empty():
+				return {}
+			var f: Dictionary = fallen[-1]
+			var cls: String = f["cls"]
+			if not heroes.has(cls) or String(heroes[cls]["name"]) == String(f["name"]):
+				return {}
+			ctx["hero"] = cls
+			ctx["fallen"] = f["name"]
+			ctx["fallen_passives"] = f["passives"]
+	return ctx
 
 
 ## Why the option is not possible ("" = it is): e.g. not enough glory or no one can swear an oath.
@@ -637,11 +850,21 @@ func event_option_problem(i: int) -> String:
 	var opts: Array = event().get("options", [])
 	if event_done or i < 0 or i >= opts.size():
 		return "Not possible."
-	for e: Dictionary in opts[i].get("effects", []):
+	return _effects_problem(opts[i].get("effects", []))
+
+
+func _effects_problem(effects: Array) -> String:
+	for e: Dictionary in effects:
 		if e.has("glory") and float(e["glory"]) < 0.0 and glory < -float(e["glory"]):
 			return "Not enough glory (%d)." % int(-float(e["glory"]))
-		if e.has("gift") and _gift_candidates(String(e["gift"])).is_empty():
+		if e.has("gift") and _gift_candidates(String(e["gift"]), String(e.get("who", ""))).is_empty():
 			return "No one in the house can accept it."
+		if e.has("oath_choice") and _gift_candidates("oath", "").is_empty():
+			return "No one in the house can swear an oath."
+		if e.has("passive_choice") and _gift_candidates("passive", String(e.get("who", "target"))).is_empty():
+			return "%s has nothing more to learn." % _fill("{hero}")
+		if e.has("inherit") and _inheritable().is_empty():
+			return "Nothing of his can be passed on."
 	return ""
 
 
@@ -651,30 +874,111 @@ func event_choose(i: int) -> void:
 	var ev := event()
 	var opt: Dictionary = ev["options"][i]
 	var sname := String(ev["name"])
-	for e: Dictionary in opt.get("effects", []):
+	if String(opt.get("text", "")) != "":
+		_note(sname, String(opt["text"]))
+	_apply_effects(opt.get("effects", []), sname)
+	event_done = true
+	_bond_open = true   # the event may have brought a pair to a bond
+	_bond_offer = {}
+
+
+## Event effects (udalosti.json). New since 07.11.2026: oath_choice, passive_choice, max_hp_choice, chance,
+## pair_wins, next_battle, inherit, perm_stats, oath_boost, release_oath; who: target = the event's hero.
+func _apply_effects(effects: Array, sname: String) -> void:
+	for e: Dictionary in effects:
 		if e.has("glory"):
-			glory = clampf(glory + float(e["glory"]), 0.0, float(house["glory"]["max"]))
+			glory = clampf(glory + float(e["glory"]), 0.0, _glory_max())
 		if e.has("heal"):
 			_change_hp(e["heal"], 1.0)
 		if e.has("wound"):
 			_change_hp(e["wound"], -1.0)
 		if e.has("gift"):
-			var cands := _gift_candidates(String(e["gift"]))
-			var c: Array = cands[_rng.randi_range(0, cands.size() - 1)]
-			_grant(c[0], c[1])
+			var cands := _gift_candidates(String(e["gift"]), String(e.get("who", "")))
+			if not cands.is_empty():
+				var c: Array = cands[_rng.randi_range(0, cands.size() - 1)]
+				_grant(c[0], c[1])
 		if e.has("fled"):
 			var f: Dictionary = e["fled"]
 			for k: String in f:
 				for n in int(f[k]):
 					fled.append({"key": k, "stage": sname})
-	if String(opt.get("text", "")) != "":
-		_note(sname, String(opt["text"]))
-	event_done = true
+		if e.has("oath_choice"):
+			var cands := _gift_candidates("oath", "")
+			_shuffle(cands)
+			var list: Array = []
+			for c: Array in cands.slice(0, int(e["oath_choice"])):
+				list.append({"hero": c[0], "passive": c[1]})
+			_open_choice("oath", list)
+		if e.has("passive_choice"):
+			var cands := _gift_candidates("passive", String(e.get("who", "target")))
+			_shuffle(cands)
+			var list: Array = []
+			for c: Array in cands.slice(0, int(e["passive_choice"])):
+				list.append({"hero": c[0], "passive": c[1]})
+			_open_choice("passive", list)
+		if e.has("max_hp_choice"):
+			var list: Array = []
+			for cls: String in heroes:
+				list.append({"hero": cls, "kind": "max_hp", "value": float(e["max_hp_choice"])})
+			_open_choice("max_hp", list)
+		if e.has("chance"):
+			var win := _rng.randf() < float(e["chance"])
+			var t := String(e.get("win_text" if win else "lose_text", ""))
+			if t != "":
+				_note(sname, _fill(t))
+			_apply_effects(e.get("win" if win else "lose", []), sname)
+		if e.has("pair_wins") and event_ctx.has("a"):
+			var key := pair_key(event_ctx["a"], event_ctx["b"])
+			pair_wins[key] = maxi(0, int(pair_wins.get(key, 0)) + int(e["pair_wins"]))
+		if e.has("next_battle"):
+			var nb: Dictionary = e["next_battle"]
+			if nb.has("remove_pods"):
+				next_battle["remove_pods"] = int(next_battle.get("remove_pods", 0)) + int(nb["remove_pods"])
+			if nb.has("pair_stats") and event_ctx.has("a"):
+				var stt: Dictionary = next_battle.get("stats", {})
+				for cls: String in [event_ctx["a"], event_ctx["b"]]:
+					var hs: Dictionary = stt.get(cls, {})
+					for k: String in nb["pair_stats"]:
+						hs[k] = float(hs.get(k, 0.0)) + float(nb["pair_stats"][k])
+					stt[cls] = hs
+				next_battle["stats"] = stt
+		if e.has("inherit"):
+			var can := _inheritable()
+			if not can.is_empty():
+				var pick: String = can[_rng.randi_range(0, can.size() - 1)]
+				(heroes[event_ctx["hero"]]["passives"] as Array).append(pick)
+				_note(sname, "%s inherited from %s: %s." % [hero_name(event_ctx["hero"]), event_ctx["fallen"], passive_name(pick)])
+		if e.has("perm_stats") and event_ctx.has("hero"):
+			var st: Dictionary = heroes[event_ctx["hero"]]["stats"]
+			for k: String in e["perm_stats"]:
+				st[k] = float(st.get(k, 0.0)) + float(e["perm_stats"][k])
+		if e.has("oath_boost") and event_ctx.has("hero"):
+			heroes[event_ctx["hero"]]["oath_boost"] = (e["oath_boost"] as Dictionary).duplicate()
+		if e.has("release_oath") and event_ctx.has("hero"):
+			var oo := oath_of(event_ctx["hero"])
+			if oo != "":
+				(heroes[event_ctx["hero"]]["passives"] as Array).erase(oo)
+				heroes[event_ctx["hero"]]["oath_boost"] = {}
 
 
-func _gift_candidates(kind: String) -> Array:
+## Passives of the last fallen hero his successor could inherit (Grave of an Ancestor).
+func _inheritable() -> Array:
+	var out: Array = []
+	if not event_ctx.has("fallen_passives"):
+		return out
+	var cls: String = event_ctx["hero"]
+	for k: String in event_ctx["fallen_passives"]:
+		if not is_oath(k) and not (heroes[cls]["passives"] as Array).has(k):
+			out.append(k)
+	return out
+
+
+## Candidates [class, key] for a gift: who = "" anyone, "target" the event's hero.
+func _gift_candidates(kind: String, who: String = "") -> Array:
 	var out: Array = []
 	for cls: String in heroes:
+		if who == "target" and String(event_ctx.get("hero", "")) != cls:
+			continue
 		for key: String in _passives_for(cls, kind):
 			out.append([cls, key])
 	return out
@@ -688,6 +992,13 @@ func _change_hp(spec: Dictionary, sign: float) -> void:
 		"random":
 			var keys: Array = heroes.keys()
 			targets.append(keys[_rng.randi_range(0, keys.size() - 1)])
+		"random2":
+			var keys: Array = heroes.keys()
+			_shuffle(keys)
+			targets = keys.slice(0, 2)
+		"target":
+			if event_ctx.has("hero"):
+				targets.append(event_ctx["hero"])
 		"wounded":
 			for cls: String in heroes:
 				if hp_of(cls) < 1.0:
@@ -703,13 +1014,80 @@ func _change_hp(spec: Dictionary, sign: float) -> void:
 
 # --- camp ---
 
-func camp_rest() -> void:
+## Camp choices (act `camp`): [{"id", "name", "desc", "cost", "needs" (hero / pair / ""), "problem"}].
+func camp_options() -> Array:
+	var out: Array = []
+	var camp: Dictionary = act.get("camp", {})
+	for id: String in camp:
+		var c: Dictionary = camp[id]
+		var problem := ""
+		if camp_done:
+			problem = "The house has already made its camp choice."
+		elif glory < float(c.get("cost", 0)):
+			problem = "Not enough glory (%d)." % int(c.get("cost", 0))
+		out.append({"id": id, "name": c["name"], "desc": c.get("desc", ""), "cost": int(c.get("cost", 0)), "needs": String(c.get("needs", "")), "problem": problem})
+	return out
+
+
+## Makes the camp choice. arg = hero class (training, rite) or a pair "a|b" (feast).
+func camp_choose(id: String, arg: String = "") -> bool:
 	if node_type() != "tabor" or camp_done:
-		return
-	for cls: String in heroes:
-		heroes[cls]["hp"] = minf(1.0, hp_of(cls) + float(act.get("camp_heal", 1.0)))
+		return false
+	var c: Dictionary = act.get("camp", {}).get(id, {})
+	if c.is_empty() or glory < float(c.get("cost", 0)):
+		return false
+	match id:
+		"rest":
+			for cls: String in heroes:
+				heroes[cls]["hp"] = minf(1.0, hp_of(cls) + float(c.get("heal", act.get("camp_heal", 1.0))))
+			_note("Camp", "The house rested by the fire, the wounds healed.")
+		"train":
+			if not heroes.has(arg):
+				return false
+			var list: Array = []
+			var keys := _passives_for(arg, "passive")
+			_shuffle(keys)
+			for k: String in keys.slice(0, int(c.get("choices", 3))):
+				list.append({"hero": arg, "passive": k})
+			if list.is_empty():
+				return false
+			_note("Camp", "%s trained by the fire." % hero_name(arg))
+			_open_choice("training", list)
+		"rite":
+			if not heroes.has(arg):
+				return false
+			var list: Array = []
+			if oath_of(arg) != "":
+				list.append({"hero": arg, "kind": "release_oath"})
+			else:
+				var keys := _passives_for(arg, "oath")
+				_shuffle(keys)
+				for k: String in keys.slice(0, int(c.get("choices", 2))):
+					list.append({"hero": arg, "passive": k})
+			if list.is_empty():
+				return false
+			_open_choice("rite", list)
+		"feast":
+			var ab := arg.split("|")
+			if ab.size() != 2 or not heroes.has(ab[0]) or not heroes.has(ab[1]) or ab[0] == ab[1]:
+				return false
+			glory -= float(c.get("cost", 0))
+			for cls: String in heroes:
+				heroes[cls]["hp"] = minf(1.0, hp_of(cls) + float(c.get("heal", 0.5)))
+			var key := pair_key(ab[0], ab[1])
+			pair_wins[key] = int(pair_wins.get(key, 0)) + int(c.get("wins", 1))
+			_note("Camp", "A feast by the fire: %s and %s grew closer (shared victories: %d)." % [hero_name(ab[0]), hero_name(ab[1]), int(pair_wins[key])])
+			_bond_open = true
+			_bond_offer = {}
+		_:
+			return false
 	camp_done = true
-	_note("Camp", "The house rested by the fire, the wounds healed.")
+	return true
+
+
+## Rest at the camp (kept for older calls).
+func camp_rest() -> void:
+	camp_choose("rest")
 
 
 # --- helpers ---

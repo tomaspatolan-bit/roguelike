@@ -17,6 +17,7 @@ func _init() -> void:
 	_test_events_and_camp()
 	_test_leader()
 	_test_bonds()
+	_test_offers()
 	_test_full_runs()
 	if failures.is_empty():
 		print("VÝSLEDEK: OK")
@@ -88,7 +89,7 @@ func _test_map() -> void:
 				if (n["next"] as Array).is_empty():
 					ok_paths = false
 				for nx: String in n["next"]:
-					if nx != "boss" and (t == "elita" or t == "tabor") and r.node_type(nx) == t:
+					if nx != "boss" and t != "bitva" and r.node_type(nx) == t:
 						ok_types = false
 				# every node (except the first floor) has a path in
 				if f > 0:
@@ -106,6 +107,7 @@ func _test_map() -> void:
 	_check(ok_types, "první patro bitvy, poslední tábor, elity až od patra elite_from, dvě elity ani tábory za sebou")
 	_check(ok_content, "bitvy mají scénář, události existují")
 	_check(elites > 0 and events > 0, "na mapách se objevují elity (%d) i události (%d)" % [elites, events])
+	_test_shuffle()
 
 	var r2 := Run.new(5)
 	_check(r2.available().size() == (r2.map["floors"][0] as Array).size(), "na začátku jde vybrat celé první patro")
@@ -129,7 +131,7 @@ func _test_rules() -> void:
 	# battle 1: Bořek (with an oath) falls, 2 brigands and a bowman flee, the archer is wounded
 	r.record_battle(_fake("win", ["tank"], ["lapka", "lapka", "strelec"], 61.0, {"lucistnik": 0.3}))
 	_check(r.over == "", "po vítězství se jde dál")
-	_check(r.glory == 50.0, "sláva se přenáší, nejvýš carry_max (61 → 50)")
+	_check(r.glory == 61.0, "sláva se přenáší (carry_max 120)")
 	_check(is_equal_approx(r.hp_of("lucistnik"), 0.3 + float(r.act["regen"])), "zranění se nese a kousek se doléčí")
 	_check(r.hp_of("tank") == 1.0, "nástupce je zdravý")
 	_check(r.hero_name("tank") == "Sir Vítek", "nastoupil nástupce stejné třídy")
@@ -234,14 +236,14 @@ func _test_events_and_camp() -> void:
 		return
 	for key: String in ["poutnik", "vypalena_ves", "zajatec", "kaple"]:
 		var rr := Run.new(21)
-		rr.node_id = ev_node["id"]
-		rr.map["nodes"][ev_node["id"]]["event"] = key
+		_event_at(rr, ev_node["id"], key)
 		rr.heroes["knez"]["hp"] = 0.5
 		var opts: Array = rr.event()["options"]
 		_check(opts.size() >= 2, "[%s] má volby" % key)
 		var before_glory := rr.glory
 		var before_chron := rr.chronicle.size()
 		rr.event_choose(0)
+		_finish_choices(rr)
 		_check(rr.event_done and not rr.available().is_empty(), "[%s] po volbě se jde dál" % key)
 		_check(rr.chronicle.size() > before_chron or String(opts[0].get("text", "")) == "", "[%s] volba se zapíše do kroniky" % key)
 		if key == "vypalena_ves":
@@ -257,14 +259,12 @@ func _test_events_and_camp() -> void:
 
 	# alms without glory are not possible
 	var rp := Run.new(21)
-	rp.node_id = ev_node["id"]
-	rp.map["nodes"][ev_node["id"]]["event"] = "poutnik"
+	_event_at(rp, ev_node["id"], "poutnik")
 	rp.glory = 5.0
 	_check(rp.event_option_problem(1) != "", "almužna bez slávy nejde")
 	# helping the survivors = fled enemies at the boss
 	var rv := Run.new(21)
-	rv.node_id = ev_node["id"]
-	rv.map["nodes"][ev_node["id"]]["event"] = "vypalena_ves"
+	_event_at(rv, ev_node["id"], "vypalena_ves")
 	rv.event_choose(1)
 	_check(rv.fled.size() == 3, "[vypalena_ves] žháři utečou a vrátí se u bosse")
 
@@ -282,6 +282,8 @@ func _test_events_and_camp() -> void:
 	rc.heroes["tank"]["hp"] = 0.2
 	rc.camp_rest()
 	_check(rc.hp_of("tank") == 0.2, "v jednom táboře se odpočívá jen jednou")
+	_test_new_events(ev_node["id"])
+	_test_camp_choices(camp)
 
 
 func _test_leader() -> void:
@@ -373,8 +375,18 @@ func _test_full_runs() -> void:
 						r.event_choose(opts.size() - 1)
 						if not r.event_done:
 							r.event_done = true
+					_finish_choices(r, rng)
 				"tabor":
-					r.camp_rest()
+					var co: Array = r.camp_options()
+					var pick: Dictionary = co[rng.randi_range(0, co.size() - 1)]
+					var arg := ""
+					if String(pick["needs"]) == "hero":
+						arg = r.heroes.keys()[rng.randi_range(0, 4)]
+					elif String(pick["needs"]) == "pair":
+						arg = "tank|knez"
+					if String(pick["problem"]) != "" or not r.camp_choose(pick["id"], arg):
+						r.camp_choose("rest")
+					_finish_choices(r, rng)
 		if r.over == "win":
 			wins += 1
 		if i == 0:
@@ -434,3 +446,197 @@ func _test_bonds() -> void:
 		blocked = blocked and not ([bo["a"], bo["b"]] as Array).has("lucistnik")
 		rs.choose_bond("")
 	_check(blocked, "s Přísahou samotáře pouto nevznikne")
+
+
+## Puts the run on an event node with the given event (as choose() would resolve it).
+func _event_at(r: Run, node_id: String, key: String) -> void:
+	r.node_id = node_id
+	r.map["nodes"][node_id]["type"] = "udalost"
+	r.map["nodes"][node_id]["event"] = key
+	r.event_done = false
+	r._resolve_event()
+
+
+## Resolves pending choices and bonds (picks at random, or the first).
+func _finish_choices(r: Run, rng: RandomNumberGenerator = null) -> void:
+	for guard in 10:
+		if not r.bond_offer().is_empty():
+			var ch: Array = r.bond_offer()["choices"]
+			r.choose_bond(ch[0] if not ch.is_empty() else "")
+		elif not r.offers().is_empty():
+			r.pick_offer(rng.randi_range(0, r.offers().size() - 1) if rng != null else 0)
+		else:
+			return
+
+
+## Smart shuffle (decision 07.11.2026): on 200 maps no same non-battle type twice in a row, at most
+## max_calm nodes without a fight in a row, and every fork offers different types.
+func _test_shuffle() -> void:
+	var repeat := 0
+	var calm_long := 0
+	var same_fork := 0
+	var forks := 0
+	var max_calm := int(Run.new(0).act.get("max_calm", 2))
+	for seed_i in 200:
+		var r := Run.new(1000 + seed_i)
+		var floors: Array = r.map["floors"]
+		var n_f: int = floors.size()
+		var calm := {}
+		for f in n_f:
+			for n: Dictionary in floors[f]:
+				var t: String = n["type"]
+				var c := 0
+				if t == "udalost" or t == "tabor":
+					c = 1
+					if f > 0:
+						for p: Dictionary in floors[f - 1]:
+							if (p["next"] as Array).has(n["id"]):
+								c = maxi(c, int(calm[p["id"]]) + 1)
+								if p["type"] == t and f < n_f - 1:
+									repeat += 1
+				elif t == "elita" and f > 0:
+					for p: Dictionary in floors[f - 1]:
+						if (p["next"] as Array).has(n["id"]) and p["type"] == t:
+							repeat += 1
+				calm[n["id"]] = c
+				if c > max_calm:
+					calm_long += 1
+				if f < n_f - 2 and (n["next"] as Array).size() >= 2:
+					forks += 1
+					var types := {}
+					for nx: String in n["next"]:
+						types[r.node_type(nx)] = true
+					if types.size() < 2:
+						same_fork += 1
+	_check(repeat == 0, "chytrý shuffle: žádná událost, elita ani tábor dvakrát za sebou (%d)" % repeat)
+	_check(calm_long == 0, "chytrý shuffle: nejvýš %d uzly bez boje za sebou (%d porušení)" % [max_calm, calm_long])
+	_check(same_fork == 0, "chytrý shuffle: rozcestí vždy nabízí různé typy (%d z %d stejné)" % [same_fork, forks])
+
+
+## The 8 new events: targets, effects, choices.
+func _test_new_events(ev_id: String) -> void:
+	print("Nové události")
+	for key: String in ["turnaj", "kovar", "opusteny_tabor", "zbeh", "mnich", "spor", "soud"]:
+		var r := Run.new(31)
+		r.heroes["tank"]["passives"] = ["nikdy_neustoupi"]
+		_event_at(r, ev_id, key)
+		_check(String(r.node()["event"]) == key, "[%s] událost jde (cíl existuje)" % key)
+		var ev := r.event()
+		_check(not String(ev["text"]).contains("{"), "[%s] text má doplněná jména" % key)
+		r.glory = 100.0
+		r.event_choose(0)
+		_finish_choices(r)
+		_check(r.event_done and not r.available().is_empty(), "[%s] po volbě a výběru se jde dál" % key)
+		match key:
+			"zbeh":
+				var data := Sim.load_data("most_pres_reku")
+				var st := r.battle_setup(data)
+				var s0 := Sim.new(data, Sim.default_setup(data), 1)
+				var s1 := Sim.new(data, st, 1)
+				_check(int(st["remove_pods"]) == 1 and s1.living("e").size() + s1.pending.size() < s0.living("e").size() + s0.pending.size(), "[zbeh] příští bitva má o skupinu nepřátel méně")
+			"soud":
+				var st := r.battle_setup(Sim.load_data("most_pres_reku"))
+				_check(st["oath_boost"].has("tank"), "[soud] potvrzená přísaha jde do bitvy")
+				var s1 := Sim.new(Sim.load_data("most_pres_reku"), st, 1)
+				_check(is_equal_approx(s1.stat(s1.by_id("tank"), "utok"), 0.25 * 1.5), "[soud] síla přísahy +50 %")
+			"kovar":
+				var hardened := 0
+				for cls: String in r.heroes:
+					if float((r.heroes[cls]["stats"] as Dictionary).get("odolnost", 0.0)) > 0.0:
+						hardened += 1
+				_check(hardened == 1 and is_equal_approx(r.glory, 75.0), "[kovar] jeden hrdina Odolnost +10 % za 25 slávy")
+				var stk := r.battle_setup(Sim.load_data("most_pres_reku"))
+				var sk := Sim.new(Sim.load_data("most_pres_reku"), stk, 1)
+				_check(is_equal_approx(sk.by_id("tank").maxhp, 375.0 * 1.1), "[kovar] Odolnost natrvalo zvětší zdraví v bitvě")
+			"spor":
+				var a: String = r.event_ctx["a"]
+				var b: String = r.event_ctx["b"]
+				_check(r.wins_of(a, b) == 0, "[spor] zastat se jednoho ubere společné vítězství (nejvýš na 0)")
+	# Grave of an Ancestor: only after someone fell
+	var rg := Run.new(32)
+	rg.heroes["tank"]["passives"] = ["veteran"]
+	rg.choose(rg.available()[0])
+	rg.record_battle(_fake("win", ["tank"], [], 30.0))
+	_finish_choices(rg)
+	_event_at(rg, ev_id, "hrob")
+	_check(String(rg.node()["event"]) == "hrob", "[hrob] po padlém se objeví")
+	rg.event_choose(0)
+	_check((rg.heroes["tank"]["passives"] as Array).has("veteran"), "[hrob] nástupce zdědí pasivku padlého")
+	var rn := Run.new(33)
+	_event_at(rn, ev_id, "hrob")
+	_check(String(rn.node()["event"]) != "hrob", "[hrob] bez padlého se neobjeví, místo ní jiná událost")
+	# Next battle: Attack −15 % for the quarreling pair
+	var rq := Run.new(34)
+	_event_at(rq, ev_id, "spor")
+	rq.event_choose(2)
+	var stq := rq.battle_setup(Sim.load_data("most_pres_reku"))
+	_check((stq["hero_stats"] as Dictionary).size() == 2, "[spor] nechat být: dvojice má v příští bitvě Útok −15 %")
+
+
+## Camp: four choices, training and rite open a choice, feast costs glory and adds a shared victory.
+func _test_camp_choices(camp: String) -> void:
+	print("Tábor se čtyřmi volbami")
+	var r := Run.new(22)
+	r.node_id = camp
+	_check(r.camp_options().size() == 4, "tábor nabízí 4 volby")
+	_check(r.camp_choose("train", "lucistnik") and r.offers().size() == 3 and not r.node_finished(), "výcvik: 3 pasivky pro vybraného hrdinu")
+	var ok := true
+	for o: Dictionary in r.offers():
+		ok = ok and o["hero"] == "lucistnik" and not r.is_oath(o["passive"])
+	_check(ok, "výcvik nabízí jen pasivky toho hrdiny")
+	r.pick_offer(0)
+	_check(r.node_finished() and not r.camp_choose("rest"), "po volbě je tábor hotový, druhá volba nejde")
+	var r2 := Run.new(22)
+	r2.node_id = camp
+	_check(r2.camp_choose("rite", "tank") and r2.offers().size() == 1 and String(r2.offers()[0]["kind"]) == "release_oath", "obřad u hrdiny s přísahou nabídne zrušení")
+	r2.pick_offer(0)
+	_check(r2.oath_of("tank") == "", "zrušená přísaha zmizí bez trestu")
+	var r3 := Run.new(22)
+	r3.node_id = camp
+	_check(r3.camp_choose("rite", "knez") and r3.offers().size() == 2 and r3.is_oath(r3.offers()[0]["passive"]), "obřad u hrdiny bez přísahy: přísaha ze 2")
+	var r4 := Run.new(22)
+	r4.node_id = camp
+	r4.glory = 40.0
+	r4.heroes["tank"]["hp"] = 0.3
+	r4.pair_wins[r4.pair_key("lucistnik", "asasin")] = 1
+	_check(r4.camp_choose("feast", "lucistnik|asasin") and is_equal_approx(r4.glory, 10.0) and is_equal_approx(r4.hp_of("tank"), 0.8), "hostina: 30 slávy, všichni +50 % zdraví")
+	_check(r4.wins_of("lucistnik", "asasin") == 2 and not r4.bond_offer().is_empty(), "hostina: dvojice +1 společné vítězství, může vzniknout pouto")
+	var r5 := Run.new(22)
+	r5.node_id = camp
+	r5.glory = 10.0
+	var feast_problem := ""
+	for o: Dictionary in r5.camp_options():
+		if o["id"] == "feast":
+			feast_problem = o["problem"]
+	_check(feast_problem != "" and not r5.camp_choose("feast", "tank|knez"), "hostina bez slávy nejde")
+
+
+## Reward after a battle: 2 passives and an oath, the fallen get nothing, declining gives glory.
+func _test_offers() -> void:
+	print("Odměny po bitvě")
+	var r := Run.new(41)
+	r.choose(r.available()[0])
+	r.record_battle(_fake("win", ["jezdec"], [], 30.0))
+	var offers := r.offers()
+	var oaths := 0
+	var dead_hit := false
+	for o: Dictionary in offers:
+		if r.is_oath(o["passive"]):
+			oaths += 1
+		if o["hero"] == "jezdec":
+			dead_hit = true
+	_check(offers.size() == 3 and oaths == 1, "po bitvě 3 nabídky: 2 pasivky a přísaha")
+	_check(not dead_hit, "padlý (ani jeho nástupce) nabídku nedostane")
+	var notes_ok := true
+	for o: Dictionary in offers:
+		for n: Array in r.offer_notes(o):
+			notes_ok = notes_ok and n.size() == 2 and String(n[1]) != ""
+	_check(notes_ok, "nabídky mají vysvětlení dopadu (zelené / červené)")
+	var g := r.glory
+	r.decline_offers()
+	_check(r.offers().is_empty() and is_equal_approx(r.glory, g + 15.0), "odmítnutí odměny dá +15 slávy")
+	var o_bad := {"hero": "knez", "passive": "lovecka_cest"}
+	var stat_note := false
+	for n: Array in r.offer_notes({"hero": "knez", "passive": "nikdy_neustoupi"}):
+		stat_note = stat_note or not bool(n[0])
+	_check(r.offer_notes({"hero": "lucistnik", "passive": "lovecka_cest"}).size() >= 1 and o_bad.size() == 2, "přísaha ukáže, jak sedí ke schopnosti")

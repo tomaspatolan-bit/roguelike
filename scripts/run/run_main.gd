@@ -138,6 +138,7 @@ func go_to(id: String) -> void:
 		"udalost":
 			show_event()
 		"tabor":
+			_chron_mark = run.chronicle.size()
 			show_campfire()
 
 
@@ -188,7 +189,7 @@ func _node_info(id: String) -> String:
 		"udalost":
 			return "Event: %s\nA decision with a price." % run.events_data[n["event"]]["name"]
 		"tabor":
-			return "Camp\nRest: wounds heal."
+			return "Camp\nOne choice: rest, training, rite or feast."
 	return ""
 
 
@@ -209,14 +210,8 @@ func show_after_battle() -> void:
 
 	if run.has_legacy():
 		_legacy_block(v)
-	elif not run.bond_offer().is_empty():
-		_bond_block(v)
-	elif not run.offers().is_empty():
-		_reward_block(v)
 	else:
-		var go := _primary("To the map")
-		go.pressed.connect(show_map)
-		v.add_child(go)
+		_pending_or_map(v, show_after_battle)
 	v.add_child(_roster())
 
 
@@ -255,30 +250,88 @@ func show_event_result() -> void:
 		news.add_child(_label("• " + String(e["text"]), 15, INK, true))
 	if news.get_child_count() > 0:
 		v.add_child(_panel(news))
-	var go := _primary("To the map")
-	go.pressed.connect(show_map)
-	v.add_child(go)
+	_pending_or_map(v, show_event_result)
 	v.add_child(_roster())
 
 
 # ================================================================ camp
 
-func show_campfire() -> void:
+## Camp: one of four choices (rest, training, rite, feast); training and rite first ask which hero,
+## the feast which pair. Then the choice or bond it opened, then back to the map.
+func show_campfire(pick_for: String = "") -> void:
 	var v := _new_screen()
 	v.add_child(_label("Camp", 30, OK))
-	v.add_child(_label("The house lights a fire. Rest heals the wounds of all heroes.", 16, INK, true))
+	if run.camp_done:
+		var news := VBoxContainer.new()
+		for e: Dictionary in run.chronicle.slice(_chron_mark):
+			news.add_child(_label("• " + String(e["text"]), 15, INK, true))
+		if news.get_child_count() > 0:
+			v.add_child(_panel(news))
+		_pending_or_map(v, show_campfire)
+		v.add_child(_roster())
+		return
+	if pick_for != "":
+		var c: Dictionary = run.act["camp"][pick_for]
+		v.add_child(_label("%s: %s" % [c["name"], c.get("desc", "")], 16, INK, true))
+		var flow := HFlowContainer.new()
+		flow.add_theme_constant_override("h_separation", 8)
+		flow.add_theme_constant_override("v_separation", 8)
+		if String(c.get("needs", "")) == "pair":
+			var ks: Array = run.heroes.keys()
+			for i in ks.size():
+				for j in range(i + 1, ks.size()):
+					var a: String = ks[i]
+					var b: String = ks[j]
+					var btn := _button("%s + %s (%d)" % [run.hero_name(a), run.hero_name(b), run.wins_of(a, b)])
+					btn.tooltip_text = "Shared victories: %d" % run.wins_of(a, b)
+					btn.pressed.connect(func() -> void:
+						_chron_mark = run.chronicle.size()
+						run.camp_choose(pick_for, "%s|%s" % [a, b])
+						show_campfire())
+					flow.add_child(btn)
+		else:
+			for cls: String in run.heroes:
+				var btn := _button("%s (%s)" % [run.hero_name(cls), run.class_name_of(cls)])
+				btn.pressed.connect(func() -> void:
+					_chron_mark = run.chronicle.size()
+					if not run.camp_choose(pick_for, cls):
+						return
+					show_campfire())
+				flow.add_child(btn)
+		v.add_child(flow)
+		var back := _button("Back")
+		back.pressed.connect(func() -> void: show_campfire())
+		v.add_child(back)
+		v.add_child(_roster())
+		return
+	v.add_child(_label("The house lights a fire. Choose one thing to do tonight.", 16, INK, true))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	var rest := _primary("Rest")
-	rest.disabled = run.camp_done
-	rest.pressed.connect(func() -> void:
-		run.camp_rest()
-		show_campfire())
-	row.add_child(rest)
-	var go := _button("To the map")
-	go.pressed.connect(show_map)
-	row.add_child(go)
+	for o: Dictionary in run.camp_options():
+		var card := VBoxContainer.new()
+		card.add_theme_constant_override("separation", 6)
+		var title := String(o["name"]) + (" (%d glory)" % int(o["cost"]) if int(o["cost"]) > 0 else "")
+		card.add_child(_label(title, 19, GLORY, true))
+		card.add_child(_label(String(o["desc"]), 14, MUTED, true))
+		var id: String = o["id"]
+		var btn := _primary("Choose")
+		btn.disabled = String(o["problem"]) != ""
+		btn.tooltip_text = String(o["problem"])
+		btn.pressed.connect(func() -> void:
+			if String(o["needs"]) != "":
+				show_campfire(id)
+			else:
+				_chron_mark = run.chronicle.size()
+				run.camp_choose(id)
+				show_campfire())
+		card.add_child(btn)
+		var p := _panel(card)
+		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(p)
 	v.add_child(row)
+	var go := _button("Break camp without a choice")
+	go.pressed.connect(show_map)
+	v.add_child(go)
 	v.add_child(_roster())
 
 
@@ -306,7 +359,7 @@ func _legacy_block(v: VBoxContainer) -> void:
 
 
 ## Bond: the pair won enough battles together, the player picks the type out of two (or postpones).
-func _bond_block(v: VBoxContainer) -> void:
+func _bond_block(v: VBoxContainer, back: Callable) -> void:
 	var o := run.bond_offer()
 	var a: String = o["a"]
 	var b: String = o["b"]
@@ -323,7 +376,7 @@ func _bond_block(v: VBoxContainer) -> void:
 		var pick := _primary("Choose")
 		pick.pressed.connect(func() -> void:
 			run.choose_bond(t)
-			show_after_battle())
+			back.call())
 		card.add_child(pick)
 		var p := _panel(card)
 		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -332,36 +385,71 @@ func _bond_block(v: VBoxContainer) -> void:
 	var later := _button("Not yet (offered again after the next shared victory)")
 	later.pressed.connect(func() -> void:
 		run.choose_bond("")
-		show_after_battle())
+		back.call())
 	v.add_child(later)
 
 
-func _reward_block(v: VBoxContainer) -> void:
+const OFFER_TITLES := {"battle": "Reward: choose one", "elite": "Elite reward: choose %d", "training": "Training: choose a passive",
+	"rite": "Rite: choose", "oath": "Swear an oath: choose one", "passive": "Choose a passive", "max_hp": "Whose armour will the smith rework?"}
+
+
+## Offer cards (reward after a battle, training, rite, event choice): hero, what he gets, what it means for him
+## (green fits, red clashes or a wasted stat), Choose. After a battle the reward can be declined for glory.
+func _reward_block(v: VBoxContainer, back: Callable) -> void:
 	var offers := run.offers()
-	v.add_child(_label("Reward: choose one" if run.picks_left() <= 1 else "Elite reward: choose %d" % run.picks_left(), 22, GLORY))
+	var title := String(OFFER_TITLES.get(run.offer_title, "Choose one"))
+	v.add_child(_label(title % run.picks_left() if title.contains("%d") else title, 22, GLORY))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	for i in offers.size():
 		var o: Dictionary = offers[i]
-		var key: String = o["passive"]
 		var cls: String = o["hero"]
 		var card := VBoxContainer.new()
 		card.add_theme_constant_override("separation", 6)
 		var head := HBoxContainer.new()
 		head.add_child(Icon.make(cls, INK, 22))
-		head.add_child(_label("%s" % run.hero_name(cls), 17))
+		head.add_child(_label("%s (%s)" % [run.hero_name(cls), run.class_name_of(cls)], 17))
 		card.add_child(head)
-		card.add_child(_label(("Oath: " if run.is_oath(key) else "") + run.passive_name(key), 19, BANNER if run.is_oath(key) else GLORY, true))
-		card.add_child(_label(run.passive_desc(key), 14, MUTED, true))
+		match String(o.get("kind", "passive")):
+			"max_hp":
+				card.add_child(_label("Toughness +%d %%" % roundi(float(o.get("value", 0.1)) * 100.0), 19, GLORY, true))
+				card.add_child(_label("More health for good.", 14, MUTED, true))
+			"release_oath":
+				card.add_child(_label("Lay down: " + run.passive_name(run.oath_of(cls)), 19, BANNER, true))
+				card.add_child(_label("Released from the oath without shame or cost.", 14, MUTED, true))
+			_:
+				var key: String = o["passive"]
+				card.add_child(_label(("Oath: " if run.is_oath(key) else "") + run.passive_name(key), 19, BANNER if run.is_oath(key) else GLORY, true))
+				card.add_child(_label(run.passive_desc(key), 14, MUTED, true))
+				for note: Array in run.offer_notes(o):
+					card.add_child(_label(("+ " if note[0] else "− ") + String(note[1]), 13, OK if note[0] else BAD, true))
 		var pick := _primary("Choose")
 		pick.pressed.connect(func() -> void:
 			run.pick_offer(i)
-			show_after_battle())
+			back.call())
 		card.add_child(pick)
 		var p := _panel(card)
 		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(p)
 	v.add_child(row)
+	if run.offer_declinable:
+		var dec := _button("Decline the reward (+%d glory)" % int(run.act.get("decline_glory", 15)))
+		dec.pressed.connect(func() -> void:
+			run.decline_offers()
+			back.call())
+		v.add_child(dec)
+
+
+## What is still pending at the node (bond, choice), otherwise the way back to the map.
+func _pending_or_map(v: VBoxContainer, back: Callable) -> void:
+	if not run.bond_offer().is_empty():
+		_bond_block(v, back)
+	elif not run.offers().is_empty():
+		_reward_block(v, back)
+	else:
+		var go := _primary("To the map")
+		go.pressed.connect(show_map)
+		v.add_child(go)
 
 
 func _roster() -> Control:
