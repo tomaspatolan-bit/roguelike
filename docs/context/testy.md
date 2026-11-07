@@ -40,6 +40,7 @@ Postup: `git pull` → `--headless --import` → test simulace → test scény (
 - Kontrola: exe se spustí (`--quit-after 600 --log-file …`) bez chyb, v souboru jsou JSONy. Pro testera ZIP s exe a návodem „Jak hrát.txt“ (ovládání, SmartScreen: Další informace → Přesto spustit).
 
 ## Historie významných změn
+- 07.11.2026: build pro testery `Knights_test_2026-11-07.zip` (commit 61e60a3, hra v angličtině, přísahy, pouta, komba) ve větvi `testovaci-buildy`, starý ZIP zůstává v její historii. V ZIPu `Knights/Knights.exe` a anglický `How to play.txt`. Export kopíruje ZIP do `C:\Users\sirko\Blender\Roguelike\builds`, odkud jde přenést do cloudu.
 - 07.11.2026: testy pout a komb; `passives_ingame` vypne pouta na zkoušku; `screenshot_run` a auto-běhy vybírají pouto.
 - 07.11.2026: testy vlastností a 18 přísah, test poměru interakcí; Přísaha pomsty se testuje na asasínovi, `passives_ingame` sada B bez Slibu odříkání.
 - 30.10.2026: třetí build pro testera (`Rytiri_test_2026-10-30_2.zip`, commit dd0748e, modely všech pěti hrdinů), nahradil ranní ZIP ve větvi `testovaci-buildy` (starý zůstává v její historii).
