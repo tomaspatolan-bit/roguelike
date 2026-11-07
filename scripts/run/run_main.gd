@@ -164,7 +164,7 @@ func show_map() -> void:
 	var info := _label("", 15, INK, true)
 	var info_panel := _panel(info)
 	side.add_child(info_panel)
-	side.add_child(_roster())
+	side.add_child(_roster(show_map))
 	mv.node_pressed.connect(go_to)
 	mv.node_hovered.connect(func(id: String) -> void: info.text = _node_info(id))
 	mv.setup(run)
@@ -212,7 +212,7 @@ func show_after_battle() -> void:
 		_legacy_block(v)
 	else:
 		_pending_or_map(v, show_after_battle)
-	v.add_child(_roster())
+	v.add_child(_roster(show_after_battle))
 
 
 # ================================================================ event
@@ -238,7 +238,7 @@ func show_event() -> void:
 		box.add_child(b)
 		box.add_child(_label(String(o.get("hint", "")) + ("  (%s)" % problem if problem != "" else ""), 14, MUTED, true))
 		v.add_child(_panel(box))
-	v.add_child(_roster())
+	v.add_child(_roster(show_event))
 
 
 func show_event_result() -> void:
@@ -251,7 +251,7 @@ func show_event_result() -> void:
 	if news.get_child_count() > 0:
 		v.add_child(_panel(news))
 	_pending_or_map(v, show_event_result)
-	v.add_child(_roster())
+	v.add_child(_roster(show_event_result))
 
 
 # ================================================================ camp
@@ -268,7 +268,7 @@ func show_campfire(pick_for: String = "") -> void:
 		if news.get_child_count() > 0:
 			v.add_child(_panel(news))
 		_pending_or_map(v, show_campfire)
-		v.add_child(_roster())
+		v.add_child(_roster(show_campfire))
 		return
 	if pick_for != "":
 		var c: Dictionary = run.act["camp"][pick_for]
@@ -332,7 +332,7 @@ func show_campfire(pick_for: String = "") -> void:
 	var go := _button("Break camp without a choice")
 	go.pressed.connect(show_map)
 	v.add_child(go)
-	v.add_child(_roster())
+	v.add_child(_roster(show_campfire))
 
 
 func _legacy_block(v: VBoxContainer) -> void:
@@ -390,7 +390,8 @@ func _bond_block(v: VBoxContainer, back: Callable) -> void:
 
 
 const OFFER_TITLES := {"battle": "Reward: choose one", "elite": "Elite reward: choose %d", "training": "Training: choose a passive",
-	"rite": "Rite: choose", "oath": "Swear an oath: choose one", "passive": "Choose a passive", "max_hp": "Whose armour will the smith rework?"}
+	"rite": "Rite: choose", "oath": "Swear an oath: choose one", "passive": "Choose a passive", "max_hp": "Whose armour will the smith rework?",
+	"ability": "Learn a new ability: choose one"}
 
 
 ## Offer cards (reward after a battle, training, rite, event choice): hero, what he gets, what it means for him
@@ -417,6 +418,12 @@ func _reward_block(v: VBoxContainer, back: Callable) -> void:
 			"release_oath":
 				card.add_child(_label("Lay down: " + run.passive_name(run.oath_of(cls)), 19, BANNER, true))
 				card.add_child(_label("Released from the oath without shame or cost.", 14, MUTED, true))
+			"ability":
+				var ak := String(o["ability"])
+				card.add_child(_label("New ability: " + run.ability_name(ak), 19, GLORY, true))
+				card.add_child(_label(String(run.units_data["abilities"][ak].get("desc", "")), 14, MUTED, true))
+				for note: Array in run.offer_notes(o):
+					card.add_child(_label(("+ " if note[0] else "− ") + String(note[1]), 13, OK if note[0] else BAD, true))
 			_:
 				var key: String = o["passive"]
 				card.add_child(_label(("Oath: " if run.is_oath(key) else "") + run.passive_name(key), 19, BANNER if run.is_oath(key) else GLORY, true))
@@ -452,13 +459,22 @@ func _pending_or_map(v: VBoxContainer, back: Callable) -> void:
 		v.add_child(go)
 
 
-func _roster() -> Control:
+## Short house overview under each screen; `back` = the screen to return to from the house page (button "House").
+func _roster(back: Callable = Callable()) -> Control:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	box.add_child(_label("House of the Wolf · glory %d" % int(run.glory), 18, GLORY))
+	var top := HBoxContainer.new()
+	var tl := _label("%s · glory %d" % [run.house["name"], int(run.glory)], 18, GLORY)
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(tl)
+	if back.is_valid():
+		var hb := _button("House: abilities, oaths, bonds, combos")
+		hb.pressed.connect(func() -> void: show_house(back))
+		top.add_child(hb)
+	box.add_child(top)
 	for cls: String in run.heroes:
 		var h: Dictionary = run.heroes[cls]
-		var names: Array = []
+		var names: Array = [run.ability_name(run.ability_of(cls))]
 		for k: String in h["passives"]:
 			names.append(("Oath: " if run.is_oath(k) else "") + run.passive_name(k))
 		var row := HBoxContainer.new()
@@ -508,7 +524,7 @@ func show_chronicle() -> void:
 			box.add_child(_label(st, 18, GLORY))
 		box.add_child(_label("• " + String(e["text"]), 15, INK, true))
 	v.add_child(_panel(box))
-	v.add_child(_roster())
+	v.add_child(_roster(show_chronicle))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	var again := _primary("New run")
@@ -543,4 +559,243 @@ func _primary(text: String) -> Button:
 func _panel(child: Control) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.add_child(child)
+	return p
+
+
+# ================================================================ house page (roster detail)
+
+const BOND_COLORS := [Color("#9aa3ad"), Color("#e2b84a"), Color("#f0d27a")]   # bond level 1, 2, 3 (2 = combos)
+
+
+## Lines above the hero cards: who is bonded with whom (a bracket from card to card, label in the middle).
+class BondLines:
+	extends Control
+	var cards: Dictionary = {}   # class -> card Control
+	var links: Array = []        # [{"a", "b", "text", "color"}]
+
+	func _draw() -> void:
+		var font := get_theme_default_font()
+		var o := get_global_rect().position
+		for i in links.size():
+			var l: Dictionary = links[i]
+			var ca: Control = cards.get(l["a"])
+			var cb: Control = cards.get(l["b"])
+			if ca == null or cb == null:
+				continue
+			var xa := ca.get_global_rect().get_center().x - o.x + (i % 2) * 14.0 - 7.0
+			var xb := cb.get_global_rect().get_center().x - o.x + (i % 2) * 14.0 - 7.0
+			var bottom := size.y
+			var y := bottom - 26.0 - 30.0 * i
+			var col: Color = l["color"]
+			draw_polyline(PackedVector2Array([Vector2(xa, bottom), Vector2(xa, y), Vector2(xb, y), Vector2(xb, bottom)]), col, 3.0, true)
+			draw_circle(Vector2(xa, bottom - 3.0), 5.0, col)
+			draw_circle(Vector2(xb, bottom - 3.0), 5.0, col)
+			var text := String(l["text"])
+			var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+			var mid := Vector2((xa + xb) / 2.0, y)
+			draw_rect(Rect2(mid.x - w / 2.0 - 8.0, y - 11.0, w + 16.0, 22.0), Color("#14171b"))
+			draw_string(font, Vector2(mid.x - w / 2.0, y + 5.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, col)
+
+
+## The house in detail: each hero's ability and refinements, oath and how it fits, passives, stats, bond;
+## lines show who is bonded with whom; below, the combos the bonds give (ready, or what they still need).
+func show_house(back: Callable) -> void:
+	var v := _new_screen(32)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 16)
+	var title := _label(String(run.house["name"]), 30, GLORY)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title)
+	head.add_child(_label("Glory %d · %s" % [int(run.glory), "before the first floor" if run.node_id == "" else "floor %d of %d" % [run.current_floor(), run.floor_count()]], 16, MUTED))
+	var close := _primary("Back")
+	close.pressed.connect(back)
+	head.add_child(close)
+	v.add_child(head)
+
+	var sheets := VBoxContainer.new()
+	sheets.add_theme_constant_override("separation", 0)   # the bond lines end right on top of the cards
+	v.add_child(sheets)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var cards := {}
+	for cls: String in run.heroes:
+		var card := _hero_sheet(cls)
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(card)
+		cards[cls] = card
+	sheets.add_child(row)
+
+	# bonds above the cards
+	var links: Array = []
+	var seen := {}
+	for cls: String in run.heroes:
+		var b: Dictionary = run.heroes[cls]["bond"]
+		if b.is_empty() or seen.has(run.pair_key(cls, b["with"])):
+			continue
+		seen[run.pair_key(cls, b["with"])] = true
+		var lv := run.bond_level(cls)
+		links.append({"a": cls, "b": b["with"], "color": BOND_COLORS[clampi(lv - 1, 0, 2)],
+			"text": "%s · level %d" % [run.bond_name(b["type"]), lv]})
+	if not links.is_empty():
+		var lines := BondLines.new()
+		lines.cards = cards
+		lines.links = links
+		lines.custom_minimum_size = Vector2(0, 20.0 + 30.0 * links.size())
+		lines.resized.connect(lines.queue_redraw)
+		sheets.add_child(lines)
+		sheets.move_child(lines, 0)
+		lines.queue_redraw.call_deferred()
+
+	# combos
+	var cbox := VBoxContainer.new()
+	cbox.add_theme_constant_override("separation", 10)
+	cbox.add_child(_label("Bond combos", 22, GLORY))
+	var combos := run.house_combos()
+	if combos.is_empty():
+		cbox.add_child(_label("No combos yet. Two heroes who win battles together form a bond; from bond level %d their abilities combine into a combo (Q and E in battle, at most two)." % int(run.units_data["bond_rules"].get("combo_level", 2)), 14, MUTED, true))
+	else:
+		cbox.add_child(_label("Ready combos are on Q and E in battle (the first two). The others show what they still need.", 14, MUTED, true))
+		var flow := HFlowContainer.new()
+		flow.add_theme_constant_override("h_separation", 10)
+		flow.add_theme_constant_override("v_separation", 10)
+		for c: Dictionary in combos:
+			flow.add_child(_combo_card(c))
+		cbox.add_child(flow)
+	v.add_child(_panel(cbox))
+
+	if not run.fallen.is_empty():
+		var fb := VBoxContainer.new()
+		fb.add_child(_label("The fallen", 18, BAD))
+		for d: Dictionary in run.fallen:
+			var names: Array = []
+			for k: String in d["passives"]:
+				names.append(run.passive_name(k))
+			fb.add_child(_label("%s (%s), fell at %s. %s" % [d["name"], run.class_name_of(d["cls"]), d["stage"], ("Carried: " + ", ".join(names) + ".") if not names.is_empty() else ""], 14, MUTED, true))
+		v.add_child(_panel(fb))
+
+
+## One hero's sheet for the house page.
+func _hero_sheet(cls: String) -> PanelContainer:
+	var h: Dictionary = run.heroes[cls]
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	head.add_child(Icon.make(cls, INK, 26))
+	var nm := VBoxContainer.new()
+	nm.add_theme_constant_override("separation", 0)
+	nm.add_child(_label(String(h["name"]), 18))
+	nm.add_child(_label(run.class_name_of(cls), 13, MUTED))
+	head.add_child(nm)
+	v.add_child(head)
+	var hpb := _ui_helper._bar(OK if run.hp_of(cls) > 0.5 else (GLORY if run.hp_of(cls) > 0.25 else BAD), 8)
+	hpb.max_value = 1.0
+	hpb.value = run.hp_of(cls)
+	hpb.tooltip_text = "Health %d %%" % roundi(run.hp_of(cls) * 100.0)
+	v.add_child(hpb)
+
+	# ability and its refinements
+	var ab := run.ability_of(cls)
+	var ad: Dictionary = run.units_data["abilities"].get(ab, {})
+	var abox := _section("Ability", GLORY)
+	abox.add_child(_label(run.ability_name(ab), 17, GLORY, true))
+	abox.add_child(_label(String(ad.get("desc", "")), 13, INK, true))
+	abox.add_child(_label("%d uses per battle · recharge %d s" % [int(ad.get("uses", 0)), int(ad.get("cooldown", 0))], 12, MUTED, true))
+	for r: Dictionary in run.refinements_of(cls):
+		var rl := _label(("◆ " if r["owned"] else "◇ ") + String(r["name"]) + ": " + String(r["desc"]), 12, INK if r["owned"] else MUTED, true)
+		rl.tooltip_text = "Owned refinement" if r["owned"] else "Not learned yet (refinements come as rewards; lost when the ability is swapped)"
+		abox.add_child(rl)
+	v.add_child(abox.get_parent())
+
+	# oath
+	var o := run.oath_of(cls)
+	var obox := _section("Oath", BANNER)
+	if o == "":
+		obox.add_child(_label("No oath sworn.", 13, MUTED, true))
+	else:
+		obox.add_child(_label(run.passive_name(o), 16, BANNER, true))
+		obox.add_child(_label(run.passive_desc(o), 13, INK, true))
+		var note := run.oath_note(cls)
+		if not note.is_empty():
+			obox.add_child(_label(("+ " if note[0] else "− ") + String(note[1]), 12, OK if note[0] else BAD, true))
+		var ob: Dictionary = h.get("oath_boost", {})
+		if not ob.is_empty():
+			obox.add_child(_label("Tried: its bonuses ×%.1f, breaking it costs %d glory." % [float(ob.get("mult", 1.0)), int(ob.get("break_cost", 20))], 12, GLORY, true))
+	v.add_child(obox.get_parent())
+
+	# passives
+	var pbox := _section("Passives", INK)
+	var any := false
+	for k: String in h["passives"]:
+		if run.is_oath(k) or run._refine_of(k) != "":
+			continue
+		any = true
+		var pl := _label("• %s: %s" % [run.passive_name(k), run.passive_desc(k)], 12, INK, true)
+		pbox.add_child(pl)
+	if not any:
+		pbox.add_child(_label("None yet.", 13, MUTED))
+	v.add_child(pbox.get_parent())
+
+	# stats
+	var sbox := _section("Stats", INK)
+	for s: Dictionary in run.hero_stats(cls):
+		var line := HBoxContainer.new()
+		var sl := _label(String(s["name"]), 13, MUTED)
+		sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sl.tooltip_text = String(s["desc"])
+		sl.mouse_filter = Control.MOUSE_FILTER_PASS
+		line.add_child(sl)
+		var val := float(s["value"])
+		line.add_child(_label("%+d %%" % roundi(val * 100.0) if not is_zero_approx(val) else "—", 13, OK if val > 0.001 else (BAD if val < -0.001 else MUTED)))
+		sbox.add_child(line)
+		for ctext: String in s["cond"]:
+			sbox.add_child(_label("   " + ctext, 11, MUTED, true))
+	v.add_child(sbox.get_parent())
+
+	# bond and his combos
+	var bbox := _section("Bond", GLORY)
+	var b: Dictionary = h.get("bond", {})
+	if b.is_empty():
+		bbox.add_child(_label("No bond yet.", 13, MUTED, true))
+	else:
+		var lv := run.bond_level(cls)
+		var nxt := run.next_bond_at(cls)
+		bbox.add_child(_label("%s with %s" % [run.bond_name(b["type"]), run.hero_name(b["with"])], 15, BOND_COLORS[clampi(lv - 1, 0, 2)], true))
+		bbox.add_child(_label("Level %d · shared victories %d%s" % [lv, run.wins_of(cls, b["with"]), (" (level %d at %d)" % [lv + 1, nxt]) if nxt > 0 else ""], 12, MUTED, true))
+		bbox.add_child(_label(run.bond_desc(b["type"]), 12, INK, true))
+		for c: Dictionary in run.house_combos():
+			if c["a"] == cls or c["b"] == cls:
+				var other: String = c["b"] if c["a"] == cls else c["a"]
+				bbox.add_child(_label(("◆ " if c["ready"] else "◇ ") + "Combo %s with %s" % [c["name"], run.hero_name(other)], 12, GLORY if c["ready"] else MUTED, true))
+	v.add_child(bbox.get_parent())
+	return _panel(v)
+
+
+## A titled block inside a hero sheet; returns the inner VBox (its parent is the block to add).
+func _section(title: String, col: Color) -> VBoxContainer:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _ui_helper._box(Color("#14171b"), 8, 10, Color(col, 0.35), 1))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 3)
+	v.add_child(_label(title.to_upper(), 11, Color(col, 0.85)))
+	p.add_child(v)
+	return v
+
+
+## A combo card for the house page: name, who with what, what it does, ready or what it still needs.
+func _combo_card(c: Dictionary) -> PanelContainer:
+	var p := PanelContainer.new()
+	var col := GLORY if c["ready"] else LINE
+	p.add_theme_stylebox_override("panel", _ui_helper._box(Color("#14171b"), 8, 12, col, 2 if c["ready"] else 1))
+	p.custom_minimum_size = Vector2(340, 0)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	v.add_child(_label(String(c["name"]), 17, GLORY if c["ready"] else INK, true))
+	v.add_child(_label("%s (%s) + %s (%s)" % [run.hero_name(c["a"]), run.ability_name(c["a_ability"]), run.hero_name(c["b"]), run.ability_name(c["b_ability"])], 13, MUTED, true))
+	v.add_child(_label(String(c["desc"]), 13, INK, true))
+	if c["ready"]:
+		v.add_child(_label("Ready: Q / E in battle", 13, OK))
+	else:
+		v.add_child(_label("Needs: " + "; ".join(c["needs"]), 12, BAD, true))
+	p.add_child(v)
 	return p

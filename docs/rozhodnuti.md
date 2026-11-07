@@ -2,6 +2,13 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 07.11.2026 – Výměna schopností, zušlechtění, stránka rodu
+- **Každá třída má 3 schopnosti** (výchozí + 2 nové), hrdina dál jen jednu na klávese 1–5. Novou schopnost dá elita (jedna ze 4 nabídek je vždy výměna), Kovář (40 slávy, výběr ze 2) a Mnich (kněz, výběr ze 2). Nástupce začíná výchozí schopností třídy.
+- **Zušlechtění** (2 na schopnost, 30 celkem) patří jedné schopnosti: nabízí se jen pro tu, kterou hrdina má, a při výměně propadne. Karta nabídky výměny to řekne předem, spolu s tím, jak nová schopnost sedí k přísaze a jaké kombo s druhem získá nebo ztratí (05.11: hráč musí vědět, do čeho jde).
+- **Kombo musí spojovat dvě třídy.** Vražda ve tmě z návrhu (Kouř + Úder ze stínu) spojovala dvě schopnosti asasína, které jeden hrdina nemůže mít naráz; nahradil ji **Závoj milosti** (Kouř + Požehnání: kouř a léčení na jednom místě). Hlídá to test nad daty. Ústupová palba zatím kombo nemá (zapsáno v nápadech).
+- **Stránka rodu:** z každé obrazovky běhu (tlačítko v soupisce) detail sestavy: schopnost a zušlechtění, přísaha a jak sedí, pasivky, vlastnosti, pouto; čáry ukazují, kdo má s kým pouto, a komba dvojic s tím, co jim chybí. Tom: dosud bylo všechno na jednom řádku textem. Vzhled je zástupný, komponenty půjdou do Figmy.
+- Animace nových schopností zatím zástupné (animace schopnosti třídy, kruh na zemi), modely a animace v Blenderu později.
+
 ## 07.11.2026 – Chytrý shuffle mapy
 - **Hráč má mít vždy na výběr** (Tom po playtestu, kde tester dostal tři události za sebou): na cestě mapou nikdy dvakrát za sebou stejný typ bez boje (událost, elita, tábor), nejvýš 2 uzly bez boje za sebou a rozcestí vždy nabízí různé typy. Když žádný typ nesedí, zbytečná cesta z rozcestí zmizí, aby mapa nepředstírala volbu. Hlídá test na 200 mapách.
 - Odměnu po bitvě jde odmítnout za +15 slávy, padlí v bitvě odměnu nedostanou (podle návrhu 05.11).

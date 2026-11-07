@@ -31,6 +31,27 @@ func _init() -> void:
 	root.add_child(scene)
 
 
+## A house in mid-run for the house page: two bonds (one at level 2 with a ready combo), a swapped ability,
+## refinements, oaths, a fallen ancestor.
+func _house_demo() -> Run:
+	var r := Run.new(21)
+	r.heroes["tank"]["bond"] = {"with": "lucistnik", "type": "stitonos"}
+	r.heroes["lucistnik"]["bond"] = {"with": "tank", "type": "stitonos"}
+	r.pair_wins[r.pair_key("tank", "lucistnik")] = 4
+	r.heroes["jezdec"]["bond"] = {"with": "asasin", "type": "bratri"}
+	r.heroes["asasin"]["bond"] = {"with": "jezdec", "type": "bratri"}
+	r.pair_wins[r.pair_key("jezdec", "asasin")] = 2
+	r.heroes["tank"]["passives"] = ["nikdy_neustoupi", "hlasita_vyzva", "ochrance"]
+	r.heroes["knez"]["passives"] = ["chudoba", "milosrdenstvi"]
+	r.heroes["lucistnik"]["passives"] = ["ohniva_salva", "husta_salva"]
+	r.set_ability("asasin", "kour")
+	r.heroes["asasin"]["passives"] = ["stin", "husty_kour"]
+	r.heroes["jezdec"]["stats"] = {"utok": 0.15}
+	r.fallen.append({"cls": "knez", "name": "Father Jan", "stage": "The River Bridge", "passives": ["milosrdenstvi"], "glory": 20.0})
+	r.heroes["knez"]["name"] = "Brother Prokop"
+	return r
+
+
 func _shot(file_name: String) -> void:
 	if shots.has(file_name):
 		return
@@ -71,10 +92,18 @@ func _process(_delta: float) -> bool:
 		return false
 	if frame == 22:
 		_shot("00_udalost_vysledek.png")
+		scene.set("run", _house_demo())
+		scene.call("show_house", Callable(scene, "show_map"))
+		return false
+	if frame == 30:
+		_shot("00_dum.png")
+		var hr: Variant = scene.get("run")
+		var hc: Array = hr.call("house_combos")
+		print("Stránka rodu: komb %d, připravených %d" % [hc.size(), hc.filter(func(c: Dictionary) -> bool: return bool(c["ready"])).size()])
 		scene.call("start_run")
 		wait = 20
 		return false
-	if frame < 22:
+	if frame < 30:
 		return false
 	if run == null:
 		return false

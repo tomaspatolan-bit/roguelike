@@ -12,6 +12,7 @@ signal knight_clicked(id: String)
 signal ability_pressed(id: String)
 signal combo_pressed(id: String)
 signal passive_toggled(id: String, key: String, on: bool)
+signal ability_chosen(id: String, key: String)
 signal scenario_changed(id: String)
 signal order_pressed(id: String)
 signal order_clear_pressed(id: String)
@@ -43,7 +44,9 @@ const ORDER_COL := Color(1.0, 0.92, 0.55)
 const ORDER_ICONS := {"": "hold", "point": "route", "group": "zarod", "ally": "hradba"}
 
 ## Ability icon by key (placeholder).
-const ABILITY_ICONS := {"vyzva": "hradba", "pozehnani": "heal", "salva": "lucistnik", "najezd": "charge", "uder": "asasin"}
+const ABILITY_ICONS := {"vyzva": "hradba", "pozehnani": "heal", "salva": "lucistnik", "najezd": "charge", "uder": "asasin",
+	"hradba": "hradba", "uder_stitem": "hradba", "kruh": "heal", "svetlo": "heal", "mirena": "lucistnik", "ustup": "lucistnik",
+	"korouhev": "charge", "prujezd": "charge", "kour": "asasin", "noze": "asasin"}
 
 var root: Control
 var tutorial: PanelContainer        # tutorial panel (show_tutorial / hide_tutorial)
@@ -615,6 +618,25 @@ func _build_cards(sim: Sim, selection: Array, in_battle: bool, order_id: String,
 			v.add_child(ab)
 			_ability_buttons[u.id] = ab
 
+		if not in_battle and not run_mode:
+			# free battle: try another ability of the class (in a run abilities come from elites and events)
+			var amb := MenuButton.new()
+			amb.text = "Ability: %s" % String(a.get("name", ""))
+			amb.flat = false
+			amb.add_theme_font_size_override("font_size", 13)
+			amb.tooltip_text = "For trial: in the game, a new ability comes from an elite reward, the Smith or the Monk."
+			amb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var apm := amb.get_popup()
+			var ai := 0
+			for akey: String in sim.abilities_for(u.id):
+				apm.add_radio_check_item(String(sim.units_data["abilities"][akey]["name"]))
+				apm.set_item_checked(ai, akey == u.ability)
+				apm.set_item_metadata(ai, akey)
+				apm.set_item_tooltip(ai, String(sim.units_data["abilities"][akey].get("desc", "")))
+				ai += 1
+			apm.index_pressed.connect(func(index: int) -> void:
+				ability_chosen.emit(id, String(apm.get_item_metadata(index))))
+			v.add_child(amb)
 		if not in_battle:
 			var mb := MenuButton.new()
 			mb.text = "Passives (%d)" % u.passives.size()

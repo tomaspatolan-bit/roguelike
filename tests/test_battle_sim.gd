@@ -38,6 +38,13 @@ func _init() -> void:
 	_test_oaths_and_stats(data)
 	_test_interaction_ratio(data)
 	_test_bonds_and_combos(data)
+	_test_new_abilities(data)
+	_test_new_combos(data)
+	# each alternative ability alone (the others default): a clash, a defense and the boss
+	for sid: String in ["most_pres_reku", "lesni_ves", "zaverecna_bitva"]:
+		for cls: String in data["units"]["knights"]:
+			for ab: String in (data["units"]["knights"][cls]["abilities"] as Array).slice(1):
+				_alt_balance(sid, cls, ab)
 	_test_stand_firm(data)
 	var brod := Sim.load_data("brod_a_les")
 	_test_terrain(brod)
@@ -1034,3 +1041,305 @@ func _test_bonds_and_combos(data: Dictionary) -> void:
 	var g5 := s5.glory
 	s5._end_oaths()
 	_check(is_equal_approx(s5.glory, g5 + 15.0) and is_equal_approx(s5.stat(s5.by_id("tank"), "utok"), 0.1), "Soupeři: Útok +10 %, kdo zabil víc, přinese +15 slávy")
+
+
+## Sandbox for ability tests: every enemy parked far away, heroes with the given abilities (and passives, bonds).
+func _lab(data: Dictionary, abilities: Dictionary, pas: Dictionary = {}, bonds: Dictionary = {}, seed: int = 200) -> Sim:
+	var st := _setup_with(data, pas)
+	st["abilities"] = abilities
+	st["bonds"] = bonds
+	var s := Sim.new(data, st, seed)
+	for f in s.living(Sim.SIDE_FOE):
+		_park(f)
+	return s
+
+
+## Brings a parked enemy back: stands at `p`, awake, does not walk (speed 0).
+func _foe_at(s: Sim, i: int, p: Vector2, hp: float = 500.0) -> Sim.Unit:
+	var f := s.by_id("e%d" % i)
+	f.pos = p
+	f.home = p
+	f.asleep = false
+	f.hp = hp
+	f.maxhp = hp
+	f.speed = 0.0
+	return f
+
+
+func _steps(s: Sim, sec: float) -> void:
+	for i in int(sec / DT):
+		s.step(DT)
+		s.events.clear()
+
+
+## The ten new abilities (2.3d), ability swap and refinements (decision 05.11.2026).
+func _test_new_abilities(data: Dictionary) -> void:
+	print("Nové schopnosti")
+	# data: refinements belong to an existing ability of their class, combos join two different classes
+	var kn: Dictionary = data["units"]["knights"]
+	var cls_of := {}
+	for c: String in kn:
+		for a: String in kn[c]["abilities"]:
+			cls_of[a] = c
+			_check((data["units"]["abilities"] as Dictionary).has(a), "schopnost %s je v datech" % a)
+	var refines := {}
+	for k: String in data["units"]["passives"]:
+		var d: Variant = data["units"]["passives"][k]
+		if d is Dictionary and String((d as Dictionary).get("kind", "")) == "refine":
+			var ab := String(d["ability"])
+			_check(String(cls_of.get(ab, "")) == String(d["class"]), "zušlechtění %s patří schopnosti své třídy" % k)
+			refines[ab] = int(refines.get(ab, 0)) + 1
+	for a: String in cls_of:
+		_check(int(refines.get(a, 0)) == 2, "schopnost %s má 2 zušlechtění (má %d)" % [a, int(refines.get(a, 0))])
+	var ncombo := 0
+	for cid: String in data["units"]["combos"]:
+		if cid.begins_with("_"):
+			continue
+		ncombo += 1
+		var c: Dictionary = data["units"]["combos"][cid]
+		_check(cls_of.has(c["a"]) and cls_of.has(c["b"]) and cls_of[c["a"]] != cls_of[c["b"]], "kombo %s spojuje dvě různé třídy" % cid)
+	_check(ncombo == 15, "15 komb (je %d)" % ncombo)
+
+	# swap: only before the battle, only from the class, refinements of the old ability fall away
+	var s := _lab(data, {"tank": "hradba"}, {"tank": ["hlasita_vyzva", "ochrance"]})
+	var tank := s.by_id("tank")
+	_check(tank.ability == "hradba" and tank.uses == 3, "setup abilities: tank má Hradbu")
+	_check(not tank.passives.has("hlasita_vyzva") and tank.passives.has("ochrance"), "zušlechtění Výzvy odpadne, ostatní pasivky zůstanou")
+	_check(s.passives_for("tank").has("siroka_hradba") and not s.passives_for("tank").has("pevny_postoj"), "nabízí se jen zušlechtění vlastní schopnosti")
+	_check(not s.set_ability("tank", "salva"), "schopnost cizí třídy nejde")
+	_check(s.set_ability("tank", "uder_stitem") and tank.ability == "uder_stitem", "výměna před bitvou jde")
+
+	# Bulwark
+	s = _lab(data, {"tank": "hradba"}, {"tank": ["siroka_hradba"]})
+	tank = s.by_id("tank")
+	var luc := s.by_id("lucistnik")
+	luc.pos = tank.pos + Vector2(3.5, 0.0)
+	var base := 1.0 - luc.armor
+	_check(s.use_ability("tank"), "Hradba jde použít")
+	_check(is_equal_approx(s._taken_mult(luc), base * 0.5) and s._no_move(tank), "Hradba: druh do 4 m (Široká hradba) bere −50 %, tank stojí")
+	luc.pos = tank.pos + Vector2(6.0, 0.0)
+	_check(is_equal_approx(s._taken_mult(luc), base), "Hradba: daleko nic")
+	_steps(s, 5.2)
+	_check(not s._no_move(tank), "po Hradbě se tank zase hýbe")
+
+	# Shield Bash (+ Repel)
+	s = _lab(data, {"tank": "uder_stitem"}, {"tank": ["odrazeni"]})
+	tank = s.by_id("tank")
+	var f0 := _foe_at(s, 0, tank.pos + Vector2(0.3, 1.5))
+	var f1 := _foe_at(s, 1, tank.pos + Vector2(-0.5, 1.6))
+	var f2 := _foe_at(s, 2, tank.pos + Vector2(0.0, -1.9))
+	var y0 := f0.pos.y
+	_check(s.use_ability("tank"), "Úder štítem jde použít")
+	_check(f0.stun_t > 1.4 and f1.stun_t > 1.4 and f0.hp < 500.0 and f2.stun_t == 0.0, "Úder štítem omráčí ty před tankem, za zády ne")
+	_check(f0.pos.y > y0 + 0.5, "Odražení: nepřítel odletí dozadu")
+
+	# Sacred Circle
+	s = _lab(data, {"knez": "kruh"})
+	var knez := s.by_id("knez")
+	tank = s.by_id("tank")
+	f0 = _foe_at(s, 0, tank.pos + Vector2(8.0, 3.0))
+	f0.speed = 2.0
+	var spot := tank.pos
+	_check(s.use_ability("knez", spot), "Ochranný kruh jde použít")
+	tank.hp = tank.maxhp * 0.5
+	var th := tank.hp
+	f0.pos = spot + Vector2(1.0, 0.0)
+	_check(is_equal_approx(s._speed(f0), 2.0 * 0.7), "Ochranný kruh zpomalí nepřítele o 30 %")
+	f0.pos = tank.pos + Vector2(8.0, 3.0)
+	_steps(s, 1.1)
+	_check(tank.hp >= th + 3.0, "Ochranný kruh léčí hrdiny uvnitř")
+
+	# Holy Light (+ Purge)
+	s = _lab(data, {"knez": "svetlo"}, {"knez": ["ocista"]})
+	tank = s.by_id("tank")
+	f0 = _foe_at(s, 0, tank.pos + Vector2(0.0, 1.0))
+	f0.casting = true
+	f0.cast_t = 5.0
+	_check(s.use_ability("knez", f0.pos), "Svaté světlo jde použít")
+	_check(f0.blind_t > 2.9 and not f0.casting, "Svaté světlo oslepí, Očista přeruší velitele")
+	th = tank.hp
+	_steps(s, 1.0)
+	_check(is_equal_approx(tank.hp, th), "oslepený nepřítel neútočí")
+
+	# Aimed Shot (+ Broken Will)
+	s = _lab(data, {"lucistnik": "mirena"}, {"lucistnik": ["zlomena_vule"]})
+	luc = s.by_id("lucistnik")
+	f0 = _foe_at(s, 0, luc.pos + Vector2(0.0, 10.0))
+	f0.casting = true
+	f0.cast_t = 5.0
+	var hp0 := f0.hp
+	_check(s.use_ability("lucistnik", f0.id), "Mířená rána jde použít")
+	var want := luc.dmg * 4.0 * (1.0 - f0.armor)
+	_check(absf((hp0 - f0.hp) - want) < 0.5 and not f0.casting, "Mířená rána: 4× útok, přeruší velitele")
+	_check(f0.fleeing or s._is_commander(f0), "Zlomená vůle: zasažený prchá")
+
+	# Retreating Fire
+	s = _lab(data, {"lucistnik": "ustup"})
+	luc = s.by_id("lucistnik")
+	f0 = _foe_at(s, 0, luc.pos + Vector2(0.0, 1.2))
+	var d0 := luc.pos.distance_to(f0.pos)
+	_check(s.use_ability("lucistnik"), "Ústupová palba jde použít")
+	_check(luc.pos.distance_to(f0.pos) > d0 + 3.0 and f0.hp < 500.0, "Ústupová palba: odskok a šípy")
+
+	# Banner
+	s = _lab(data, {"jezdec": "korouhev"})
+	var jez := s.by_id("jezdec")
+	tank = s.by_id("tank")
+	tank.pos = jez.pos + Vector2(3.0, 0.0)
+	var u0 := s.stat(tank, "utok")
+	_check(s.use_ability("jezdec"), "Korouhev jde použít")
+	_check(is_equal_approx(s.stat(tank, "utok"), u0 + 0.2), "Korouhev: Útok +20 % do 6 m")
+	tank.pos = jez.pos + Vector2(9.0, 0.0)
+	_check(is_equal_approx(s.stat(tank, "utok"), u0), "Korouhev: daleko nic")
+
+	# Ride Through
+	s = _lab(data, {"jezdec": "prujezd"})
+	jez = s.by_id("jezdec")
+	f0 = _foe_at(s, 0, jez.pos + Vector2(0.2, 3.0))
+	var x0 := f0.pos.x
+	_check(s.use_ability("jezdec", jez.pos + Vector2(0.0, 7.0)), "Průjezd jde použít")
+	_steps(s, 1.5)
+	_check(f0.hp < 500.0 and absf(f0.pos.x - x0) > 1.0 and f0.stun_t < 0.01, "Průjezd: zasáhne, odhodí stranou, neomráčí")
+
+	# Smoke (+ Poison Smoke)
+	s = _lab(data, {"asasin": "kour"}, {"asasin": ["jedovaty_kour"]})
+	tank = s.by_id("tank")
+	f0 = _foe_at(s, 0, tank.pos + Vector2(1.0, 0.0))
+	_check(s.use_ability("asasin", tank.pos), "Kouř jde použít")
+	_check(not s._visible_knights().has(tank), "v Kouři hrdinu nikdo nevidí")
+	hp0 = f0.hp
+	_steps(s, 1.0)
+	_check(f0.hp < hp0 - 2.0, "Jedovatý kouř pálí nepřátele uvnitř")
+
+	# Throwing Knives (+ Poisoned Blades)
+	s = _lab(data, {"asasin": "noze"}, {"asasin": ["jed"]})
+	var asa := s.by_id("asasin")
+	f0 = _foe_at(s, 0, asa.pos + Vector2(2.0, 3.0))
+	f1 = _foe_at(s, 1, asa.pos + Vector2(-2.0, 4.0))
+	_check(s.use_ability("asasin"), "Vrhací nože jdou použít")
+	_check(f0.hp < 500.0 and f1.hp < 500.0 and f0.poison_t > 0.0, "Vrhací nože: zásahy, Jed na čepeli otráví")
+
+	# Shadow Step: a kill with Shadow Strike recharges it by half
+	s = _lab(data, {}, {"asasin": ["stinovy_krok"]})
+	asa = s.by_id("asasin")
+	f0 = _foe_at(s, 0, asa.pos + Vector2(0.0, 4.0), 1.0)
+	s.use_ability("asasin", f0.id)
+	_check(not f0.alive() and absf(asa.ability_cd - float(s.ability_of("asasin")["cooldown"]) * 0.5) < 0.01, "Stínový krok: zabití nabije Úder z poloviny")
+
+
+## The ten new combos (2.3d): each appears with the right pair and does what it promises.
+func _test_new_combos(data: Dictionary) -> void:
+	print("Nová komba")
+	# Blessed Bulwark
+	var s := _lab(data, {"tank": "hradba"}, {}, _bond_pair("tank", "knez", "zpovednik", 2))
+	var tank := s.by_id("tank")
+	var luc := s.by_id("lucistnik")
+	luc.pos = tank.pos + Vector2(1.0, 0.0)
+	luc.hp = luc.maxhp * 0.4
+	var lh := luc.hp
+	_check(s.combo_problem("phradba") == "" and s.use_combo("phradba"), "Požehnaná hradba jde spustit")
+	_check(tank.bulwark_t > 0.0 and luc.hp > lh, "Požehnaná hradba: Hradba a léčení u tanka")
+	# Sanctuary
+	s = _lab(data, {"tank": "hradba", "knez": "kruh"}, {}, _bond_pair("tank", "knez", "zpovednik", 2))
+	tank = s.by_id("tank")
+	_check(s.use_combo("svatyne") and is_equal_approx(tank.bulwark_mult, 0.4), "Svatyně: Hradba −60 %")
+	var has_circle := false
+	for z: Dictionary in s.zones:
+		has_circle = has_circle or String(z.get("kind", "")) == "kruh"
+	_check(has_circle, "Svatyně: kruh pod tankem")
+	# Toppled Commander
+	s = _lab(data, {"tank": "uder_stitem", "lucistnik": "mirena"}, {}, _bond_pair("tank", "lucistnik", "stitonos", 2))
+	tank = s.by_id("tank")
+	_check(s.combo_problem("velitel") != "", "Sražený velitel bez nepřítele před tankem nejde")
+	var f0 := _foe_at(s, 0, tank.pos + Vector2(0.0, 1.5))
+	_check(s.use_combo("velitel"), "Sražený velitel jde spustit")
+	_check(f0.stun_t > 1.0 and f0.hp < 500.0 - s.by_id("lucistnik").dmg * 6.0 * (1.0 - f0.armor), "Sražený velitel: omráčení a Mířená ×2")
+	# Banner of Faith
+	s = _lab(data, {"jezdec": "korouhev"}, {}, _bond_pair("jezdec", "knez", "zpovednik", 2))
+	var jez := s.by_id("jezdec")
+	tank = s.by_id("tank")
+	tank.pos = jez.pos + Vector2(1.0, 0.0)
+	_check(s.use_combo("zastava") and jez.banner_t > 0.0 and tank.buff_t > 0.0, "Korouhev víry: Korouhev a Útok z Požehnání")
+	# Holy Blinding
+	s = _lab(data, {"knez": "svetlo"}, {}, _bond_pair("knez", "jezdec", "zpovednik", 2))
+	var knez := s.by_id("knez")
+	jez = s.by_id("jezdec")
+	f0 = _foe_at(s, 0, knez.pos + Vector2(2.0, 6.0))
+	_check(s.combo_aimer("oslepeni") == "knez" and s.use_combo("oslepeni", f0.pos), "Svaté oslepení se míří Světlem")
+	_check(f0.blind_t > 0.0 and jez.dashing and is_equal_approx(jez.dash_stun, 2.0), "Svaté oslepení: oslepí a jezdec vyrazí")
+	_steps(s, 2.0)
+	_check(f0.hp < 500.0, "Svaté oslepení: Nájezd zasáhne oslepené")
+	# Scatter
+	s = _lab(data, {"jezdec": "prujezd"}, {}, _bond_pair("jezdec", "lucistnik", "lovci", 2))
+	jez = s.by_id("jezdec")
+	f0 = _foe_at(s, 0, jez.pos + Vector2(0.2, 3.0))
+	var f1 := _foe_at(s, 1, jez.pos + Vector2(-0.2, 3.5))
+	_check(s.use_combo("rozpraseni", jez.pos + Vector2(0.0, 7.0)), "Rozprášení jde spustit")
+	var shot := false
+	for i in int(1.5 / DT):
+		s.step(DT)
+		for e: Dictionary in s.events:
+			shot = shot or (String(e.get("type", "")) == "ability" and String(e.get("id", "")) == "lucistnik")
+		s.events.clear()
+	_check(shot and f0.hp + f1.hp < 1000.0 - 12.0, "Rozprášení: na konci Průjezdu dopadne Salva")
+	# Smoke Screen
+	s = _lab(data, {"asasin": "kour", "lucistnik": "mirena"}, {}, _bond_pair("asasin", "lucistnik", "lovci", 2))
+	luc = s.by_id("lucistnik")
+	_check(s.combo_problem("clona") != "", "Kouřová clona bez nepřítele na dostřel nejde")
+	f0 = _foe_at(s, 0, luc.pos + Vector2(0.0, 9.0))
+	_check(s.use_combo("clona", luc.pos), "Kouřová clona jde spustit")
+	_check(luc.hidden_t > 0.0 and f0.hp < 500.0 and not s._visible_knights().has(luc), "Kouřová clona: lučištník schovaný, Mířená zasáhne")
+	# Veil of Mercy
+	s = _lab(data, {"asasin": "kour"}, {}, _bond_pair("asasin", "knez", "krev", 2))
+	tank = s.by_id("tank")
+	tank.hp = tank.maxhp * 0.4
+	var th := tank.hp
+	_check(s.use_combo("zavoj", tank.pos) and tank.hp > th and s._in_smoke(tank.pos), "Závoj milosti: kouř a léčení na jednom místě")
+	# Hailstorm
+	s = _lab(data, {}, {}, _bond_pair("lucistnik", "asasin", "lovci", 2))
+	s.set_ability("asasin", "noze")
+	luc = s.by_id("lucistnik")
+	f0 = _foe_at(s, 0, luc.pos + Vector2(0.0, 8.0))
+	s.by_id("asasin").pos = f0.pos + Vector2(0.0, -5.0)
+	_check(s.use_combo("krupobiti", f0.pos), "Krupobití jde spustit")
+	_check(f0.vuln_t > 0.0 and s._taken_mult(f0) > (1.0 - f0.armor), "Krupobití: zasažení berou víc")
+	# Absolution from the Shadows
+	s = _lab(data, {"knez": "svetlo"}, {}, _bond_pair("knez", "asasin", "zpovednik", 2))
+	knez = s.by_id("knez")
+	var asa := s.by_id("asasin")
+	f0 = _foe_at(s, 0, knez.pos + Vector2(1.0, 6.0))
+	_check(s.use_combo("rozhreseni_stin", f0.pos), "Rozhřešení ze stínu jde spustit")
+	_check(f0.blind_t > 0.0 and f0.hp < 500.0 and asa.pos.distance_to(f0.pos) < 1.5, "Rozhřešení ze stínu: asasín skočí za oslepeného")
+
+
+## An alternative ability in real battles (one hero swapped, the others default): the auto-commander with
+## ability hints still wins at least half (an elite a third), no stalemate, and the hint really uses the ability.
+func _alt_balance(sid: String, cls: String, ab: String) -> void:
+	var data := Sim.load_data(sid)
+	var wins := 0
+	var stuck := 0
+	var used := 0
+	var n := 6
+	for i in n:
+		var st := Sim.default_setup(data)
+		st["abilities"] = {cls: ab}
+		var s := Sim.new(data, st, 3000 + i)
+		s.auto_command()
+		while s.over == "" and s.t < 400.0:
+			s.step(DT)
+			for e: Dictionary in s.events:
+				if String(e.get("type", "")) == "ability" and String(e.get("id", "")) == cls:
+					used += 1
+			s.events.clear()
+			s.auto_command()
+			_auto_abilities(s)
+		if s.over == "":
+			stuck += 1
+		elif s.over == "win":
+			wins += 1
+	print("[%s] %s = %s: výhry %d/%d, použití za bitvu %.1f" % [sid, cls, ab, wins, n, float(used) / n])
+	# the boss only reports: it is built around Challenge and a tank without it loses there (balance in step 2.3e)
+	var need: int = 0 if sid == "zaverecna_bitva" else (n / 3 if bool(data["scenario"].get("elite", false)) else n / 2)
+	_check(wins >= need, "[%s] %s se schopností %s by se mělo vyhrávat (%d/%d, potřeba %d)" % [sid, cls, ab, wins, n, need])
+	_check(stuck == 0, "[%s] %s = %s: žádný pat" % [sid, cls, ab])
+	_check(used >= n, "[%s] nápověda schopnost %s opravdu používá" % [sid, ab])

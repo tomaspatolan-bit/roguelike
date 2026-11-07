@@ -32,3 +32,5 @@ podporuje aspoň jeden pilíř? kolik stojí? řeší problém, který jsme vid�
 | 30.10.2026 | Lučištník: tvář pod krempou působí jako krabice s okénkem (Tom). Návrh: otvor do T (barbuta), lícnice, krempa víc do čela, aby tvář byla ve stínu. Ve hře z pevné kamery skoro není vidět, důležité pro obrázky na Steam a trailer | Velíš rodu | při finálním stylu (3.1) |
 | 30.10.2026 | Jezdec: kolize koně s ostatními (jezdec po smrti propadá koněm, kůň stojí přes sousedy, kruh simulace 0,75 m je kratší než kůň), otáčení koně do oblouku místo na místě, sesednutí po smrti koně | Velíš rodu | s finální grafikou nebo mechanikou |
 | 30.10.2026 | Asasín: kápě je hranatá a vysoká (pod ní velká přilba tanka), v podřepu prolézají stehna krátkou tunikou zezadu | Velíš rodu | při finálním stylu (3.1), Tom 30.10.2026: zatím v pohodě |
+| 07.11.2026 | Kombo pro Ústupovou palbu (jediná schopnost bez komba) a druhé pro Vrhací nože | Velíš rodu | čeká na playtest 2.3d |
+| 07.11.2026 | Vlastní animace a efekty 10 nových schopností (teď animace schopnosti třídy a kruh na zemi) | – | vizuál, s Tomem |

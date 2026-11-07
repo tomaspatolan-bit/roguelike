@@ -1,5 +1,5 @@
 {
-  "_info": "Act 1 of the run. Map: floors floors, width_min–width_max nodes on each, the boss at the top. Node type: bitva (battle), elita (elite), udalost (event), tabor (camp) (the boss is always at the top). first_floor/last_floor = type of the whole floor (first floor all battles, the last before the boss a camp). weights = type weights on the other floors, elite_from = lowest floor with an elite. battles/elites = scenario keys (taken in turn from a shuffled list), boss = boss scenario, events = keys from udalosti.json. regen = how much health (share) a hero heals on his own after a battle, camp_heal = how much the camp heals. Elite: elite_offers offers, elite_picks picks. max_calm = at most this many nodes without a fight (event, camp) in a row on a path; the generator also never puts the same non-battle type twice in a row and makes every fork offer different types (smart shuffle, 07.11.2026). offer_oaths = how many of the offers after a battle are oaths, decline_glory = glory for declining the reward. camp = camp choices (one per camp): rest (heal), train (a passive from choices for a chosen hero), rite (an oath from choices, or release an oath), feast (cost glory: heal everyone, a chosen pair +wins shared victories); needs = what the player picks (hero / pair).",
+  "_info": "Act 1 of the run. Map: floors floors, width_min–width_max nodes on each, the boss at the top. Node type: bitva (battle), elita (elite), udalost (event), tabor (camp) (the boss is always at the top). first_floor/last_floor = type of the whole floor (first floor all battles, the last before the boss a camp). weights = type weights on the other floors, elite_from = lowest floor with an elite. battles/elites = scenario keys (taken in turn from a shuffled list), boss = boss scenario, events = keys from udalosti.json. regen = how much health (share) a hero heals on his own after a battle, camp_heal = how much the camp heals. Elite: elite_offers offers, elite_picks picks. max_calm = at most this many nodes without a fight (event, camp) in a row on a path; the generator also never puts the same non-battle type twice in a row and makes every fork offer different types (smart shuffle, 07.11.2026). offer_oaths = how many of the offers after a battle are oaths, elite_ability_offers = how many elite offers are a new ability (swap), decline_glory = glory for declining the reward. camp = camp choices (one per camp): rest (heal), train (a passive from choices for a chosen hero), rite (an oath from choices, or release an oath), feast (cost glory: heal everyone, a chosen pair +wins shared victories); needs = what the player picks (hero / pair).",
   "name": "The Count's Forest",
   "floors": 7,
   "width_min": 2,
@@ -16,6 +16,7 @@
   "camp_heal": 1.0,
   "offers": 3,
   "elite_offers": 4,
+  "elite_ability_offers": 1,
   "elite_picks": 2,
   "max_calm": 2,
   "offer_oaths": 1,

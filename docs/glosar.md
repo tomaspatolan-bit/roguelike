@@ -109,6 +109,25 @@ Osobní jména zůstávají česká (s diakritikou), tituly se překládají: Si
 | Veterán | Veteran |
 | Mstitel | Avenger |
 
+## Zušlechtění
+| Česky | Anglicky |
+| --- | --- |
+| Hlasitá výzva, Pevný postoj (Výzva) | Loud Challenge, Firm Stance |
+| Široká hradba, Ocelová zeď (Hradba) | Wide Bulwark, Wall of Steel |
+| Zlomení, Odražení (Úder štítem) | Breaker, Repel |
+| Požehnaná zbroj, Rozhřešení (Požehnání) | Blessed Armor, Absolution |
+| Posvátná půda, Tíha (Ochranný kruh) | Hallowed Ground, Burden |
+| Oslepení, Očista (Svaté světlo) | Blinding, Purge |
+| Ohnivá salva, Hustá salva (Salva) | Fire Volley, Dense Volley |
+| Průraz, Zlomená vůle (Mířená rána) | Breakthrough, Broken Will |
+| Dlouhý skok, Rychlé šípy (Ústupová palba) | Long Leap, Quick Arrows |
+| Drtivý nájezd, Druhý nájezd (Nájezd) | Crushing Charge, Second Charge |
+| Zástava, Bojový pokřik (Korouhev) | Standard, War Cry |
+| Rozdupání, Široký průjezd (Průjezd) | Trample, Wide Ride |
+| Úkryt, Stínový krok (Úder ze stínu) | Vanish, Shadow Step |
+| Hustý kouř, Jedovatý kouř (Kouř) | Thick Smoke, Poison Smoke |
+| Jed na čepeli, Pátý nůž (Vrhací nože) | Poisoned Blades, Fifth Knife |
+
 ## Pouta a komba
 | Česky | Anglicky |
 | --- | --- |
@@ -127,6 +146,16 @@ Osobní jména zůstávají česká (s diakritikou), tituly se překládají: Si
 | Štít a kopí | Shield and Lance |
 | Posvěcené šípy | Hallowed Arrows |
 | Kladivo a kovadlina | Hammer and Anvil |
+| Požehnaná hradba | Blessed Bulwark |
+| Svatyně | Sanctuary |
+| Sražený velitel | Toppled Commander |
+| Korouhev víry | Banner of Faith |
+| Svaté oslepení | Holy Blinding |
+| Rozprášení | Scatter |
+| Kouřová clona | Smoke Screen |
+| Závoj milosti | Veil of Mercy |
+| Krupobití | Hailstorm |
+| Rozhřešení ze stínu | Absolution from the Shadows |
 
 ## Bitvy a místa
 | Česky | Anglicky |
@@ -158,3 +187,5 @@ Osobní jména zůstávají česká (s diakritikou), tituly se překládají: Si
 | Hrob předka | The Grave of an Ancestor |
 | Soud o přísahu | The Trial of the Oath |
 | odmítnout odměnu | decline the reward |
+| stránka rodu | House (house page) |
+| Přeučit hrdinu na novou zbraň (Kovář) | Retrain a hero for a new weapon |

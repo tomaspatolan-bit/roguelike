@@ -74,6 +74,7 @@ func _init(rng_seed: int = -1, act_key: String = "akt_1") -> void:
 			"bond": {},
 			"stats": {},
 			"oath_boost": {},
+			"ability": String(units_data["knights"][cls].get("ability", "")),
 		}
 	map = ActMap.generate(act, _rng)
 	_note("", "The %s sets out into %s. Five heroes, %d floors, Captain Kuno at the end." % [house["name"], act["name"], int(act["floors"])])
@@ -198,6 +199,62 @@ func hp_of(cls: String) -> float:
 	return float(heroes[cls]["hp"])
 
 
+## The hero's ability key (swapped by an elite reward, the Smith or the Monk; a successor starts with the class one).
+func ability_of(cls: String) -> String:
+	return String(heroes[cls].get("ability", units_data["knights"][cls].get("ability", "")))
+
+
+func ability_name(key: String) -> String:
+	return String(units_data["abilities"].get(key, {}).get("name", key))
+
+
+## Abilities the hero could swap to (his class's others).
+func other_abilities(cls: String) -> Array:
+	var out: Array = []
+	for k: String in units_data["knights"][cls].get("abilities", []):
+		if k != ability_of(cls):
+			out.append(k)
+	return out
+
+
+## Swaps the hero's ability; refinements of the old one are lost.
+func set_ability(cls: String, key: String) -> void:
+	if not (units_data["knights"][cls].get("abilities", []) as Array).has(key):
+		return
+	heroes[cls]["ability"] = key
+	var keep: Array = []
+	var lost: Array = []
+	for k: String in heroes[cls]["passives"]:
+		if _refine_of(k) != "" and _refine_of(k) != key:
+			lost.append(passive_name(k))
+		else:
+			keep.append(k)
+	heroes[cls]["passives"] = keep
+	_note("", "%s learned a new way to fight: %s.%s" % [hero_name(cls), ability_name(key), (" Lost: %s." % ", ".join(lost)) if not lost.is_empty() else ""])
+
+
+## Ability the passive refines ("" = not a refinement).
+func _refine_of(key: String) -> String:
+	var d: Dictionary = units_data["passives"].get(key, {})
+	return String(d.get("ability", "")) if d.get("kind", "") == "refine" else ""
+
+
+## Combos a hero with this ability would have with his bond partner now: [combo name].
+func combos_with(cls: String, ability: String) -> Array:
+	var out: Array = []
+	var b: Dictionary = heroes[cls]["bond"]
+	if b.is_empty():
+		return out
+	var pa := ability_of(String(b["with"]))
+	for cid: String in units_data.get("combos", {}):
+		if cid.begins_with("_"):
+			continue
+		var c: Dictionary = units_data["combos"][cid]
+		if (c["a"] == ability and c["b"] == pa) or (c["b"] == ability and c["a"] == pa):
+			out.append(String(c["name"]))
+	return out
+
+
 # --- battle ---
 
 func load_stage_data() -> Dictionary:
@@ -215,6 +272,10 @@ func battle_setup(data: Dictionary) -> Dictionary:
 		names[cls] = heroes[cls]["name"]
 		hp[cls] = heroes[cls]["hp"]
 	setup["passives"] = pas
+	var abl := {}
+	for cls: String in heroes:
+		abl[cls] = ability_of(cls)
+	setup["abilities"] = abl
 	setup["names"] = names
 	setup["hp"] = hp
 	setup["glory"] = glory
@@ -327,7 +388,8 @@ func record_battle(res: Dictionary) -> void:
 	if not is_boss:
 		for cls: String in dead:
 			var nm := _successor_name(cls)
-			heroes[cls] = {"name": nm, "passives": [], "glory": 0.0, "hp": 1.0, "joined": current_floor(), "bond": {}, "stats": {}, "oath_boost": {}}
+			heroes[cls] = {"name": nm, "passives": [], "glory": 0.0, "hp": 1.0, "joined": current_floor(), "bond": {}, "stats": {}, "oath_boost": {},
+				"ability": String(units_data["knights"][cls].get("ability", ""))}
 			_note(sname, "%s takes the place of the fallen." % nm)
 
 	# enemies who fled this battle may return later
@@ -576,8 +638,12 @@ func offer_valid(o: Dictionary) -> bool:
 			return true
 		"release_oath":
 			return oath_of(cls) != ""
+		"ability":
+			return ability_of(cls) != String(o["ability"])
 	var key: String = o["passive"]
 	if (heroes[cls]["passives"] as Array).has(key):
+		return false
+	if _refine_of(key) != "" and _refine_of(key) != ability_of(cls):
 		return false
 	if bool(units_data["passives"][key].get("no_bond", false)) and not (heroes[cls]["bond"] as Dictionary).is_empty():
 		return false
@@ -607,7 +673,31 @@ func _make_offers(n: int) -> Array:
 	_fill_offers(out, oath_pool, n_oaths, used_keys, used_heroes)
 	_fill_offers(out, pas_pool, n, used_keys, used_heroes)
 	_fill_offers(out, oath_pool, n, used_keys, used_heroes)   # not enough passives: more oaths
+	if node_type() == "elita" and int(act.get("elite_ability_offers", 1)) > 0:
+		# elite: one offer is always a new ability (decision 05.11.2026), for a hero not already in the offers if possible
+		var ab_pool := _ability_pool(dead)
+		if not ab_pool.is_empty():
+			var pick: Dictionary = ab_pool[0]
+			for o: Dictionary in ab_pool:
+				if not used_heroes.has(o["hero"]):
+					pick = o
+					break
+			if out.size() >= n:
+				out.pop_back()
+			out.append(pick)
 	return out
+
+
+## All possible ability swaps [{hero, kind: ability, ability}] in random order (without the fallen in `dead`).
+func _ability_pool(dead: Array = []) -> Array:
+	var pool: Array = []
+	for cls: String in heroes:
+		if dead.has(cls):
+			continue
+		for k: String in other_abilities(cls):
+			pool.append({"hero": cls, "kind": "ability", "ability": k})
+	_shuffle(pool)
+	return pool
 
 
 ## Adds offers from `pool` until `out` has `n`: first different heroes and different passives, then whatever is left.
@@ -631,11 +721,34 @@ func _fill_offers(out: Array, pool: Array, n: int, used_keys: Dictionary, used_h
 func offer_notes(o: Dictionary) -> Array:
 	var out: Array = []
 	var cls: String = o["hero"]
+	if String(o.get("kind", "passive")) == "ability":
+		var nk := String(o["ability"])
+		out.append([true, "Replaces %s." % ability_name(ability_of(cls))])
+		var lost: Array = []
+		for k: String in heroes[cls]["passives"]:
+			if _refine_of(k) == ability_of(cls):
+				lost.append(passive_name(k))
+		if not lost.is_empty():
+			out.append([false, "Loses refinements: %s." % ", ".join(lost)])
+		var o_key := oath_of(cls)
+		if o_key != "":
+			var od: Dictionary = units_data["passives"][o_key]
+			if (od.get("clashes", {}) as Dictionary).has(nk):
+				out.append([false, "Clashes with his oath %s: %s" % [od["name"], od["clashes"][nk]]])
+			elif (od.get("fits", {}) as Dictionary).has(nk):
+				out.append([true, "Fits his oath %s: %s" % [od["name"], od["fits"][nk]]])
+		for cn: String in combos_with(cls, nk):
+			out.append([true, "Combo with his bond partner: %s." % cn])
+		var had := combos_with(cls, ability_of(cls))
+		for cn: String in had:
+			if not combos_with(cls, nk).has(cn):
+				out.append([false, "Loses the combo %s." % cn])
+		return out
 	if String(o.get("kind", "passive")) != "passive":
 		return out
 	var d: Dictionary = units_data["passives"][o["passive"]]
 	var kd: Dictionary = units_data["knights"][cls]
-	var ab: String = kd.get("ability", "")
+	var ab: String = ability_of(cls)
 	var ab_name := String(units_data["abilities"].get(ab, {}).get("name", ab))
 	if (d.get("fits", {}) as Dictionary).has(ab):
 		out.append([true, "Fits %s: %s" % [ab_name, d["fits"][ab]]])
@@ -696,6 +809,10 @@ func _passives_for(cls: String, kind: String) -> Array:
 		if bool(d.get("no_bond", false)) and not (heroes[cls]["bond"] as Dictionary).is_empty():
 			continue
 		var k: String = d.get("kind", "passive")
+		if k == "refine":
+			if String(d.get("ability", "")) != ability_of(cls):
+				continue   # refinement of an ability the hero does not have
+			k = "passive"
 		if k == "oath" and has_oath:
 			continue
 		if kind != "" and k != kind:
@@ -714,6 +831,8 @@ func pick_offer(i: int) -> void:
 			var st: Dictionary = heroes[o["hero"]]["stats"]
 			st["odolnost"] = float(st.get("odolnost", 0.0)) + float(o.get("value", 0.1))
 			_note("", "%s is hardened: Toughness +%d %% for good." % [hero_name(o["hero"]), roundi(float(o.get("value", 0.1)) * 100.0)])
+		"ability":
+			set_ability(o["hero"], String(o["ability"]))
 		"release_oath":
 			var oo := oath_of(o["hero"])
 			(heroes[o["hero"]]["passives"] as Array).erase(oo)
@@ -916,6 +1035,12 @@ func _apply_effects(effects: Array, sname: String) -> void:
 			for c: Array in cands.slice(0, int(e["passive_choice"])):
 				list.append({"hero": c[0], "passive": c[1]})
 			_open_choice("passive", list)
+		if e.has("ability_choice"):
+			var pool: Array = []
+			for o: Dictionary in _ability_pool():
+				if String(e.get("who", "")) != "target" or String(event_ctx.get("hero", "")) == String(o["hero"]):
+					pool.append(o)
+			_open_choice("ability", pool.slice(0, int(e["ability_choice"])))
 		if e.has("max_hp_choice"):
 			var list: Array = []
 			for cls: String in heroes:
@@ -1131,3 +1256,117 @@ func _shuffle(a: Array) -> void:
 		var t: Variant = a[i]
 		a[i] = a[j]
 		a[j] = t
+
+
+# --- house detail (roster page) ---
+
+const WHEN_TEXT := {"allies_near": "with 2+ allies near", "alone": "when no ally is near", "moving": "while moving",
+	"avenger": "after an ally falls", "vs_ranged": "against ranged enemies", "vs_grudge": "against whoever wounded an ally",
+	"unseen": "against enemies not fighting him"}
+
+
+## The hero's stat bonuses for the house page: [{key, name, desc, value (always on), cond: [text]}] for Attack, Power,
+## Toughness, Haste. Might counts towards Attack and Power; an oath boosted by the Trial counts × its multiplier.
+func hero_stats(cls: String) -> Array:
+	var h: Dictionary = heroes[cls]
+	var boost := float((h.get("oath_boost", {}) as Dictionary).get("mult", 1.0))
+	var out: Array = []
+	for st: String in ["utok", "moc", "odolnost", "pohotovost"]:
+		var both := st == "utok" or st == "moc"
+		var val := float((h.get("stats", {}) as Dictionary).get(st, 0.0))
+		if both:
+			val += float((h.get("stats", {}) as Dictionary).get("sila", 0.0))
+		var cond: Array = []
+		for k: String in h["passives"]:
+			var d: Dictionary = units_data["passives"][k]
+			var m := boost if d.get("kind", "") == "oath" else 1.0
+			var sd: Dictionary = d.get("stats", {})
+			var v := (float(sd.get(st, 0.0)) + (float(sd.get("sila", 0.0)) if both else 0.0)) * m
+			if d.has("per_ancestor"):
+				var pa: Dictionary = d["per_ancestor"]
+				v += mini(fallen.size(), int(d.get("ancestors_max", 3))) * (float(pa.get(st, 0.0)) + (float(pa.get("sila", 0.0)) if both else 0.0))
+			if is_zero_approx(v):
+				continue
+			if d.has("when"):
+				cond.append("%+d %% %s (%s)" % [roundi(v * 100.0), WHEN_TEXT.get(String(d["when"]), String(d["when"])), d["name"]])
+			else:
+				val += v
+		var b: Dictionary = h.get("bond", {})
+		if not b.is_empty():
+			var bd: Dictionary = units_data["bonds"][b["type"]]
+			var bst: Dictionary = bd.get("stats", {})
+			var lv := bond_level(cls)
+			for sk: String in bst:
+				if sk == st or (sk == "sila" and both):
+					var arr: Array = bst[sk] if bst[sk] is Array else [bst[sk]]
+					var bv := float(arr[clampi(lv - 1, 0, arr.size() - 1)])
+					cond.append("%+d %% near %s (%s)" % [roundi(bv * 100.0), hero_name(b["with"]), bd["name"]])
+		out.append({"key": st, "name": units_data["stats"][st]["name"], "desc": units_data["stats"][st].get("desc", ""), "value": val, "cond": cond})
+	return out
+
+
+## Refinements of the hero's current ability: [{key, name, desc, owned}].
+func refinements_of(cls: String) -> Array:
+	var out: Array = []
+	for k: String in units_data["passives"]:
+		if k.begins_with("_") or _refine_of(k) != ability_of(cls):
+			continue
+		var d: Dictionary = units_data["passives"][k]
+		out.append({"key": k, "name": d["name"], "desc": d.get("desc", ""), "owned": (heroes[cls]["passives"] as Array).has(k)})
+	return out
+
+
+## How the hero's oath works with his ability: [good (bool), text], or [] when it is neutral or he has no oath.
+func oath_note(cls: String) -> Array:
+	var o := oath_of(cls)
+	if o == "":
+		return []
+	var d: Dictionary = units_data["passives"][o]
+	var ab := ability_of(cls)
+	if (d.get("fits", {}) as Dictionary).has(ab):
+		return [true, "Fits %s: %s" % [ability_name(ab), d["fits"][ab]]]
+	if (d.get("clashes", {}) as Dictionary).has(ab):
+		return [false, "Clashes with %s: %s" % [ability_name(ab), d["clashes"][ab]]]
+	return []
+
+
+## Shared victories the bond needs for its next level (0 = top level).
+func next_bond_at(cls: String) -> int:
+	var lv := bond_level(cls)
+	var levels: Array = units_data["bond_rules"]["levels"]
+	return int(levels[lv]) if lv < levels.size() else 0
+
+
+## Combos of the house's bonded pairs: every combo the two classes could have, and what it still needs.
+## [{id, name, desc, a, b (classes), a_ability, b_ability, ready, needs: [text]}], ready ones first.
+func house_combos() -> Array:
+	var out: Array = []
+	var need_lv := int(units_data["bond_rules"].get("combo_level", 2))
+	var seen := {}
+	for cls: String in heroes:
+		var b: Dictionary = heroes[cls]["bond"]
+		if b.is_empty() or seen.has(pair_key(cls, b["with"])):
+			continue
+		var other: String = b["with"]
+		seen[pair_key(cls, other)] = true
+		for cid: String in units_data["combos"]:
+			if cid.begins_with("_"):
+				continue
+			var c: Dictionary = units_data["combos"][cid]
+			var ca := ""
+			var cb := ""
+			for pair: Array in [[cls, other], [other, cls]]:
+				if (units_data["knights"][pair[0]]["abilities"] as Array).has(c["a"]) and (units_data["knights"][pair[1]]["abilities"] as Array).has(c["b"]):
+					ca = pair[0]
+					cb = pair[1]
+			if ca == "":
+				continue
+			var needs: Array = []
+			if bond_level(cls) < need_lv:
+				needs.append("bond level %d (shared victories %d/%d)" % [need_lv, wins_of(ca, cb), int(units_data["bond_rules"]["levels"][need_lv - 1])])
+			for x: Array in [[ca, c["a"]], [cb, c["b"]]]:
+				if ability_of(x[0]) != x[1]:
+					needs.append("%s must learn %s" % [hero_name(x[0]), ability_name(x[1])])
+			out.append({"id": cid, "name": c["name"], "desc": c.get("desc", ""), "a": ca, "b": cb, "a_ability": c["a"], "b_ability": c["b"], "ready": needs.is_empty(), "needs": needs})
+	out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return bool(x["ready"]) and not bool(y["ready"]))
+	return out

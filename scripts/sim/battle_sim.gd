@@ -122,6 +122,22 @@ class Unit:
 	var fleeing: bool = false
 	var fled: bool = false        # fled the battlefield (counts as a loss, not as fallen)
 	var arrive_t: float = 0.0     # enemy from a later wave: when he arrives on the battlefield
+	var blind_t: float = 0.0      # Holy Light: cannot attack or start an ability
+	var vuln_t: float = 0.0       # Hailstorm: takes more damage (× vuln)
+	var vuln: float = 1.0
+	var poison_t: float = 0.0     # Poisoned Blades: loses poison_dps health per second
+	var poison_dps: float = 0.0
+	var poison_from: String = ""
+	var bulwark_t: float = 0.0    # Bulwark: heroes within bulwark_r take damage × bulwark_mult, the tank does not move
+	var bulwark_r: float = 0.0
+	var bulwark_mult: float = 1.0
+	var banner_t: float = 0.0     # Banner: heroes within banner_r get Attack +banner_atk
+	var banner_r: float = 0.0
+	var banner_atk: float = 0.0
+	var buff_t: float = 0.0       # Absolution, Banner of Faith: Attack bonus for a while
+	var buff_utok: float = 0.0
+	var dash_stun: float = 1.0    # Holy Blinding combo: stun × this on blinded enemies
+	var combo_volley: String = "" # Scatter combo: the archer who shoots a Volley where the Ride Through ends
 
 	func alive() -> bool:
 		return hp > 0.0
@@ -204,6 +220,10 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 		units.append(u)
 		var pas: Dictionary = setup.get("passives", house.get("start_passives", {}))
 		u.passives = (pas.get(key, []) as Array).duplicate()
+		var abl: Dictionary = setup.get("abilities", {})
+		if abl.has(key) and _class_abilities(key).has(String(abl[key])):
+			u.ability = String(abl[key])
+		_drop_foreign_refines(u)
 		u.extra_stats = ((setup.get("hero_stats", {}) as Dictionary).get(key, {}) as Dictionary).duplicate()
 		var ob: Dictionary = (setup.get("oath_boost", {}) as Dictionary).get(key, {})
 		u.oath_mult = float(ob.get("mult", 1.0))
@@ -439,6 +459,8 @@ func _pas(u: Unit, key: String) -> Dictionary:
 	var d: Dictionary = units_data["passives"][key]
 	if d.get("kind", "") == "oath" and u.oath_broken:
 		return {}
+	if d.get("kind", "") == "refine" and String(d.get("ability", "")) != u.ability:
+		return {}
 	return d
 
 
@@ -454,10 +476,45 @@ func passives_for(id: String) -> Array:
 	for k: String in units_data["passives"]:
 		if k.begins_with("_"):
 			continue
-		var c: String = units_data["passives"][k].get("class", "any")
+		var pd: Dictionary = units_data["passives"][k]
+		var c: String = pd.get("class", "any")
+		if pd.get("kind", "") == "refine" and u != null and String(pd.get("ability", "")) != u.ability:
+			continue   # refinement of another ability
 		if u != null and (c == "any" or c == u.key):
 			out.append(k)
 	return out
+
+
+## Abilities the class can have (units.json knights[cls].abilities; the first is the starting one).
+func _class_abilities(cls: String) -> Array:
+	var kd: Dictionary = (units_data["knights"] as Dictionary).get(cls, {})
+	return kd.get("abilities", [kd.get("ability", "")])
+
+
+func abilities_for(id: String) -> Array:
+	var u := by_id(id)
+	return _class_abilities(u.key) if u != null and u.side == SIDE_KNIGHT else []
+
+
+## Refinements belong to one ability: on a swap the others fall away.
+func _drop_foreign_refines(u: Unit) -> void:
+	var keep: Array = []
+	for k: String in u.passives:
+		var d: Dictionary = (units_data["passives"] as Dictionary).get(k, {})
+		if d.get("kind", "") != "refine" or String(d.get("ability", "")) == u.ability:
+			keep.append(k)
+	u.passives = keep
+
+
+## Swaps the hero's ability (only before the battle, only one of his class). Refinements of the old one are lost.
+func set_ability(id: String, key: String) -> bool:
+	var u := by_id(id)
+	if u == null or t > 0.0 or not abilities_for(id).has(key):
+		return false
+	u.ability = key
+	_drop_foreign_refines(u)
+	_apply_passives(u)
+	return true
 
 
 ## Why the passive cannot be added ("" = it can).
@@ -547,6 +604,10 @@ func stat(u: Unit, key: String, tg: Unit = null, static_only: bool = false) -> f
 	sum += float(u.grief.get(key, 0.0)) + (float(u.grief.get("sila", 0.0)) if sila else 0.0)
 	if u.rage_t > 0.0 and key == "utok":
 		sum += float(_bond_def(u).get("rage_utok", 0.0))
+	if key == "utok":
+		if u.buff_t > 0.0:
+			sum += u.buff_utok
+		sum += _banner_bonus(u)
 	var p := _partner(u)
 	if p != null:
 		var bd := _bond_def(u)
@@ -609,6 +670,15 @@ func _partner(u: Unit) -> Unit:
 		return null
 	var p := by_id(u.bond_with)
 	return p if p != null and p.alive() else null
+
+
+## Banner: the strongest Attack bonus from a cavalier's Banner the hero stands under (they do not add up).
+func _banner_bonus(u: Unit) -> float:
+	var best := 0.0
+	for k in units:
+		if k.side == SIDE_KNIGHT and k.alive() and k.banner_t > 0.0 and k.pos.distance_to(u.pos) <= k.banner_r:
+			best = maxf(best, k.banner_atk)
+	return best
 
 
 ## Value for a level: a list [l1, l2, l3] or a single number.
@@ -761,7 +831,7 @@ func _no_retreat(u: Unit) -> bool:
 
 ## Oath of Vigilance: once the battle starts the hero does not move.
 func _no_move(u: Unit) -> bool:
-	return t > 0.0 and bool(oath_of(u.id).get("no_move", false))
+	return u.bulwark_t > 0.0 or (t > 0.0 and bool(oath_of(u.id).get("no_move", false)))
 
 
 ## May the hero attack this enemy on his own? Oaths that forbid some targets
@@ -950,7 +1020,12 @@ func _dmg_mult(u: Unit, tg: Unit = null, ability: bool = false) -> float:
 func _taken_mult(u: Unit) -> float:
 	var m := 1.0 - u.armor
 	if u.side != SIDE_KNIGHT:
-		return m
+		return m * (u.vuln if u.vuln_t > 0.0 else 1.0)
+	var wall := 1.0
+	for k in units:
+		if k.side == SIDE_KNIGHT and k.alive() and k.bulwark_t > 0.0 and k.pos.distance_to(u.pos) <= k.bulwark_r:
+			wall = minf(wall, k.bulwark_mult)
+	m *= wall
 	if u.taunt_t > 0.0 and u.ability != "":
 		m *= float(ability_of(u.id).get("damage_taken", 1.0))
 	if u.shield_t > 0.0:
@@ -963,8 +1038,23 @@ func _taken_mult(u: Unit) -> float:
 	return m
 
 
+## Speed: an enemy in a Sacred Circle is slowed (the strongest circle counts).
 func _speed(u: Unit) -> float:
-	return u.speed
+	if u.side != SIDE_FOE:
+		return u.speed
+	var slow := 1.0
+	for z: Dictionary in zones:
+		if z.has("slow") and u.pos.distance_to(z["pos"]) <= float(z["r"]):
+			slow = minf(slow, float(z["slow"]))
+	return u.speed * slow
+
+
+## Is the spot inside a smoke cloud (Smoke)? Heroes there cannot be targeted.
+func _in_smoke(p: Vector2) -> bool:
+	for z: Dictionary in zones:
+		if bool(z.get("smoke", false)) and p.distance_to(z["pos"]) <= float(z["r"]):
+			return true
+	return false
 
 
 ## Target from candidates: the nearest, but a hero with target_priority prefers his kind of target.
@@ -1132,6 +1222,114 @@ func ability_hint(id: String) -> Array:
 					pick = f
 					break
 			return [pick != null, pick.id if pick != null else null]
+		"hradba":
+			var n := 0
+			for f in foes:
+				if not f.asleep and f.pos.distance_to(u.pos) <= float(a["radius"]) + 1.5:
+					n += 1
+			return [n >= 2 and _allies_within(u, float(a["radius"])) >= 1, null]
+		"uder_stitem":
+			# hint: two or more in front, a commander winding up; in defense also one who is hitting someone else (peel him off)
+			var n := 0
+			var peel := false
+			for f in foes:
+				if not f.asleep and f.pos.distance_to(u.pos) <= float(a["reach"]) + 0.5:
+					if f.casting:
+						return [true, null]
+					n += 1
+					peel = peel or (mode == "obrana" and f.target_id != "" and f.target_id != u.id)
+			return [n >= 2 or (n >= 1 and peel), null]
+		"kruh":
+			var best_p := Vector2.ZERO
+			var best_n := 0
+			for c in living(SIDE_KNIGHT):
+				if c.pos.distance_to(u.pos) > float(a["range"]) or _attackers_on(c) == 0:
+					continue
+				var n := 0
+				for k in living(SIDE_KNIGHT):
+					if k.pos.distance_to(c.pos) <= float(a["radius"]) and k.hp < k.maxhp * 0.8:
+						n += 1
+				if n > best_n:
+					best_n = n
+					best_p = c.pos
+			return [best_n >= 2, best_p if best_n >= 2 else null]
+		"svetlo", "kour":
+			# Holy Light on a commander winding up, or on the crowd around a hero; Smoke on a hard-pressed hero
+			if u.ability == "svetlo":
+				for f in foes:
+					if f.casting and f.pos.distance_to(u.pos) <= float(a["range"]):
+						return [true, f.pos]
+			var best: Unit = null
+			var best_n := 0
+			for k in living(SIDE_KNIGHT):
+				if k.pos.distance_to(u.pos) > float(a["range"]):
+					continue
+				var n := _attackers_on(k)
+				if u.ability == "kour" and k.hp > k.maxhp * 0.5:
+					continue
+				if n > best_n:
+					best_n = n
+					best = k
+			var need := 3 if u.ability == "svetlo" else 2
+			return [best != null and best_n >= need, best.pos if best != null else null]
+		"mirena":
+			var pick: Unit = null
+			for f in foes:
+				if f.asleep or _near_sleeper(f.pos) or f.pos.distance_to(u.pos) > float(a["range"]):
+					continue
+				if f.casting:
+					return [true, f.id]
+				if pick == null or (_is_commander(f) and not _is_commander(pick)) or (f.ranged and not pick.ranged and not _is_commander(pick)):
+					pick = f
+			return [pick != null and (_is_commander(pick) or pick.ranged or pick.hp > 30.0), pick.id if pick != null else null]
+		"ustup":
+			var n := 0
+			for f in foes:
+				if not f.asleep and not f.ranged and f.pos.distance_to(u.pos) <= 4.5:
+					n += 1
+			var in_range := 0
+			for f in foes:
+				if not f.asleep and f.pos.distance_to(u.pos) <= float(a["range"]):
+					in_range += 1
+			return [n >= 1 or in_range >= 3, null]
+		"korouhev":
+			var fighting := 0
+			for k in living(SIDE_KNIGHT):
+				if k.pos.distance_to(u.pos) <= float(a["radius"]) and _attackers_on(k) > 0:
+					fighting += 1
+			return [fighting >= 2, null]
+		"prujezd":
+			# hint: knock a commander out of his windup, like Charge
+			for f in foes:
+				if f.casting and f.pos.distance_to(u.pos) <= float(a["range"]) and not _in_water(f.pos):
+					return [true, f.pos]
+			if mode == "obrana":
+				return [false, null]
+			var best: Unit = null
+			var best_n := 0
+			for f in foes:
+				if f.asleep or _near_sleeper(f.pos) or f.pos.distance_to(u.pos) > float(a["range"]) - 1.0 or _in_water(f.pos):
+					continue
+				var n := 0
+				for g in foes:
+					if g.pos.distance_to(f.pos) <= 2.0:
+						n += 1
+				if n > best_n and _near_other_knight(u, f.pos):
+					best_n = n
+					best = f
+			if best == null or best_n < 3:
+				return [false, null]
+			var far := best.pos + (best.pos - u.pos).normalized() * 2.0
+			var spot := far if not _in_water(far) and u.pos.distance_to(far) <= float(a["range"]) else best.pos
+			return [true, spot]
+		"noze":
+			var n := 0
+			var weak := false
+			for f in foes:
+				if not f.asleep and f.pos.distance_to(u.pos) <= float(a["range"]):
+					n += 1
+					weak = weak or f.hp < 15.0
+			return [n >= 2 or weak, null]
 	return [false, null]
 
 
@@ -1205,6 +1403,36 @@ func use_ability(id: String, target: Variant = null) -> bool:
 			var e := by_id(String(target))
 			where = e.pos
 			_shadow_strike(u, e, float(a["mult"]))
+			if not e.alive() and a.has("recharge_on_kill"):
+				u.ability_cd *= 1.0 - float(a["recharge_on_kill"])   # Shadow Step
+		"hradba":
+			_bulwark(u, a, float(a["damage_taken"]))
+		"uder_stitem":
+			_shield_bash(u, a)
+		"kruh":
+			where = target
+			_circle(u, where, a)
+		"svetlo":
+			where = target
+			_holy_light(u, where, a)
+		"mirena":
+			var e := by_id(String(target))
+			where = e.pos
+			_aimed_shot(u, e, a, 1.0)
+		"ustup":
+			_retreat_fire(u, a)
+		"korouhev":
+			u.banner_t = float(a["duration"])
+			u.banner_r = float(a["radius"])
+			u.banner_atk = float(a["attack"])
+		"prujezd":
+			where = target
+			_start_dash(u, target, a, 1.0)
+		"kour":
+			where = target
+			_smoke(u, where, a)
+		"noze":
+			_knives(u, a, u.pos, float(a["range"]), 1.0)
 	events.append({"type": "ability", "id": u.id, "key": u.ability, "pos": where})
 	_log("%s: %s" % [u.name, a["name"]], true)
 	return true
@@ -1218,11 +1446,15 @@ func _bless(u: Unit, where: Vector2, a: Dictionary, frac: float) -> void:
 			if a.has("shield_t"):
 				k.shield_t = float(a["shield_t"])
 				k.shield = float(a["shield"])
+			if a.has("attack"):
+				k.buff_utok = maxf(k.buff_utok if k.buff_t > 0.0 else 0.0, float(a["attack"]))
+				k.buff_t = maxf(k.buff_t, float(a.get("attack_t", 5.0)))
 
 
 ## Volley: arrows randomly among enemies in the circle (mult = combo multiplier), Fire Volley sets the ground alight.
-func _volley(u: Unit, where: Vector2, radius: float, a: Dictionary, mult: float) -> void:
+func _volley(u: Unit, where: Vector2, radius: float, a: Dictionary, mult: float) -> Array[Unit]:
 	var hits: Array[Unit] = []
+	var struck: Array[Unit] = []
 	for f in living(SIDE_FOE):
 		if f.pos.distance_to(where) <= radius:
 			hits.append(f)
@@ -1232,10 +1464,150 @@ func _volley(u: Unit, where: Vector2, radius: float, a: Dictionary, mult: float)
 		var f: Unit = hits[_rng.randi() % hits.size()]
 		_ability_hit(u, f)
 		_hurt(u, f, float(a["dmg"]) * mult * _dmg_mult(u, f, true) * (u.vs_mounted if f.mounted else 1.0))
+		if not struck.has(f):
+			struck.append(f)
 		if not f.alive():
 			hits.erase(f)
 	if a.has("fire_t"):
-		zones.append({"pos": where, "r": radius, "t": float(a["fire_t"]), "dps": float(a["fire_dps"]), "from": u.id})
+		zones.append({"pos": where, "r": radius, "t": float(a["fire_t"]), "dps": float(a["fire_dps"]), "from": u.id, "kind": "fire"})
+	return struck
+
+
+## Bulwark: heroes around the tank take damage × `mult`, the tank does not move while it lasts.
+func _bulwark(u: Unit, a: Dictionary, mult: float) -> void:
+	u.bulwark_t = float(a["duration"])
+	u.bulwark_r = float(a["radius"])
+	u.bulwark_mult = mult
+	u.moving = false
+	zones.append({"pos": u.pos, "r": u.bulwark_r, "t": u.bulwark_t, "dps": 0.0, "from": u.id, "kind": "hradba"})
+
+
+## Shield Bash: stuns and hits enemies right in front of the tank (turns to the nearest first). Returns those hit.
+func _shield_bash(u: Unit, a: Dictionary) -> Array[Unit]:
+	var reach := float(a["reach"])
+	var awake: Array[Unit] = []
+	for f in living(SIDE_FOE):
+		if not f.asleep:
+			awake.append(f)
+	var nf := _nearest(awake, u.pos)
+	if nf != null and nf.pos.distance_to(u.pos) <= reach + 2.0:
+		_face_to(u, nf)
+	u.atk = 0.25
+	u.combat_t = t
+	var hits: Array[Unit] = []
+	for f in awake:
+		var rel := f.pos - u.pos
+		var d := rel.length()
+		if d > reach + f.radius or (d > 1.0 and rel.normalized().dot(u.face) < 0.2):
+			continue
+		hits.append(f)
+		_ability_hit(u, f)
+		f.stun_t = maxf(f.stun_t, float(a["stun"]))
+		_hurt(u, f, float(a["dmg"]) * _dmg_mult(u, f, true))
+		if float(a.get("push", 0.0)) > 0.0 and f.alive():
+			_push(f, rel.normalized() * float(a["push"]))
+	return hits
+
+
+## Pushes a unit by `v` (not into the water: then a shorter push, or none).
+func _push(f: Unit, v: Vector2) -> void:
+	for k: float in [1.0, 0.6, 0.3]:
+		var p := f.pos + v * k
+		if not _in_water(p):
+			f.pos = p
+			return
+
+
+## Sacred Circle: a circle that slows enemies and heals heroes once a second.
+func _circle(u: Unit, where: Vector2, a: Dictionary) -> void:
+	zones.append({"pos": where, "r": float(a["radius"]), "t": float(a["duration"]), "dps": 0.0, "from": u.id, "slow": float(a["slow"]), "hps": float(a["hps"]), "kind": "kruh"})
+
+
+## Holy Light: enemies in the circle cannot attack (Purge also interrupts a commander). Returns those blinded.
+func _holy_light(u: Unit, where: Vector2, a: Dictionary) -> Array[Unit]:
+	var out: Array[Unit] = []
+	for f in living(SIDE_FOE):
+		if f.pos.distance_to(where) <= float(a["radius"]):
+			f.blind_t = maxf(f.blind_t, float(a["duration"]))
+			out.append(f)
+			if f.casting and bool(a.get("interrupt", false)):
+				_skill_cancel(f)
+	zones.append({"pos": where, "r": float(a["radius"]), "t": 0.6, "dps": 0.0, "from": u.id, "kind": "svetlo"})
+	return out
+
+
+## Aimed Shot: one arrow for mult × attack (Attack and Power), interrupts a commander's windup.
+## Breakthrough hits those in a line behind, Broken Will makes the target flee.
+func _aimed_shot(u: Unit, e: Unit, a: Dictionary, extra: float) -> void:
+	_face_to(u, e)
+	u.atk = 0.25
+	u.combat_t = t
+	_ability_hit(u, e)
+	var dmg := u.dmg * float(a["mult"]) * extra * _dmg_mult(u, e) * (u.vs_mounted if e.mounted else 1.0)
+	if e.casting:
+		_skill_cancel(e)
+	_hurt(u, e, dmg)
+	if float(a.get("pierce", 0.0)) > 0.0:
+		var dir := (e.pos - u.pos).normalized()
+		for f in living(SIDE_FOE):
+			var rel := f.pos - e.pos
+			var along := rel.dot(dir)
+			if f != e and along > 0.0 and along <= 6.0 and absf(rel.cross(dir)) <= 1.0:
+				_hurt(u, f, dmg * float(a["pierce"]))
+	if bool(a.get("rout", false)) and e.alive() and not _is_commander(e):
+		e.fleeing = true
+		_log("%s flees" % e.name, false)
+
+
+## Retreating Fire: leaps back from the nearest enemy and shoots arrows at the nearest ones.
+func _retreat_fire(u: Unit, a: Dictionary) -> void:
+	var awake: Array[Unit] = []
+	for f in living(SIDE_FOE):
+		if not f.asleep:
+			awake.append(f)
+	var nf := _nearest(awake, u.pos)
+	if nf != null:
+		var dir := (u.pos - nf.pos).normalized()
+		for k: float in [1.0, 0.75, 0.5, 0.25]:
+			var p := u.pos + dir * float(a["leap"]) * k
+			if not _in_water(p):
+				u.pos = p
+				break
+		_face_to(u, nf)
+	_knives(u, a, u.pos, float(a["range"]), 1.0)
+
+
+## Arrows or knives (`arrows` × `dmg`) at the awake enemies nearest to `from` within `rng`, one each in turn.
+## Poisoned Blades poisons. Returns those hit.
+func _knives(u: Unit, a: Dictionary, from: Vector2, rng: float, mult: float) -> Array[Unit]:
+	var near: Array[Unit] = []
+	for f in living(SIDE_FOE):
+		if not f.asleep and f.pos.distance_to(from) <= rng:
+			near.append(f)
+	near.sort_custom(func(x: Unit, y: Unit) -> bool: return x.pos.distance_to(from) < y.pos.distance_to(from))
+	var hits: Array[Unit] = []
+	if near.is_empty():
+		return hits
+	u.atk = 0.25
+	u.combat_t = t
+	for i in int(a["arrows"]):
+		var f: Unit = near[i % near.size()]
+		if not f.alive():
+			continue
+		_ability_hit(u, f)
+		_hurt(u, f, float(a["dmg"]) * mult * _dmg_mult(u, f, true) * (u.vs_mounted if f.mounted else 1.0))
+		if a.has("poison_t") and f.alive():
+			f.poison_t = float(a["poison_t"])
+			f.poison_dps = float(a["poison_dps"])
+			f.poison_from = u.id
+		if not hits.has(f):
+			hits.append(f)
+	return hits
+
+
+## Smoke: no one targets a hero inside; Poison Smoke burns enemies inside.
+func _smoke(u: Unit, where: Vector2, a: Dictionary) -> void:
+	zones.append({"pos": where, "r": float(a["radius"]), "t": float(a["duration"]), "dps": float(a.get("dps", 0.0)), "from": u.id, "smoke": true, "kind": "kour"})
 
 
 ## Charge to a point (mult = stronger from a combo).
@@ -1328,6 +1700,10 @@ func combo_problem(cid: String) -> String:
 		return "%s and %s are too far apart (at most %d m)." % [ha.name, hb.name, int(cd.get("max_gap", 14.0))]
 	if cid == "za_zady" and _taunted_victim(ha) == null:
 		return "There is no enemy at the tank (%s)." % ha.name
+	if cid == "velitel" and _shield_bash_victims(ha).is_empty():
+		return "There is no enemy right in front of %s." % ha.name
+	if cid == "clona" and _nearest_awake(hb.pos, float(ability_of(hb.id).get("range", 15.0))) == null:
+		return "There is no enemy within reach of %s." % hb.name
 	return ""
 
 
@@ -1391,11 +1767,93 @@ func use_combo(cid: String, target: Variant = null) -> bool:
 			where = target
 			_start_dash(ha, target, aa, 1.0)
 			ha.combo_strike = hb.id
+		"phradba":
+			_bulwark(ha, aa, float(aa["damage_taken"]))
+			_bless(hb, ha.pos, ab, float(ab["heal_frac"]) * float(cd.get("heal_mult", 2.0)))
+		"svatyne":
+			_bulwark(ha, aa, float(cd.get("damage_taken", 0.4)))
+			_circle(hb, ha.pos, ab)
+		"velitel":
+			var hits := _shield_bash(ha, aa)
+			var e: Unit = null
+			for f in hits:
+				if f.alive() and (e == null or (_is_commander(f) and not _is_commander(e))):
+					e = f
+			if e != null:
+				_aimed_shot(hb, e, ab, float(cd.get("mult_bonus", 2.0)))
+				where = e.pos
+		"zastava":
+			ha.banner_t = float(aa["duration"])
+			ha.banner_r = float(aa["radius"])
+			ha.banner_atk = float(aa["attack"])
+			var bless := ab.duplicate()
+			bless["attack"] = float(cd.get("attack", 0.2))
+			bless["attack_t"] = float(cd.get("attack_t", 8.0))
+			_bless(hb, ha.pos, bless, float(ab["heal_frac"]))
+		"oslepeni":
+			where = target
+			_holy_light(ha, where, aa)
+			_start_dash(hb, where, ab, 1.0)
+			hb.dash_stun = float(cd.get("stun_mult", 2.0))
+		"rozpraseni":
+			where = target
+			_start_dash(ha, where, aa, 1.0)
+			ha.combo_volley = hb.id
+		"clona":
+			where = target
+			_smoke(ha, where, aa)
+			hb.hidden_t = maxf(hb.hidden_t, float(aa["duration"]))
+			var e := _nearest_awake(hb.pos, float(ab.get("range", 15.0)))
+			if e != null:
+				_aimed_shot(hb, e, ab, 1.0)
+		"zavoj":
+			where = target
+			_smoke(ha, where, aa)
+			var veil := ab.duplicate()
+			veil["radius"] = float(aa["radius"])
+			_bless(hb, where, veil, float(ab["heal_frac"]) * float(cd.get("heal_mult", 1.5)))
+		"krupobiti":
+			where = target
+			var struck := _volley(ha, where, float(aa["radius"]), aa, 1.0)
+			for f in _knives(hb, ab, where, float(aa["radius"]) + 1.0, 1.0):
+				if not struck.has(f):
+					struck.append(f)
+			for f in struck:
+				if f.alive():
+					f.vuln_t = float(cd.get("vuln_t", 4.0))
+					f.vuln = float(cd.get("vuln", 1.2))
+		"rozhreseni_stin":
+			where = target
+			var blind := _holy_light(ha, where, aa)
+			var e: Unit = null
+			for f in blind:
+				if f.alive() and (e == null or (_is_commander(f) and not _is_commander(e)) or (_is_commander(f) == _is_commander(e) and f.pos.distance_to(hb.pos) < e.pos.distance_to(hb.pos))):
+					e = f
+			if e != null:
+				_shadow_strike(hb, e, float(cd.get("mult", 4.0)) * maxf(0.0, 1.0 + stat(hb, "moc")))
 	events.append({"type": "ability", "id": ha.id, "key": ha.ability, "pos": where})
 	events.append({"type": "ability", "id": hb.id, "key": hb.ability, "pos": where})
 	events.append({"type": "combo", "id": cid, "pos": where})
 	_log("Combo %s: %s and %s" % [cd["name"], ha.name, hb.name], true)
 	return true
+
+
+## Enemies Shield Bash would hit now (for Toppled Commander).
+func _shield_bash_victims(u: Unit) -> Array[Unit]:
+	var reach := float(ability_of(u.id).get("reach", 2.2))
+	var out: Array[Unit] = []
+	for f in living(SIDE_FOE):
+		if not f.asleep and f.pos.distance_to(u.pos) <= reach + f.radius + 0.5:
+			out.append(f)
+	return out
+
+
+func _nearest_awake(from: Vector2, rng: float) -> Unit:
+	var near: Array[Unit] = []
+	for f in living(SIDE_FOE):
+		if not f.asleep and not f.fleeing and f.pos.distance_to(from) <= rng:
+			near.append(f)
+	return _nearest(near, from)
 
 
 ## From Behind: an enemy at the tank (within Challenge range), preferably one attacking him.
@@ -1894,6 +2352,8 @@ func _face_to(u: Unit, tg: Unit) -> void:
 
 func _attack(u: Unit, tg: Unit) -> void:
 	_face_to(u, tg)
+	if u.blind_t > 0.0:
+		return   # Holy Light: blinded, cannot attack
 	if not _oath_allows(u, tg):
 		return   # the oath forbids this target: no attack
 	u.combat_t = t
@@ -2314,6 +2774,26 @@ func _dash(u: Unit, dt: float, foes: Array[Unit]) -> void:
 		if bool(oath_of(u.id).get("first_on_commander", false)) and not u.first_struck and not u.dash_hit.is_empty():
 			_break(u, "Charge did not hit the commander")
 		u.dash_mult = 1.0
+		u.dash_stun = 1.0
+		if u.combo_volley != "":
+			# Scatter: the archer's Volley lands on the group the Ride Through threw aside
+			var arch := by_id(u.combo_volley)
+			u.combo_volley = ""
+			var thrown: Array[Unit] = []
+			for id: String in u.dash_hit:
+				var hf := by_id(id)
+				if hf != null and hf.alive():
+					thrown.append(hf)
+			if arch != null and arch.alive():
+				var c := u.pos
+				if not thrown.is_empty():
+					c = Vector2.ZERO
+					for hf in thrown:
+						c += hf.pos
+					c /= thrown.size()
+				var va := ability_of(arch.id)
+				_volley(arch, c, float(va.get("radius", 3.0)) + 0.5, va, float(units_data["combos"]["rozpraseni"].get("dmg_mult", 1.5)))
+				events.append({"type": "ability", "id": arch.id, "key": arch.ability, "pos": c})
 		if u.combo_strike != "":
 			# Hammer and Anvil: the assassin leaps behind the first one knocked down; kills a footman, hits a commander hard
 			var sa := by_id(u.combo_strike)
@@ -2345,9 +2825,17 @@ func _dash(u: Unit, dt: float, foes: Array[Unit]) -> void:
 	for f in foes:
 		if not u.dash_hit.has(f.id) and f.pos.distance_to(u.pos) <= float(a["width"]) + f.radius:
 			u.dash_hit.append(f.id)
-			f.stun_t = float(a["stun"])
+			var stun := float(a.get("stun", 0.0)) * (u.dash_stun if f.blind_t > 0.0 else 1.0)
+			if stun > 0.0:
+				f.stun_t = maxf(f.stun_t, stun)
 			_dash_oath(u, f)
 			_hurt(u, f, float(a["dmg"]) * u.dash_mult * _dmg_mult(u, f, true))
+			if float(a.get("push", 0.0)) > 0.0 and f.alive():
+				if f.casting:
+					_skill_cancel(f)   # thrown aside: the windup is lost
+				# Ride Through: throws the enemy aside, away from the line of the ride
+				var side := Vector2(-u.face.y, u.face.x)
+				_push(f, side * (1.0 if (f.pos - u.pos).dot(side) >= 0.0 else -1.0) * float(a["push"]))
 
 
 func _foe_think(u: Unit, dt: float) -> void:
@@ -2388,7 +2876,7 @@ func _foe_think(u: Unit, dt: float) -> void:
 				_skill_fire(u)
 			return
 		u.skill_t -= dt
-		if u.skill_t <= 0.0 and _skill_start(u, ks):
+		if u.skill_t <= 0.0 and u.blind_t <= 0.0 and _skill_start(u, ks):
 			return
 	# Challenge: whoever is within range of a challenging tank attacks him
 	var tg := _taunter_for(u, ks)
@@ -2492,7 +2980,7 @@ func _skill_fire(u: Unit) -> void:
 				zones.append({"pos": where, "r": r, "t": float(sd["burn_t"]), "dps": float(sd["burn_dps"]), "from": u.id, "hurts": SIDE_KNIGHT})
 		"shot":
 			var k := by_id(u.cast_target)
-			if k != null and k.alive() and k.hidden_t <= 0.0 and k.pos.distance_to(u.pos) <= float(sd.get("range", 0.0)) + 2.0:
+			if k != null and k.alive() and k.hidden_t <= 0.0 and not _in_smoke(k.pos) and k.pos.distance_to(u.pos) <= float(sd.get("range", 0.0)) + 2.0:
 				_hurt(u, k, float(sd.get("dmg", 0.0)) * _dmg_mult(u, k))
 				where = k.pos
 		"smash":
@@ -2574,7 +3062,7 @@ func _visible_knights() -> Array[Unit]:
 	var all := living(SIDE_KNIGHT)
 	var out: Array[Unit] = []
 	for k in all:
-		if k.hidden_t <= 0.0:
+		if k.hidden_t <= 0.0 and not _in_smoke(k.pos):
 			out.append(k)
 	return out if not out.is_empty() else all
 
@@ -2814,6 +3302,11 @@ func step(dt: float) -> void:
 		u.rage_t = maxf(0.0, u.rage_t - dt)
 		u.mourn_t = maxf(0.0, u.mourn_t - dt)
 		u.mark_t = maxf(0.0, u.mark_t - dt)
+		u.blind_t = maxf(0.0, u.blind_t - dt)
+		u.vuln_t = maxf(0.0, u.vuln_t - dt)
+		u.bulwark_t = maxf(0.0, u.bulwark_t - dt)
+		u.banner_t = maxf(0.0, u.banner_t - dt)
+		u.buff_t = maxf(0.0, u.buff_t - dt)
 		if u.side == SIDE_KNIGHT:
 			_knight_think(u, dt)
 		else:
@@ -2849,12 +3342,27 @@ func step(dt: float) -> void:
 			still.append(p)
 	projectiles = still
 
-	# burning ground (Fire Volley)
+	# poison (Poisoned Blades): goes past armour, like fire
+	for u in living(SIDE_FOE):
+		if u.poison_t > 0.0:
+			u.poison_t -= dt
+			_hurt(by_id(u.poison_from), u, u.poison_dps * dt / maxf(_taken_mult(u), 0.01), false)
+
+	# zones: burning ground (Fire Volley, commanders), Sacred Circle (slows, heals once a second), Smoke
 	for z: Dictionary in zones:
 		z["t"] = float(z["t"]) - dt
-		for f in living(String(z.get("hurts", SIDE_FOE))):
-			if f.pos.distance_to(z["pos"]) <= float(z["r"]):
-				_hurt(by_id(z["from"]), f, float(z["dps"]) * dt / maxf(_taken_mult(f), 0.01), false)
+		var dps := float(z.get("dps", 0.0))
+		if dps > 0.0:
+			for f in living(String(z.get("hurts", SIDE_FOE))):
+				if f.pos.distance_to(z["pos"]) <= float(z["r"]):
+					_hurt(by_id(z["from"]), f, dps * dt / maxf(_taken_mult(f), 0.01), false)
+		if float(z.get("hps", 0.0)) > 0.0:
+			z["tick"] = float(z.get("tick", 0.0)) + dt
+			if float(z["tick"]) >= 1.0:
+				z["tick"] = float(z["tick"]) - 1.0
+				for k in living(SIDE_KNIGHT):
+					if k.pos.distance_to(z["pos"]) <= float(z["r"]) and not _no_heal(k):
+						_heal(by_id(z["from"]), k, float(z["hps"]))
 	var keep: Array = []
 	for z: Dictionary in zones:
 		if float(z["t"]) > 0.0:

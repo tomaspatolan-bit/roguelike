@@ -42,6 +42,14 @@ var _fx: Array = []                # short ability effects [MeshInstance3D, time
 var _aim_id := ""                  # the hero whose ability is being aimed
 var _aim_combo := ""                # bond combo being aimed (with _aim_id = who aims)
 var _aim_point := Vector2.ZERO
+## Ground zones from the simulation by kind: burning ground, Sacred Circle, Holy Light, Smoke, Bulwark.
+const ZONE_COLORS := {
+	"fire": Color(1.0, 0.45, 0.1, 0.35),
+	"kruh": Color(0.5, 1.0, 0.6, 0.3),
+	"svetlo": Color(1.0, 0.95, 0.6, 0.45),
+	"kour": Color(0.55, 0.55, 0.6, 0.55),
+	"hradba": Color(0.55, 0.7, 1.0, 0.25),
+}
 var _zone_meshes: Array = []      # burning ground from the simulation (sim.zones)
 var select_ring: MeshInstance3D
 var hold_marker: MeshInstance3D
@@ -135,6 +143,7 @@ func _ready() -> void:
 	ui.ability_pressed.connect(_ability)
 	ui.combo_pressed.connect(_combo)
 	ui.passive_toggled.connect(_on_passive)
+	ui.ability_chosen.connect(_on_ability_chosen)
 	ui.scenario_changed.connect(_load_scenario)
 	ui.order_pressed.connect(func(id: String) -> void:
 		if not _can_command():
@@ -353,7 +362,9 @@ func _load_scenario(id: String) -> void:
 		return
 	scenario_id = id
 	data = Sim.load_data(id)
+	var keep_abilities: Dictionary = setup.get("abilities", {})
 	setup = _free_setup(data)
+	setup["abilities"] = keep_abilities   # the tried abilities stay across battles
 	field_root.queue_free()
 	field_root = Node3D.new()
 	add_child(field_root)
@@ -635,6 +646,18 @@ func _on_passive(id: String, key: String, on: bool) -> void:
 		if problem != "":
 			ui.flash_hint(problem)
 	if sim.set_passive(id, key, on):
+		setup["passives"][id] = sim.passives_of(id).duplicate()
+	_refresh_panel()
+
+
+## Free battle: try another ability of the class before the start (refinements of the old one fall away).
+func _on_ability_chosen(id: String, key: String) -> void:
+	if run != null or not (phase == Phase.DEPLOY or (phase == Phase.PAUSE and sim.t == 0.0)):
+		return
+	if sim.set_ability(id, key):
+		if not setup.has("abilities"):
+			setup["abilities"] = {}
+		setup["abilities"][id] = key
 		setup["passives"][id] = sim.passives_of(id).duplicate()
 	_refresh_panel()
 
@@ -1254,6 +1277,7 @@ func _sync_markers() -> void:
 			var z: Dictionary = sim.zones[i]
 			zm.position = Field.to_world(z["pos"], 0.05)
 			zm.scale = Vector3(float(z["r"]), 1.0, float(z["r"]))
+			(zm.material_override as StandardMaterial3D).albedo_color = ZONE_COLORS.get(String(z.get("kind", "fire")), ZONE_COLORS["fire"])
 	# ability targeting: circle under the cursor (sized by the ability), red out of range
 	aim_ring.visible = _aim_id != "" and sim.by_id(_aim_id) != null
 	if aim_ring.visible:
@@ -1411,9 +1435,9 @@ func _spawn_fx(key: String, pos: Vector2) -> void:
 	var a: Dictionary = sim.units_data["abilities"].get(key, {})
 	var r := float(a.get("radius", 1.2))
 	var col := Color(1.0, 0.85, 0.4, 0.8)
-	if key == "pozehnani":
+	if key in ["pozehnani", "kruh"]:
 		col = Color(0.5, 1.0, 0.6, 0.8)
-	elif key == "vyzva":
+	elif key in ["vyzva", "hradba", "uder_stitem", "korouhev"]:
 		col = Color(0.55, 0.7, 1.0, 0.8)
 	var ring := Field.ring(r, 0.18, col)
 	ring.position = Field.to_world(pos, 0.1)

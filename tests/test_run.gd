@@ -18,6 +18,7 @@ func _init() -> void:
 	_test_leader()
 	_test_bonds()
 	_test_offers()
+	_test_abilities_run()
 	_test_full_runs()
 	if failures.is_empty():
 		print("VÝSLEDEK: OK")
@@ -640,3 +641,64 @@ func _test_offers() -> void:
 	for n: Array in r.offer_notes({"hero": "knez", "passive": "nikdy_neustoupi"}):
 		stat_note = stat_note or not bool(n[0])
 	_check(r.offer_notes({"hero": "lucistnik", "passive": "lovecka_cest"}).size() >= 1 and o_bad.size() == 2, "přísaha ukáže, jak sedí ke schopnosti")
+
+
+## Ability swap in the run (2.3d): an elite always offers a new ability, refinements of the old one fall away,
+## the battle gets the swapped ability, the Smith and the Monk offer a swap.
+func _test_abilities_run() -> void:
+	print("Výměna schopností")
+	var r := Run.new(52)
+	_check(r.ability_of("tank") == "vyzva" and r.other_abilities("tank") == ["hradba", "uder_stitem"], "tank začíná Výzvou, umí i Hradbu a Úder štítem")
+	var first: String = r.available()[0]
+	r.node_id = first
+	r.map["nodes"][first]["type"] = "elita"
+	r.record_battle(_fake("win", [], [], 30.0))
+	var ab_offer: Dictionary = {}
+	for o: Dictionary in r.offers():
+		if String(o.get("kind", "")) == "ability":
+			ab_offer = o
+	_check(r.offers().size() == 4 and not ab_offer.is_empty(), "elita: ze 4 nabídek je jedna nová schopnost")
+	var notes := r.offer_notes(ab_offer) if not ab_offer.is_empty() else []
+	_check(not notes.is_empty(), "nabídka schopnosti vysvětlí, co nahradí")
+	r.heroes["tank"]["passives"] = ["hlasita_vyzva", "ochrance"]
+	r.set_ability("tank", "hradba")
+	_check(r.ability_of("tank") == "hradba" and r.heroes["tank"]["passives"] == ["ochrance"], "výměna: zušlechtění staré schopnosti odpadne")
+	_check(r._passives_for("tank", "passive").has("siroka_hradba") and not r._passives_for("tank", "passive").has("pevny_postoj"), "nabízí se zušlechtění jen nové schopnosti")
+	_check(not r.offer_valid({"hero": "tank", "passive": "pevny_postoj"}), "zušlechtění cizí schopnosti neplatí")
+	var data := Sim.load_data("most_pres_reku")
+	var st := r.battle_setup(data)
+	_check(String(st["abilities"]["tank"]) == "hradba", "bitva dostane vyměněnou schopnost")
+	var s := Sim.new(data, st, 5)
+	_check(s.by_id("tank").ability == "hradba", "v simulaci má tank Hradbu")
+	var notes2 := r.offer_notes({"hero": "tank", "kind": "ability", "ability": "uder_stitem"})
+	var any_red := false
+	for n: Array in notes2:
+		any_red = any_red or not bool(n[0])
+	r.heroes["tank"]["passives"].append("siroka_hradba")
+	notes2 = r.offer_notes({"hero": "tank", "kind": "ability", "ability": "uder_stitem"})
+	for n: Array in notes2:
+		any_red = any_red or not bool(n[0])
+	_check(any_red, "nabídka výměny varuje před ztrátou zušlechtění")
+	# a successor starts with the class ability
+	var r2 := Run.new(53)
+	r2.set_ability("jezdec", "korouhev")
+	r2.choose(r2.available()[0])
+	r2.record_battle(_fake("win", ["jezdec"], [], 30.0))
+	_check(r2.ability_of("jezdec") == "najezd", "nástupce začíná schopností třídy")
+	# the Smith: retraining for 40 glory; the Monk: the priest swaps from 2
+	var r3 := Run.new(54)
+	r3.glory = 60.0
+	_event_at(r3, r3.available()[0], "kovar")
+	r3.event_choose(1)
+	_check(is_equal_approx(r3.glory, 20.0) and r3.offers().size() == 2 and String(r3.offers()[0].get("kind", "")) == "ability", "Kovář: za 40 slávy výběr nové schopnosti ze 2")
+	var o3: Dictionary = r3.offers()[0]
+	r3.pick_offer(0)
+	_check(r3.ability_of(o3["hero"]) == String(o3["ability"]), "Kovář: hrdina má novou schopnost")
+	var r4 := Run.new(55)
+	_event_at(r4, r4.available()[0], "mnich")
+	if r4.event_option_problem(1) == "":
+		r4.event_choose(1)
+		var only_priest := r4.offers().size() == 2
+		for o: Dictionary in r4.offers():
+			only_priest = only_priest and o["hero"] == "knez"
+		_check(only_priest, "Mnich: kněz si vybere ze 2 modliteb")

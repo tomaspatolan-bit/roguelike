@@ -42,6 +42,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 - Při exportu hry musí být `*.json` ve filtru exportovaných souborů (`include_filter` v `export_presets.cfg`, viz `testy.md`, Export).
 
 ## Historie významných změn
+- 07.11.2026: 10 nových schopností (`abilities`: hradba, uder_stitem, kruh, svetlo, mirena, ustup, korouhev, prujezd, kour, noze), 30 zušlechtění v `passives` (`kind: refine`, `ability`, `ability_mod`; 6 starších pasivek jako Hlasitá výzva nebo Ohnivá salva převedeno na zušlechtění), 10 nových komb (`combos`, celkem 15, každé spojuje dvě třídy; Vražda ve tmě z návrhu spojovala dvě schopnosti asasína, nahradil ji Závoj milosti Kouř + Požehnání). Akt: `elite_ability_offers` (1). Události: `ability_choice` (Kovář za 40 slávy, Mnich pro kněze).
 - 07.11.2026: 8 nových událostí (12 celkem), `camp`, `max_calm`, `offer_oaths`, `decline_glory` v aktu, sláva `max` a `carry_max` 120.
 - 07.11.2026: všechny texty a `_info` přeložené do angličtiny (glosář `docs/glosar.md`), jména s tituly (Father Jan, Captain Kuno), rod House of the Wolf, akt The Count's Forest, odměna úkolu „rare relic“.
 - 07.11.2026: `bonds` (8 typů pout), `bond_rules`, `combos` (5 komb výchozích schopností), `trial_bonds` v rodu.
