@@ -14,7 +14,7 @@ Testovací nástroj pro Toma a Clauda (08.11.2026): vyzkoušet cokoli z bitvy be
 5. **Znamení v sandboxu** se počítají z dat stejně jako v běhu (`stats` zapečené do hrdinů, `extra_uses`); znamení jen pro běh (sláva, léčení po bitvě, nabídky) jsou v panelu vypnutá s „(run only)“.
 6. **Nepřítel přidaný klikem** (`sandbox_spawn(typ, místo)`) je bdělý, má vlastní skupinu (dá se na něj poslat hrdina) a nevznikne ve vodě (vrací "").
 7. **Nastavení drží celé sezení** (`battle.gd` `sandbox_state`: mapa, vzhled, znamení, vlastnosti, typ pouta, `setup`), i přes galerii a hlavní menu.
-8. **Galerie** používá stejný `UnitView` jako bitva (co je vidět v galerii, ukáže i bitva): všichni hrdinové a všichni nepřátelé z dat na Mostě přes řeku, volná kamera (pravé nebo prostřední tlačítko otáčí, kolečko přibližuje, WASD posouvá), animace pro jednoho nebo všechny (`play_kind`, ragdoll přes `hp = 0`), opakování, rychlost, denní doba, obrys. Chybějící animace vypíše (`missing`).
+8. **Galerie** používá stejný `UnitView` jako bitva (co je vidět v galerii, ukáže i bitva): všichni hrdinové a všichni nepřátelé z dat na Mostě přes řeku, volná kamera (pravé nebo prostřední tlačítko otáčí, kolečko přibližuje, WASD posouvá), animace pro jednoho nebo všechny (`play_kind`, ragdoll přes `hp = 0`), opakování, rychlost, denní doba, obrys. Chybějící animace vypíše (`missing`). Přepínač „Library animations (tank)“: vypnutý přepne jednotky s `anims_own` na naše animace (`UnitView.use_anims`). Stromy, keře a kameny kolem řady skryje (`_clear_props`), aby nezakrývaly kameru zblízka.
 
 ## Rozhraní
 - `battle.gd`: `sandbox` (nastaví `run_main` před přidáním), signály `left` (hlavní menu) a `gallery_requested`, `sb_panel`, `_sandbox_request(druh, arg)`, `_sandbox_spawn_at(bod_na_obrazovce)`, `_rebuild_field()`.
@@ -28,4 +28,5 @@ Testovací nástroj pro Toma a Clauda (08.11.2026): vyzkoušet cokoli z bitvy be
 - Dlouhé položky v `OptionButton` (názvy komb) rozšiřují panel: `fit_to_longest_item = false`, `clip_text`.
 
 ## Historie významných změn
+- 08.11.2026: galerie přepíná knihovní a naše animace tanka, skrývá rekvizity kolem řady.
 - 08.11.2026: sandbox a galerie postav (Tom: „sandbox, kde bych udělal úplně vše, i komba, schopnosti, abychom mohli vychytat edge casy“).

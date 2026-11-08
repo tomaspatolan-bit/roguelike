@@ -375,6 +375,24 @@ func play_kind(kind: String, time_scale: float = 1.0) -> bool:
 	return true
 
 
+## Character gallery: switches the unit to another set of animations {idle, walk, attack, ability, hit, death}
+## (library vs our own, style pilot 2.0s). Missing keys keep the current animation.
+func use_anims(d: Dictionary) -> void:
+	_anim_idle = String(d.get("idle", _anim_idle))
+	_anim_walk = String(d.get("walk", _anim_walk))
+	_anim_attack = String(d.get("attack", _anim_attack))
+	_anim_ability = String(d.get("ability", _anim_ability))
+	_anim_hit = String(d.get("hit", _anim_hit))
+	_anim_death = String(d.get("death", _anim_death))
+	if anim == null:
+		return
+	for a_name: String in anim.get_animation_list():
+		anim.get_animation(a_name).loop_mode = Animation.LOOP_LINEAR if a_name in [_anim_idle, _anim_walk] else Animation.LOOP_NONE
+	_oneshot_t = 0.0
+	if anim.has_animation(_anim_idle):
+		anim.play(_anim_idle, 0.1)
+
+
 ## Is a one-shot animation still playing (gallery: repeat when it ends)?
 func oneshot_playing() -> bool:
 	return _oneshot_t > 0.0
