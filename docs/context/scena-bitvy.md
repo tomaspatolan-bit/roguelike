@@ -27,12 +27,15 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 17. **Nepřítel s modelem** (`model` v datech, lapkové) se staví stejně jako hrdina (`_build_knight`: paleta podle `palette_row`, zbraň, animace z `anims`, při smrti ragdoll kostí); bez modelu kostička, která padne jako tuhé tělo. Vůdce nepřátel je vždy 1,3× větší.
 18. **Bojiště dioráma:** když má scénář `look`, `battlefield.build` po fyzikální zemi zavolá `Diorama.build(root, scenario, camera_defaults)` (vzhled z `data/looks.json`) a `battle.gd` zapne obrys na kameře (`Diorama.attach_outline`) a světlo postav jako prostředí (`UnitView.look_lighting`). Dioráma je jen grafika, kolize a terén pro simulaci se nemění.
 
+19. **Sandbox** (`sandbox = true` z `run_main`): bitva s panelem `scripts/sandbox/sandbox_panel.gd`, bez výcviku; levé tlačítko při zapnutém přidávání nepřátel místo výběru přidá nepřátele. Viz `docs/context/sandbox.md`.
+
 ## Úskalí
 - Proměnná s typem `Node3D` nezná metody skriptu: použij typ skriptu (`var v := UnitView.new()`).
 - Víceřádkové lambdy jako argumenty funkce raději ulož nejdřív do proměnné.
 - Limity testů počítej v čase bitvy, ne ve snímcích (monitor může mít 144 Hz).
 
 ## Historie významných změn
+- 08.11.2026: režim sandbox (`sandbox`, `_sandbox_request`, `_rebuild_field` společné s výběrem bitvy), `UnitView.play_kind` pro galerii.
 - 07.11.2026: nepřátelé s modelem z dat (lapkové `SK_Brigand`), bojiště dioráma pro scénáře s `look` (zkouška stylu, Most přes řeku).
 - 07.11.2026: otázka přísahy je panel UI místo okna `ConfirmationDialog`: dokud je otevřená (`ui.oath_open()`), vstup do bojiště stojí, Esc přísahu zachová (`ui.oath_keep()`).
 - 07.11.2026: zóny ze simulace mají barvu podle druhu (`ZONE_COLORS`: oheň, kruh, světlo, kouř, hradba); efekt nových schopností je zástupný kruh, animace je zatím schopnost třídy. Ve volné bitvě jde vyměnit schopnost (`_on_ability_chosen`), vybrané schopnosti zůstanou i po změně bitvy.

@@ -10,6 +10,7 @@ const BattleUI := preload("res://scripts/battle/battle_ui.gd")
 const Icon := preload("res://scripts/battle/ui_icon.gd")
 const MapView := preload("res://scripts/run/map_view.gd")
 const UI := preload("res://scripts/ui/ui_theme.gd")
+const Gallery := preload("res://scripts/sandbox/gallery.gd")
 const CAMP_ICONS := {"rest": "camp_rest", "train": "camp_training", "rite": "camp_rite", "feast": "camp_feast"}
 
 const INK := BattleUI.INK
@@ -89,6 +90,10 @@ func show_start() -> void:
 	f.tooltip_text = "A single battle with a choice of map and passives to try out (as before)."
 	f.pressed.connect(_free_battle)
 	row.add_child(f)
+	var sb := _button("Sandbox")
+	sb.tooltip_text = "Testing: any map and look, abilities, oaths, combos, bonds, relics, enemies placed by click, cheats and the character gallery."
+	sb.pressed.connect(open_sandbox)
+	row.add_child(sb)
 	if BattleScript.tutorial_done():
 		var t := _button("Tutorial again")
 		t.tooltip_text = "The controls tutorial will show again in the next battle."
@@ -110,6 +115,34 @@ func _free_battle() -> void:
 	_hide_screen()
 	battle = BattleScene.instantiate()
 	add_child(battle)
+
+
+## Sandbox (testing tool): a free battle with the sandbox panel; its settings stay for the session.
+func open_sandbox() -> void:
+	run = null
+	_hide_screen()
+	_close_battle()
+	battle = BattleScene.instantiate()
+	battle.set("sandbox", true)
+	battle.connect("left", func() -> void:
+		_close_battle()
+		show_start())
+	battle.connect("gallery_requested", open_gallery)
+	add_child(battle)
+
+
+## Character gallery (from the sandbox), back leads to the sandbox.
+func open_gallery() -> void:
+	_close_battle()
+	battle = Gallery.new()
+	battle.connect("back_pressed", open_sandbox)
+	add_child(battle)
+
+
+func _close_battle() -> void:
+	if battle != null:
+		battle.queue_free()
+		battle = null
 
 
 func _start_battle() -> void:

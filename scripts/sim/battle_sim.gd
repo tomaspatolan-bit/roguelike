@@ -188,6 +188,11 @@ var charging: bool = false      # the player gave the All In! command (one-time)
 var charge_auto: bool = false   # the heroes charged on their own (auto_charge_after passed without the command)
 var _next_id: int = 0
 var ancestors: int = 0             # fallen ancestors of the house in the run (Oath of the Ancestors)
+## Sandbox switches (setup.sandbox, testing only, never in a run): god (heroes cannot fall), free_uses (abilities
+## never run out and do not recharge), foes_idle (enemies stand like dummies), endless (the battle never ends),
+## no_foes (without the scenario's enemies).
+var sandbox: Dictionary = {}
+var _sandbox_n: int = 0
 var _rng := RandomNumberGenerator.new()
 
 
@@ -195,7 +200,8 @@ var _rng := RandomNumberGenerator.new()
 ##          "passives": {key: [passive keys]} (optional, otherwise the house's default passives),
 ##          "extra_uses": {key: n} extra ability uses (relics),
 ##          "glory": starting glory (the run carries it over), "names": {key: name} (successors),
-##          "extra_enemies": [extra enemy rows] (fled enemies who returned)}
+##          "extra_enemies": [extra enemy rows] (fled enemies who returned),
+##          "sandbox": {switches, see the sandbox variable} (sandbox only)}
 func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	units_data = data["units"]
 	house = data["house"]
@@ -213,6 +219,7 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 	ancestors = int(setup.get("ancestors", 0))
 	task_ok = not scenario["optional_task"].has("kill")
 	mode = String(scenario.get("mode", "stret"))
+	sandbox = (setup.get("sandbox", {}) as Dictionary).duplicate()
 
 	var knights_data: Dictionary = units_data["knights"]
 	for key: String in knights_data:
@@ -254,6 +261,8 @@ func _init(data: Dictionary, setup: Dictionary, rng_seed: int = -1) -> void:
 			pod_awake[pi] = true
 	var i := 0
 	var rows: Array = _without_pods((scenario["enemies"] as Array).duplicate(), int(setup.get("remove_pods", 0)))
+	if bool(sandbox.get("no_foes", false)):
+		rows = []
 	rows.append_array(setup.get("extra_enemies", []))
 	for row: Array in rows:
 		var fkey: String = row[0]
@@ -783,6 +792,9 @@ func _grieve(dead: Unit) -> void:
 
 ## Lance and Shield: after the tank's ability the cavalier's ability recharges.
 func _after_ability(u: Unit) -> void:
+	if bool(sandbox.get("free_uses", false)):
+		u.uses += 1   # sandbox: the use comes straight back and nothing recharges
+		u.ability_cd = 0.0
 	var p := _partner(u)
 	if p != null and u.bond_type == "kopi" and _bond_side(u) == 1:
 		p.ability_cd *= 1.0 - _bv(u, "recharge")
@@ -2484,6 +2496,8 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 			if guard.hp <= 0.0:
 				guard.hp = 0.01   # does not die for his ward, the damage just stops being shared
 	tg.hp -= raw * _taken_mult(tg)
+	if tg.side == SIDE_KNIGHT and bool(sandbox.get("god", false)):
+		tg.hp = maxf(tg.hp, 1.0)   # sandbox: heroes cannot fall
 	tg.hit = 0.18
 	tg.combat_t = t
 	if tg.side == SIDE_KNIGHT and att != null and att.side == SIDE_FOE:
@@ -2939,6 +2953,9 @@ func _foe_think(u: Unit, dt: float) -> void:
 			u.hp = 0.0
 			u.moving = false
 			events.append({"type": "fled", "id": u.id})
+		return
+	if bool(sandbox.get("foes_idle", false)):
+		u.moving = false   # sandbox: a target dummy
 		return
 	if u.stun_t > 0.0:
 		u.moving = false
@@ -3463,6 +3480,8 @@ func step(dt: float) -> void:
 	zones = keep
 
 	_check_morale()
+	if bool(sandbox.get("endless", false)):
+		return   # sandbox: no decided battle, no end
 	_check_decided()
 
 	if living(SIDE_FOE).is_empty() and pending.is_empty():
@@ -3473,6 +3492,97 @@ func step(dt: float) -> void:
 		over = "lose"
 		events.append({"type": "end"})
 
+
+
+# =============================================================== sandbox (testing only)
+
+## Sandbox: a new enemy of type `key` at `pos` (awake, its own group). Returns its id ("" = unknown type or water).
+func sandbox_spawn(key: String, pos: Vector2) -> String:
+	var foes_data: Dictionary = units_data["foes"]
+	if not foes_data.has(key) or _in_water(pos):
+		return ""
+	var fd: Dictionary = (foes_data[key] as Dictionary).duplicate()
+	fd["hp"] = float(fd["hp"]) * float(scenario.get("foe_hp", 1.0))
+	fd["dmg"] = float(fd["dmg"]) * float(scenario.get("foe_dmg", 1.0))
+	var u := _make_unit(key, SIDE_FOE, fd)
+	u.id = "s%d" % _sandbox_n
+	_sandbox_n += 1
+	u.pos = pos
+	u.home = pos
+	u.face = Vector2(0, -1)
+	u.skill_t = float(units_data.get("foe_skills", {}).get(u.skill, {}).get("first", 3.0))
+	if foes_broken:
+		u.desperate = u.on_break == "desperate"
+	units.append(u)
+	u.group = groups.size()
+	groups.append({"members": [u.id], "name": _group_title([u.id])})
+	events.append({"type": "arrive", "id": u.id})
+	return u.id
+
+
+## Sandbox combo preset: in `setup` gives the two classes of combo `cid` its abilities and bonds them at the combo level
+## (type `bond_type`, other bonds of the pair are dropped). Returns false for an unknown combo.
+static func combo_setup(units_data: Dictionary, setup: Dictionary, cid: String, bond_type: String = "bratri") -> bool:
+	var c: Dictionary = (units_data.get("combos", {}) as Dictionary).get(cid, {})
+	if c.is_empty() or cid.begins_with("_"):
+		return false
+	var owner := {}
+	for cls: String in units_data["knights"]:
+		for ab: String in (units_data["knights"][cls].get("abilities", []) as Array):
+			owner[ab] = cls
+	var ca := String(owner.get(String(c["a"]), ""))
+	var cb := String(owner.get(String(c["b"]), ""))
+	if ca == "" or cb == "" or ca == cb:
+		return false
+	if not setup.has("abilities"):
+		setup["abilities"] = {}
+	setup["abilities"][ca] = c["a"]
+	setup["abilities"][cb] = c["b"]
+	var bonds: Dictionary = setup.get("bonds", {})
+	for cls: String in [ca, cb]:
+		var old: Dictionary = bonds.get(cls, {})
+		if not old.is_empty():
+			bonds.erase(String(old["with"]))
+		bonds.erase(cls)
+	var level := int((units_data.get("bond_rules", {}) as Dictionary).get("combo_level", 2))
+	bonds[ca] = {"with": cb, "type": bond_type, "level": level}
+	bonds[cb] = {"with": ca, "type": bond_type, "level": level}
+	setup["bonds"] = bonds
+	return true
+
+
+## Sandbox: turns a switch on or off during the battle (no_foes only takes effect in a new battle).
+func set_sandbox(key: String, on: bool) -> void:
+	sandbox[key] = on
+
+
+## Sandbox: every enemy on the battlefield falls and later waves are cancelled.
+func sandbox_kill_foes() -> void:
+	pending.clear()
+	waves_left = 0
+	for f in living(SIDE_FOE):
+		_hurt(null, f, f.hp / maxf(_taken_mult(f), 0.001) + 1.0, false)
+
+
+## Sandbox: the living heroes are back at full health.
+func sandbox_heal() -> void:
+	for k in living(SIDE_KNIGHT):
+		k.hp = k.maxhp
+		events.append({"type": "heal", "id": k.id})
+
+
+## Sandbox: the living heroes have all ability uses back, nothing recharges.
+func sandbox_refill() -> void:
+	for k in living(SIDE_KNIGHT):
+		var hp := k.hp
+		_apply_passives(k)
+		k.hp = hp
+		k.ability_cd = 0.0
+
+
+## Sandbox: the enemy's morale breaks now.
+func sandbox_break_morale() -> void:
+	_break_morale()
 
 
 ## Battle result for the run: who fell, who fled, glory.

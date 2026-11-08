@@ -25,6 +25,7 @@ Přečti `docs/stav.md` (co se teď dělá), `docs/plan.md` (kde jsme ve stepper
 | `scripts/battle/battle_ui.gd` | `docs/context/ui.md`, `docs/context/scena-bitvy.md` |
 | `art/`, Blender | `docs/context/grafika.md` |
 | `scripts/run/`, `scenes/run/`, `data/akt_*.json`, `data/udalosti.json` | `docs/context/beh.md`, `docs/context/simulace.md` (rozhraní) |
+| `scripts/sandbox/`, sandbox v `battle.gd` a `run_main.gd` | `docs/context/sandbox.md`, `docs/context/simulace.md` (rozhraní) |
 | `tests/` | `docs/context/testy.md` |
 | nová oblast | založ pro ni kontextový soubor podle vzoru ostatních a přidej ji sem |
 
@@ -51,9 +52,10 @@ Přečti `docs/stav.md` (co se teď dělá), `docs/plan.md` (kde jsme ve stepper
 - `data/` – obsah jako JSON (jednotky, rod, scénáře). Nový obsah = nová data, ne nový kód.
 - `scripts/sim/battle_sim.gd` – logika bitvy bez grafiky. Musí jít spustit v testech bez okna.
 - `scripts/run/` – běh: `run_state.gd` (logika běhu bez grafiky), `act_map.gd` (generátor mapy aktu), `run_main.gd` (start, mapa, po bitvě, událost, tábor, kronika; hlavní scéna `scenes/run/run.tscn`), `map_view.gd`.
+- `scripts/sandbox/` – testovací sandbox (`sandbox_panel.gd`, panel v bitvě) a galerie postav (`gallery.gd`); menu Sandbox.
 - `scripts/battle/` – scéna bitvy: `battle.gd` (fáze, vstup, propojení), `battle_ui.gd` (jen vykreslení, signály), `unit_view.gd`, `battlefield.gd`, `orbit_camera.gd`.
 - `art/knight/` – rytíř z Blenderu (`SK_Knight.glb`), paletové textury, shader `knight_palette.gdshader` (řádek palety = barva role).
-- `tests/` – `test_battle_sim.gd` (balanc a pravidla), `test_run.gd` (běh), `screenshot_battle.gd` a `screenshot_run.gd` (scény se načtou, odehrají se, uloží snímky), `passives_ingame.gd`.
+- `tests/` – `test_battle_sim.gd` (balanc a pravidla), `test_run.gd` (běh), `screenshot_battle.gd` a `screenshot_run.gd` (scény se načtou, odehrají se, uloží snímky), `passives_ingame.gd`, `sandbox.gd` (sandbox a galerie), `screenshot_look.gd` (vzhled bojiště).
 
 ## Konvence
 

@@ -2,6 +2,12 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 08.11.2026 – Sandbox před pilotem hladkých modelů
+- **Nejdřív sandbox, pak pilot** (Tom): testovací sandbox se vším (schopnosti, komba, přísahy, pouta, znamení, nepřátelé, vzhled) a galerie postav, aby se okrajové případy daly najít bez procházení běhu. Po Tomově potvrzení pilot hladkých modelů na tankovi a koni (zkosení, měkké látky a váhy, úchop zbraně, proporce).
+- **Sandbox je v hlavním menu i v exe pro testery.** Je to nástroj, ne herní funkce, proto nemusí podporovat pilíř. Před vydáním na Steam se schová nebo zůstane jako vývojářský režim (rozhodne Tom).
+- **Sandbox nesmí ovlivnit hru:** přepínače jen v `setup.sandbox`, běh je nikdy nenastaví; pravidla podvodů (nesmrtelnost, neomezené schopnosti, figuríny, bez konce) jsou v simulaci.
+- **Postavy svítí jako prostředí** (Tom: hrdinové a lapkové přesvícení): příčinou byly obrácené normály prostředí a přepálené slunce, opraveno 08.11.2026.
+
 ## 07.11.2026 – Směr zkoušky stylu (2.0s)
 - **Dioráma:** bojiště je ostrov, jehož okraje padají útesy do mlhy (Bad North). Důvod: mapa je jasně ohraničená, kamera má co rámovat a hrací plocha se čte jako stolní hra.
 - **Tenký tmavý obrys** (hrany z hloubky a normál) na všem. Důvod: postavy a předměty se čtou z výšky i na malém monitoru, obrys spojuje low-poly s ilustrovanými referencemi.

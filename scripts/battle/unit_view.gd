@@ -357,6 +357,22 @@ func play_ability(time_scale: float = 1.0) -> void:
 	_play_once(_anim_ability, time_scale)
 
 
+## Character gallery (sandbox): plays one animation of the unit: attack, ability, hit, death (the animation, not the
+## ragdoll). Returns false when the unit has no such animation (the gallery reports it).
+func play_kind(kind: String, time_scale: float = 1.0) -> bool:
+	var names := {"attack": _anim_attack, "ability": _anim_ability, "hit": _anim_hit, "death": _anim_death}
+	var a_name := String(names.get(kind, ""))
+	if anim == null or not anim.has_animation(a_name):
+		return false
+	_play_once(a_name, time_scale)
+	return true
+
+
+## Is a one-shot animation still playing (gallery: repeat when it ends)?
+func oneshot_playing() -> bool:
+	return _oneshot_t > 0.0
+
+
 func _build_foe(u: Sim.Unit) -> void:
 	if _foe_mats.is_empty():
 		_foe_mats["dark"] = Field.mat(Color("#2b2d31"), 0.8)

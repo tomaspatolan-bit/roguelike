@@ -59,7 +59,7 @@ Mapa hlídá, aby hráč měl vždy na výběr (nikdy tři klidné uzly za sebou
 ## Jak spustit
 
 1. Otevři Godot, v Project Manageru klikni na **Import** a vyber soubor `project.godot` z této složky.
-2. Po načtení stiskni **F5** (nebo tlačítko ▶ vpravo nahoře). Hra začne úvodní obrazovkou: Nový běh, nebo Volná bitva (jednotlivé bitvy na zkoušku, s výběrem schopností a pasivek).
+2. Po načtení stiskni **F5** (nebo tlačítko ▶ vpravo nahoře). Hra začne úvodní obrazovkou: Nový běh, Volná bitva (jednotlivé bitvy na zkoušku, s výběrem schopností a pasivek), nebo Sandbox (testovací bitva se vším nastavitelným: komba, pouta, znamení, nepřátelé klikem, nesmrtelnost a další podvody, a galerie postav s animacemi).
 
 ## Ovládání
 

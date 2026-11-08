@@ -7,6 +7,7 @@ const Field := preload("res://scripts/battle/battlefield.gd")
 const UnitView := preload("res://scripts/battle/unit_view.gd")
 const BattleUI := preload("res://scripts/battle/battle_ui.gd")
 const OrbitCamera := preload("res://scripts/battle/orbit_camera.gd")
+const SandboxPanel := preload("res://scripts/sandbox/sandbox_panel.gd")
 
 const STEP := 1.0 / 60.0
 const SETTINGS := "user://nastaveni.cfg"   # player settings (tutorial done)
@@ -75,6 +76,17 @@ var run: RefCounted = null
 
 ## A run battle ended and the player continues: the result from sim.result().
 signal battle_done(result: Dictionary)
+## Sandbox: back to the main menu / to the character gallery (run_main.gd switches the screen).
+signal left
+signal gallery_requested
+
+## Sandbox (menu Sandbox, testing tool): set by run_main.gd before adding to the tree. Everything is set in the sandbox
+## panel (sandbox_panel.gd); the settings stay for the whole session in sandbox_state (back from the gallery or menu).
+var sandbox := false
+static var sandbox_state: Dictionary = {}
+var sb_panel: SandboxPanel
+var _spawn_key := ""                 # sandbox: enemy type placed with a left click ("" = off)
+var _spawn_n := 1
 var _ui_t := 0.0
 
 # drag & drop of heroes (deployment; in battle dragging = order to a place)
@@ -101,6 +113,8 @@ func _ready() -> void:
 		scenario_id = String(run.node()["scenario"])
 		data = run.load_stage_data()
 		setup = run.battle_setup(data)
+	elif sandbox:
+		_sandbox_init()
 	else:
 		data = Sim.load_data(scenario_id)
 		setup = _free_setup(data)
@@ -149,7 +163,10 @@ func _ready() -> void:
 	ui.combo_pressed.connect(_combo)
 	ui.passive_toggled.connect(_on_passive)
 	ui.ability_chosen.connect(_on_ability_chosen)
-	ui.scenario_changed.connect(_load_scenario)
+	if sandbox:
+		ui.scenario_changed.connect(func(id: String) -> void: _sandbox_request("scenario", id))
+	else:
+		ui.scenario_changed.connect(_load_scenario)
 	ui.order_pressed.connect(func(id: String) -> void:
 		if not _can_command():
 			return
@@ -161,6 +178,11 @@ func _ready() -> void:
 	for sid: String in ([] if run != null else Sim.scenario_list()):
 		choices.append([sid, String(Sim._read_json("res://data/scenarios/%s.json" % sid).get("name", sid))])
 	ui.scenario_choices = choices
+	if sandbox:
+		sb_panel = SandboxPanel.new()
+		ui.add_child(sb_panel)
+		sb_panel.build(data["units"], choices)
+		sb_panel.request.connect(_sandbox_request)
 	ui.start_pressed.connect(_try_start)
 	ui.pause_pressed.connect(_toggle_pause)
 	ui.charge_pressed.connect(_charge)
@@ -201,7 +223,7 @@ static func set_tutorial_done(done: bool) -> void:
 
 
 func _tut_init() -> void:
-	if tutorial_mode < 0 or (tutorial_mode == 0 and tutorial_done()):
+	if sandbox or tutorial_mode < 0 or (tutorial_mode == 0 and tutorial_done()):
 		return
 	_tut_data = Sim._read_json("res://data/vycvik.json")
 	_tut_steps = _tut_data.get("steps", [])
@@ -361,6 +383,18 @@ func _configure_camera() -> void:
 	(cam as OrbitCamera).configure(data["units"].get("camera", {}), data["scenario"].get("camera", {}))
 
 
+## A new battlefield for the current data (another map or look), with the outline and character lighting of the look.
+func _rebuild_field() -> void:
+	field_root.queue_free()
+	field_root = Node3D.new()
+	add_child(field_root)
+	Field.build(field_root, data["scenario"], data["units"].get("camera", {}))
+	_outline.visible = data["scenario"].has("look")
+	UnitView.look_lighting = data["scenario"].has("look")
+	_build_zone()
+	_configure_camera()
+
+
 ## Battle choice (free battle, before the start): loads the scenario and rebuilds the battlefield.
 func _load_scenario(id: String) -> void:
 	if id == scenario_id or not (phase == Phase.DEPLOY or (phase == Phase.PAUSE and sim.t == 0.0)):
@@ -370,14 +404,7 @@ func _load_scenario(id: String) -> void:
 	var keep_abilities: Dictionary = setup.get("abilities", {})
 	setup = _free_setup(data)
 	setup["abilities"] = keep_abilities   # the tried abilities stay across battles
-	field_root.queue_free()
-	field_root = Node3D.new()
-	add_child(field_root)
-	Field.build(field_root, data["scenario"], data["units"].get("camera", {}))
-	_outline.visible = data["scenario"].has("look")
-	UnitView.look_lighting = data["scenario"].has("look")
-	_build_zone()
-	_configure_camera()
+	_rebuild_field()
 	_order_id = ""
 	_fresh_deploy()
 
@@ -540,6 +567,8 @@ func _refresh_panel() -> void:
 	else:
 		ui.show_battle(sim, phase == Phase.PAUSE, selection, speed, log_lines, _aim_id, _order_id, scenario_id)
 	ui.update_dynamic(sim, phase == Phase.PAUSE, paused)
+	if sb_panel != null:
+		sb_panel.refresh(sandbox_state, setup, sim.combos(), speed)
 
 
 # ================================================================ commands
@@ -873,7 +902,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed and _spawn_key != "":
+			_sandbox_spawn_at(mb.position)
+		elif mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			_pointer_down(mb.position)
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
 			_command_click(mb.position)   # right button = order (the camera does not move with it)
@@ -1461,3 +1492,197 @@ func _spawn_fx(key: String, pos: Vector2) -> void:
 	ring.position = Field.to_world(pos, 0.1)
 	add_child(ring)
 	_fx.append([ring, 0.6])
+
+
+# ================================================================ sandbox (testing tool)
+
+func _sandbox_init() -> void:
+	if sandbox_state.is_empty():
+		sandbox_state = {"scenario": scenario_id, "look": "", "relics": [], "stats": {}, "bond_type": "bratri", "setup": {}}
+	scenario_id = String(sandbox_state["scenario"])
+	data = Sim.load_data(scenario_id)
+	_sandbox_apply_look()
+	var saved: Dictionary = sandbox_state.get("setup", {})
+	if saved.is_empty():
+		setup = _free_setup(data)
+		setup["sandbox"] = {}
+	else:
+		setup = saved.duplicate(true)
+	sandbox_state["spawn_key"] = ""
+
+
+## The look chosen in the sandbox goes into the scenario data ("" = the map's own, "off" = placeholder battlefield).
+func _sandbox_apply_look() -> void:
+	var lk := String(sandbox_state.get("look", ""))
+	if lk == "off":
+		data["scenario"].erase("look")
+	elif lk != "":
+		data["scenario"]["look"] = lk
+
+
+## Stats and ability uses from the sandbox: per-hero bonuses plus the chosen relics (like a run, baked into the heroes).
+func _sandbox_house() -> void:
+	var hs := {}
+	var uses := {}
+	var relics: Dictionary = data["units"].get("relics", {})
+	var stats: Dictionary = sandbox_state.get("stats", {})
+	for cls: String in data["units"]["knights"]:
+		var st: Dictionary = (stats.get(cls, {}) as Dictionary).duplicate()
+		var extra := 0
+		for rk: String in sandbox_state.get("relics", []):
+			var rd: Dictionary = relics.get(rk, {})
+			for k: String in rd.get("stats", {}):
+				st[k] = float(st.get(k, 0.0)) + float(rd["stats"][k])
+			extra += int(rd.get("extra_uses", 0))
+		for k: String in st.keys():
+			if is_zero_approx(float(st[k])):
+				st.erase(k)
+		if not st.is_empty():
+			hs[cls] = st
+		if extra > 0:
+			uses[cls] = extra
+	setup["hero_stats"] = hs
+	setup["extra_uses"] = uses
+
+
+func _sandbox_save() -> void:
+	sandbox_state["setup"] = setup.duplicate(true)
+	sandbox_state["scenario"] = scenario_id
+
+
+func _sandbox_restart() -> void:
+	ui.hide_result()
+	_aim_id = ""
+	_aim_combo = ""
+	_order_id = ""
+	_fresh_deploy()
+	_sandbox_save()
+
+
+func _sandbox_bond_clear(cls: String) -> void:
+	var bonds: Dictionary = setup.get("bonds", {})
+	var old: Dictionary = bonds.get(cls, {})
+	if not old.is_empty():
+		bonds.erase(String(old.get("with", "")))
+	bonds.erase(cls)
+	setup["bonds"] = bonds
+
+
+## Requests from the sandbox panel. Changes of the setup restart the battle; cheats act on the running battle.
+func _sandbox_request(kind: String, arg: Variant) -> void:
+	if not sandbox:
+		return
+	var sw: Dictionary = setup.get("sandbox", {})
+	setup["sandbox"] = sw
+	match kind:
+		"scenario":
+			scenario_id = String(arg)
+			sandbox_state["scenario"] = scenario_id
+			data = Sim.load_data(scenario_id)
+			_sandbox_apply_look()
+			setup["pos"] = Sim.default_setup(data)["pos"]
+			setup["orders"] = {}
+			_rebuild_field()
+			_sandbox_restart()
+		"look":
+			sandbox_state["look"] = String(arg)
+			data = Sim.load_data(scenario_id)
+			_sandbox_apply_look()
+			_rebuild_field()
+			_sandbox_restart()
+		"restart":
+			_sandbox_restart()
+		"gallery":
+			_sandbox_save()
+			gallery_requested.emit()
+			return
+		"menu":
+			_sandbox_save()
+			left.emit()
+			return
+		"hp":
+			if not setup.has("hp"):
+				setup["hp"] = {}
+			setup["hp"][arg[0]] = float(arg[1])
+			_sandbox_restart()
+		"stat":
+			var stats: Dictionary = sandbox_state.get("stats", {})
+			if not stats.has(arg[0]):
+				stats[arg[0]] = {}
+			stats[arg[0]][arg[1]] = float(arg[2])
+			sandbox_state["stats"] = stats
+			_sandbox_house()
+			_sandbox_restart()
+		"relic":
+			var rl: Array = sandbox_state.get("relics", [])
+			if bool(arg[1]) and not rl.has(arg[0]):
+				rl.append(arg[0])
+			elif not bool(arg[1]):
+				rl.erase(arg[0])
+			sandbox_state["relics"] = rl
+			_sandbox_house()
+			_sandbox_restart()
+		"bond_type":
+			sandbox_state["bond_type"] = String(arg)
+		"combo":
+			if Sim.combo_setup(data["units"], setup, String(arg), String(sandbox_state.get("bond_type", "bratri"))):
+				_sandbox_restart()
+				var cd: Dictionary = data["units"]["combos"][arg]
+				ui.flash_hint("%s is ready (Q or E). Both heroes within %d m, both abilities ready." % [cd["name"], int(cd.get("max_gap", 14.0))], 4.0)
+		"bond_add":
+			var a := String(arg[0])
+			var b := String(arg[1])
+			if a == b:
+				ui.flash_hint("A bond needs two different heroes.")
+				return
+			_sandbox_bond_clear(a)
+			_sandbox_bond_clear(b)
+			setup["bonds"][a] = {"with": b, "type": arg[2], "level": int(arg[3])}
+			setup["bonds"][b] = {"with": a, "type": arg[2], "level": int(arg[3])}
+			_sandbox_restart()
+		"bond_remove":
+			_sandbox_bond_clear(String(arg))
+			_sandbox_restart()
+		"no_foes":
+			sw["no_foes"] = bool(arg)
+			_sandbox_restart()
+		"spawn_mode":
+			_spawn_key = String(arg[1]) if bool(arg[0]) else ""
+			_spawn_n = int(arg[2])
+			sandbox_state["spawn_key"] = _spawn_key
+		"kill":
+			sim.sandbox_kill_foes()
+			_flush_events()
+		"morale":
+			sim.sandbox_break_morale()
+			_flush_events()
+		"switch":
+			sw[String(arg[0])] = bool(arg[1])
+			sim.set_sandbox(String(arg[0]), bool(arg[1]))
+			_sandbox_save()
+		"heal":
+			sim.sandbox_heal()
+			_flush_events()
+		"refill":
+			sim.sandbox_refill()
+		"speed":
+			speed = float(arg)
+	_refresh_panel()
+
+
+## Sandbox: places _spawn_n enemies of type _spawn_key around the clicked spot (not into the water).
+func _sandbox_spawn_at(screen_pos: Vector2) -> void:
+	var g: Variant = _ground(screen_pos)
+	if g == null or phase == Phase.OVER:
+		return
+	var center: Vector2 = g
+	var missed := 0
+	for i in _spawn_n:
+		var ang := float(i) * 2.39996
+		var off := Vector2(cos(ang), sin(ang)) * 0.9 * sqrt(float(i))
+		if sim.sandbox_spawn(_spawn_key, center + off) == "":
+			missed += 1
+	_flush_events()
+	if missed > 0:
+		ui.flash_hint("%d not placed: enemies cannot stand in the water." % missed)
+	_refresh_panel()

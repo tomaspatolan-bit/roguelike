@@ -51,6 +51,7 @@ func _init() -> void:
 	_test_retreat_order(brod)
 	_test_spears_and_traits(brod)
 	_test_pods(brod)
+	_test_sandbox(data)
 
 	if failures.is_empty():
 		print("OK: všechny testy prošly")
@@ -1409,3 +1410,67 @@ func _alt_balance(sid: String, cls: String, ab: String) -> void:
 	_check(wins >= need, "[%s] %s se schopností %s by se mělo vyhrávat (%d/%d, potřeba %d)" % [sid, cls, ab, wins, n, need])
 	_check(stuck == 0, "[%s] %s = %s: žádný pat" % [sid, cls, ab])
 	_check(used >= n, "[%s] nápověda schopnost %s opravdu používá" % [sid, ab])
+
+
+## Sandbox switches and commands (testing only): god, free uses, dummies, no end, spawn, kill, heal, refill,
+## morale, combo presets for all combos.
+func _test_sandbox(data: Dictionary) -> void:
+	var st := Sim.default_setup(data)
+	st["sandbox"] = {"god": true}
+	var s := Sim.new(data, st, 81)
+	var t := 0.0
+	while s.over == "" and t < 120.0:
+		s.auto_command()
+		s.step(DT)
+		t += DT
+	var fallen := 0
+	for k in s.knights():
+		if not k.alive():
+			fallen += 1
+	_check(fallen == 0, "sandbox god: padl hrdina (%d)" % fallen)
+
+	st = Sim.default_setup(data)
+	st["sandbox"] = {"free_uses": true, "foes_idle": true, "endless": true, "no_foes": true}
+	s = Sim.new(data, st, 82)
+	_check(s.living(Sim.SIDE_FOE).is_empty(), "sandbox no_foes: na bojišti jsou nepřátelé")
+	var id := s.sandbox_spawn("lapka", Vector2(0, 12))
+	_check(id != "" and s.by_id(id) != null and s.group_of(id) >= 0, "sandbox spawn: nepřítel nevznikl nebo nemá skupinu")
+	_check(s.sandbox_spawn("neexistuje", Vector2.ZERO) == "", "sandbox spawn: neznámý typ by neměl vzniknout")
+	_check(s.sandbox_spawn("lapka", Vector2(8, 6)) == "", "sandbox spawn: nepřítel by neměl vzniknout ve vodě")
+	var tank := s.by_id("tank")
+	var uses := tank.uses
+	_check(s.use_ability("tank") and s.use_ability("tank"), "sandbox free_uses: schopnost nejde použít dvakrát za sebou")
+	_check(tank.uses == uses, "sandbox free_uses: ubylo použití (%d → %d)" % [uses, tank.uses])
+	var foe := s.by_id(id)
+	var p0 := foe.pos
+	for i in 300:
+		s.step(DT)
+	_check(foe.pos.distance_to(p0) < 0.05 or not foe.alive(), "sandbox foes_idle: figurína se hnula")
+	s.sandbox_kill_foes()
+	s.step(DT)
+	_check(s.living(Sim.SIDE_FOE).is_empty(), "sandbox kill: nepřátelé žijí")
+	_check(s.over == "", "sandbox endless: bitva skončila")
+	tank.hp = 5.0
+	tank.uses = 0
+	s.sandbox_heal()
+	s.sandbox_refill()
+	_check(tank.hp == tank.maxhp and tank.uses > 0, "sandbox heal/refill nefunguje")
+	s.sandbox_spawn("strelec", Vector2(3, 10))
+	s.sandbox_break_morale()
+	_check(s.foes_broken, "sandbox: morálka se nezlomila")
+
+	var n := 0
+	for cid: String in data["units"]["combos"]:
+		if cid.begins_with("_"):
+			continue
+		var cs := Sim.default_setup(data)
+		cs["bonds"] = (data["house"].get("trial_bonds", {}) as Dictionary).duplicate(true)
+		_check(Sim.combo_setup(data["units"], cs, cid), "sandbox kombo %s: předvolba selhala" % cid)
+		var cs_sim := Sim.new(data, cs, 83)
+		var found := false
+		for c: Dictionary in cs_sim.combos():
+			found = found or c["id"] == cid
+		_check(found, "sandbox kombo %s: po předvolbě kombo chybí" % cid)
+		if found:
+			n += 1
+	print("Sandbox: přepínače OK, předvolby komb %d" % n)
