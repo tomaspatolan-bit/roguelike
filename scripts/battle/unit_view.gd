@@ -7,6 +7,10 @@ const Sim := preload("res://scripts/sim/battle_sim.gd")
 const Field := preload("res://scripts/battle/battlefield.gd")
 const KNIGHT_SCENE := preload("res://art/knight/SK_Knight.glb")
 const PALETTE_SHADER := preload("res://art/knight/knight_palette.gdshader")
+const LOOK_SHADER := preload("res://art/look/character.gdshader")   # lit like the diorama environment
+
+## True on a battlefield with the diorama look (scenario `look`): characters use LOOK_SHADER, so they are not brighter than the scene.
+static var look_lighting := false
 const PAL_ALBEDO := preload("res://art/knight/T_Knight_Palette_D.png")
 const PAL_ORM := preload("res://art/knight/T_Knight_Palette_ORM.png")
 const ANIM_IDLE := "A_Knight_Idle"
@@ -95,7 +99,7 @@ func _build_knight(u: Sim.Unit) -> void:
 		add_child(body)
 	_figure = figure
 	palette_mat = ShaderMaterial.new()
-	palette_mat.shader = PALETTE_SHADER
+	palette_mat.shader = LOOK_SHADER if look_lighting else PALETTE_SHADER
 	palette_mat.set_shader_parameter("palette_albedo", PAL_ALBEDO)
 	palette_mat.set_shader_parameter("palette_orm", PAL_ORM)
 	palette_mat.set_shader_parameter("role_row", float(u.palette_row))

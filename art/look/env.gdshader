@@ -36,7 +36,8 @@ void fragment() {
 	ALBEDO = c;
 	ROUGHNESS = 1.0;
 	if (flat_normals) {
-		NORMAL = normalize(cross(dFdx(VERTEX), dFdy(VERTEX)));
+		vec3 n = normalize(cross(dFdx(VERTEX), dFdy(VERTEX)));
+		NORMAL = dot(n, VIEW) < 0.0 ? -n : n;   // the derivative cross product came out inverted (faces lit from behind)
 	}
 }
 

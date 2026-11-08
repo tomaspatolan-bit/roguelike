@@ -6,24 +6,24 @@
       32
     ],
     "sun_color": "#fff3dc",
-    "sun_energy": 2.1,
+    "sun_energy": 0.85,
     "ambient": "#b9c6c4",
-    "ambient_energy": 0.46,
+    "ambient_energy": 0.55,
     "ground": [
-      "#8fbc5c",
-      "#80ad55"
+      "#76a44a",
+      "#6a9844"
     ],
-    "ground_dark": "#5f8a45",
-    "bank": "#e6cf96",
-    "path": "#c7ad80", "planks": "#c49a68",
+    "ground_dark": "#4f7a3c",
+    "bank": "#d9c28a",
+    "path": "#c7ad80", "planks": "#b48a5c",
     "cliff": [
       "#eee7d6",
       "#ddd3bd",
       "#b9b2a2"
     ],
     "water": [
-      "#78bdb3",
-      "#3f8e95",
+      "#62c2b6",
+      "#258896",
       "#f7f8f2"
     ],
     "leaves": [
@@ -40,9 +40,9 @@
       "#d6e2dc"
     ],
     "grade": [
-      1.2,
+      1.1,
       1.06,
-      1.02
+      1.0
     ]
   },
   "dawn": {
@@ -51,7 +51,7 @@
       70
     ],
     "sun_color": "#ffd1b0",
-    "sun_energy": 1.81,
+    "sun_energy": 0.86,
     "ambient": "#b9a8c4",
     "ambient_energy": 0.45,
     "ground": [
@@ -96,7 +96,7 @@
       -60
     ],
     "sun_color": "#ffb37a",
-    "sun_energy": 1.89,
+    "sun_energy": 0.9,
     "ambient": "#8a87b0",
     "ambient_energy": 0.43,
     "ground": [

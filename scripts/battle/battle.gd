@@ -114,6 +114,7 @@ func _ready() -> void:
 	_configure_camera()
 	_outline = Field.Diorama.attach_outline(cam)
 	_outline.visible = data["scenario"].has("look")
+	UnitView.look_lighting = data["scenario"].has("look")
 
 	zone = MeshInstance3D.new()
 	zone.material_override = Field.transparent_mat(Color(0.31, 0.47, 0.78, 0.28))
@@ -374,6 +375,7 @@ func _load_scenario(id: String) -> void:
 	add_child(field_root)
 	Field.build(field_root, data["scenario"], data["units"].get("camera", {}))
 	_outline.visible = data["scenario"].has("look")
+	UnitView.look_lighting = data["scenario"].has("look")
 	_build_zone()
 	_configure_camera()
 	_order_id = ""
