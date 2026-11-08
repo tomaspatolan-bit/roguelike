@@ -58,6 +58,7 @@ Aktualizováno: 07.11.2026
 - Žádný zvuk.
 
 ## Čeká na Toma
+- **Animace z knihovny** (08.11.2026): Tom vybere zdroj pro test na tankovi (klid, chůze, sek, zásah): Quaternius UAL 1+2 (CC0, část zdarma, stáhne Claude), Mixamo (zdarma, účet Adobe, stáhne Tom), Rokoko (zdarma po registraci), případně GameDev Hero meč a štít pro UE5 kostru (2,79 $). Kůň zůstává na vlastních animacích. Test pak v galerii vedle současných animací.
 - **Pilot hladkých modelů** (snímky před a po, 08.11.2026): stačí tahle úroveň, nebo zadat hrdiny a animace externě (rozhodnutí kroku 2.0s)? Když stačí, stejný pass dostanou ostatní třídy a lapkové.
 - **Projít sandbox** (exe s datem 08.11.2026, menu Sandbox): chybí v něm něco, co chceš testovat? Po tvém potvrzení pilot hladkých modelů (tank a kůň).
 - **Prohlédnout zkoušku stylu** (snímky `godot_shots\look`, 07.11.2026): sedí směr dioráma (útesy do mlhy, obrys, světlo poledne)? Lapkové: čtou se jako nepřítel na první pohled? Paleta lapků předefinovala celé řádky 6 a 7 (i navy sloupce, lapkové nejsou řád); když to nechceš, vrátím.
