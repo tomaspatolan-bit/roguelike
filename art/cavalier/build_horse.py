@@ -1,4 +1,5 @@
-# The cavalier's warhorse: own skeleton Armature_Horse and mesh SK_Horse (palette like the heroes, rigid weights).
+# The cavalier's warhorse: own skeleton Armature_Horse and mesh SK_Horse (palette like the heroes, rigid weights;
+# the caparison skirt has soft weights to the upper legs since the style pilot 2.0s).
 # Run in Blender (Knight.blend): exec(open(r"<repo>/art/cavalier/build_horse.py", encoding="utf-8").read(), {"KIT": r"<repo>/art/tools/hero_kit.py"})
 # The horse faces −Y (like the knight), left side = +X, hooves at z = 0, withers ~1.55 m, body length ~2.3 m.
 # Barding: caparison in the cavalier's colour (columns 3–4, role row) with navy trim and the order's lozenge, steel chanfron
@@ -114,24 +115,91 @@ for sfx, s in (("l", 1), ("r", -1)):
         B.cylinder((x, y1, 0.57), (x, y2, 0.1), 0.05, COAT, {"lowerleg_%s_%s" % (fb, sfx): 1.0}, r1=0.045, segs=8)
         B.cylinder((x, y2, 0.11), (x, y2 - 0.02, 0.0), 0.06, MANE, {"hoof_%s_%s" % (fb, sfx): 1.0}, r1=0.07, segs=8)
 
-# --- caparison (cavalier colour): cover over the rump and the chest, skirts on the sides with navy trim, the order's lozenge.
-# A gap under the saddle (the coat and the rider's leg show there).
-B.cylinder((0, 0.71, 1.22), (0, 0.11, 1.22), 0.345, ROLE, body_w, segs=14)
-B.cylinder((0, -0.19, 1.24), (0, -0.67, 1.27), 0.335, ROLE, {"spine": 1.0}, r1=0.3, segs=14)
+# --- caparison (cavalier colour), smooth since the style pilot 2.0s (08.11.2026): a cover over the rump and the chest
+# and a draped skirt around each of them (one continuous cloth shell, smooth shading, navy hem; the cover stays inside
+# the skirt so the two never cut through each other). The skirt's lower part
+# follows the upper legs (soft weights), so it sways with the stride instead of moving like a board.
+# A gap under the saddle (the coat and the rider's leg show there). The order's lozenge on the rear skirt.
+B.cylinder((0, 0.7, 1.22), (0, 0.11, 1.22), 0.33, ROLE, body_w, segs=20)
+B.cylinder((0, -0.19, 1.24), (0, -0.66, 1.27), 0.32, ROLE, {"spine": 1.0}, r1=0.285, segs=20)
+
+
+SKIRT_EDGES = set()   # hem and cut ends of the skirts (stay flat-shaded)
+
+
+def skirt_path(y_side, y_mid, rx, ry, back):
+    """Hem outline seen from above: straight along the side, a half-ellipse around the rump (back) or the chest."""
+    s = 1.0 if back else -1.0
+    pts = [(rx, y_side + (y_mid - y_side) * k / 3.0) for k in range(3)]
+    for k in range(13):
+        a = math.pi * k / 12.0
+        pts.append((rx * math.cos(a), y_mid + s * ry * math.sin(a)))
+    pts += [(-rx, y_mid + (y_side - y_mid) * k / 3.0) for k in range(1, 4)]
+    return pts
+
+
+def skirt(path, y_mid, rows, body, legs, cell_band):
+    """Cloth shell: outer and inner surface along `path`, rows = [(z, cell, radial scale)] from the top to the hem
+    (the top rows lie on the upper flank, so the skirt continues the cover round over the body)."""
+    z_top, z_bot = rows[0][0], rows[-1][0]
+    outer, inner = [], []
+    for z, _c, flare in rows:
+        ro, ri = [], []
+        for (x, y) in path:
+            d = Vector((x, y - y_mid, 0.0))
+            p = Vector((0.0, y_mid, z)) + d * flare
+            n = d.normalized() if d.length > 1e-6 else Vector((1.0, 0.0, 0.0))
+            ro.append(bm.verts.new(p))
+            ri.append(bm.verts.new(p - n * 0.022))
+        outer.append(ro)
+        inner.append(ri)
+    faces = []
+    edge_set = set()
+    m = len(path)
+    for r in range(len(rows) - 1):
+        cell = rows[r + 1][1]
+        for i in range(m - 1):
+            faces.append((bm.faces.new((outer[r][i], outer[r + 1][i], outer[r + 1][i + 1], outer[r][i + 1])), cell))
+            faces.append((bm.faces.new((inner[r][i + 1], inner[r + 1][i + 1], inner[r + 1][i], inner[r][i])), cell))
+        for fe in (bm.faces.new((outer[r][0], inner[r][0], inner[r + 1][0], outer[r + 1][0])),
+                   bm.faces.new((outer[r + 1][m - 1], inner[r + 1][m - 1], inner[r][m - 1], outer[r][m - 1]))):
+            faces.append((fe, cell))
+            edge_set.add(fe)
+    for i in range(m - 1):
+        fe = bm.faces.new((outer[-1][i], inner[-1][i], inner[-1][i + 1], outer[-1][i + 1]))
+        faces.append((fe, cell_band))
+        edge_set.add(fe)
+    # outer normals point away from the body (flip the whole shell if the winding came out inwards)
+    f0 = faces[0][0]
+    f0.normal_update()
+    probe = f0.calc_center_median() - Vector((0.0, y_mid, f0.calc_center_median().z))
+    if f0.normal.dot(probe) < 0.0:
+        bmesh.ops.reverse_faces(bm, faces=[f for f, _c in faces])
+    edge_faces = edge_set
+    SKIRT_EDGES.update(edge_set)
+    for f, cell in faces:
+        f.smooth = f not in edge_faces   # hem and the cut ends stay flat, so they do not bend the cloth's shading
+        for l in f.loops:
+            l[B.uvl].uv = cell_uv(cell)
+    for ring_o, ring_i in zip(outer, inner):
+        for v in ring_o + ring_i:
+            t = min(1.0, max(0.0, (1.22 - v.co.z) / (1.22 - z_bot)))   # the legs pull only below the flank
+            side = min(1.0, abs(v.co.x) / 0.3)
+            w = 0.45 * (t ** 1.5) * (0.5 + 0.5 * side)
+            share_l = min(1.0, max(0.0, 0.5 + v.co.x / 0.5))
+            wts = {k: x * (1.0 - w) for k, x in (body(v) if callable(body) else body).items()}
+            wts[legs[0]] = w * share_l
+            wts[legs[1]] = w * (1.0 - share_l)
+            B.set_weights([v], wts)
+
+
+ROWS = [(1.4, ROLE, 0.86), (1.31, ROLE, 0.96), (1.21, ROLE, 1.02), (1.08, ROLE, 1.04), (0.96, ROLE, 1.06),
+        (0.87, ROLE, 1.08), (0.81, NAVY, 1.09)]
+skirt(skirt_path(0.1, 0.42, 0.352, 0.33, True), 0.42, ROWS, body_w, ("upperleg_b_l", "upperleg_b_r"), NAVY)
+skirt(skirt_path(-0.18, -0.4, 0.342, 0.33, False), -0.4, ROWS, {"spine": 1.0}, ("upperleg_f_l", "upperleg_f_r"), NAVY)
 for s in (1, -1):
-    x = 0.34 * s
-    for (y0, y1), wts in (((0.71, 0.12), body_w), ((-0.2, -0.64), {"spine": 1.0})):
-        zt = 1.22
-        B.prism([(x, y0, zt), (x, y1, zt), (x, y1, 0.86), (x, y0, 0.86)], 0.03, (1, 0, 0), ROLE, wts)
-        B.prism([(x * 1.02, y0 + 0.01 * (1 if y0 > y1 else -1), 0.87), (x * 1.02, y1 - 0.01 * (1 if y0 > y1 else -1), 0.87),
-                 (x * 1.02, y1 - 0.01 * (1 if y0 > y1 else -1), 0.81), (x * 1.02, y0 + 0.01 * (1 if y0 > y1 else -1), 0.81)],
-                0.03, (1, 0, 0), NAVY, wts)
-    B.box((0.36 * s, 0.42, 1.04), (0.012, 0.24, 0.24), NAVY, {"pelvis": 1.0}, rot=Euler((math.pi / 4, 0, 0)))
-    B.box((0.367 * s, 0.42, 1.04), (0.012, 0.13, 0.13), GOLD, {"pelvis": 1.0}, rot=Euler((math.pi / 4, 0, 0)))
-B.box((0, -0.64, 0.98), (0.56, 0.03, 0.3), ROLE, {"spine": 1.0})          # breast piece
-B.box((0, -0.645, 0.84), (0.57, 0.035, 0.06), NAVY, {"spine": 1.0})
-B.box((0, 0.7, 1.0), (0.6, 0.03, 0.34), ROLE, {"pelvis": 1.0})           # rear piece
-B.box((0, 0.705, 0.84), (0.61, 0.035, 0.06), NAVY, {"pelvis": 1.0})
+    B.box((0.39 * s, 0.3, 1.03), (0.012, 0.22, 0.22), NAVY, {"pelvis": 1.0}, rot=Euler((math.pi / 4, 0, 0)))
+    B.box((0.397 * s, 0.3, 1.03), (0.012, 0.12, 0.12), GOLD, {"pelvis": 1.0}, rot=Euler((math.pi / 4, 0, 0)))
 # saddle on a navy blanket
 B.cylinder((0, 0.12, 1.22), (0, -0.2, 1.24), 0.325, NAVY, body_w, segs=14)          # blanket and girth
 B.box((0, -0.05, 1.58), (0.34, 0.42, 0.07), LEATHER, {"spine": 1.0})
@@ -147,6 +215,11 @@ rot = head_d.to_track_quat("Z", "Y").to_matrix()
 B.box(mid + up_n * 0.095 + head_d * 0.03, (0.17, 0.02, 0.4), STEEL, {"head": 1.0}, rot=rot)
 B.box(mid + up_n * 0.108 + head_d * 0.03, (0.03, 0.02, 0.4), GOLD, {"head": 1.0}, rot=rot)
 
+# smooth shading on the round parts (coat, caparison, blanket); mane, hooves and metal stay faceted
+uvl_s = bm.loops.layers.uv.active
+for f in bm.faces:
+    if cell_of(f.loops[0][uvl_s].uv) in (COAT, ROLE, NAVY) and f not in SKIRT_EDGES:
+        f.smooth = True
 bm.normal_update()
 bm.to_mesh(me)
 bm.free()

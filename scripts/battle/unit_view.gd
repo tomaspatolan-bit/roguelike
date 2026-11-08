@@ -124,7 +124,7 @@ func _build_knight(u: Sim.Unit) -> void:
 			anim.seek(randf() * anim.current_animation_length, true)
 	var wm := String(u.base.get("weapon_model", ""))
 	if wm != "" and ResourceLoader.exists(wm):
-		var w := _attach_weapon_model(wm, String(u.base.get("weapon_bone", "hand_r")))
+		var w := _attach_weapon_model(wm, String(u.base.get("weapon_bone", "hand_r")), u.base.get("weapon_grip", {}))
 		var bs: Dictionary = u.base.get("bow_string", {})
 		if w != null and not bs.is_empty():
 			_setup_bow_string(w, bs)
@@ -198,7 +198,9 @@ func _sync_mount(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float
 
 ## Weapon from a model (GLB from Blender, palette like the figure). Grip: the weapon origin is in the fist
 ## (0.08 m along the bone's Y from the wrist), the weapon axis (+Z in Blender, +Y after import) lies along the hand bone's Z.
-func _attach_weapon_model(path: String, hand: String) -> Node3D:
+## grip (optional, data `weapon_grip`): {"rot": [x, y, z] degrees, "pos": [x, y, z] m} fine-tunes how the weapon sits
+## in the fist on top of the default (style pilot 2.0s).
+func _attach_weapon_model(path: String, hand: String, grip: Dictionary = {}) -> Node3D:
 	var skels := _figure.find_children("*", "Skeleton3D", true, false)
 	if skels.is_empty():
 		return null
@@ -210,6 +212,11 @@ func _attach_weapon_model(path: String, hand: String) -> Node3D:
 	skel.add_child(att)
 	var w := (load(path) as PackedScene).instantiate() as Node3D
 	w.transform = Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(0, 0.08, 0))
+	if not grip.is_empty():
+		var r: Array = grip.get("rot", [0.0, 0.0, 0.0])
+		var p: Array = grip.get("pos", [0.0, 0.0, 0.0])
+		var extra := Transform3D(Basis.from_euler(Vector3(deg_to_rad(float(r[0])), deg_to_rad(float(r[1])), deg_to_rad(float(r[2])))), Vector3(float(p[0]), float(p[1]), float(p[2])))
+		w.transform = extra * w.transform
 	att.add_child(w)
 	for mi in w.find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).material_override = palette_mat
