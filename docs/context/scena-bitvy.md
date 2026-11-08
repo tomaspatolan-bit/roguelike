@@ -35,6 +35,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 - Limity testů počítej v čase bitvy, ne ve snímcích (monitor může mít 144 Hz).
 
 ## Historie významných změn
+- 08.11.2026: `UnitView.use_anims(d)` přepne sadu animací jednotky (galerie: knihovní a naše animace tanka).
 - 08.11.2026: režim sandbox (`sandbox`, `_sandbox_request`, `_rebuild_field` společné s výběrem bitvy), `UnitView.play_kind` pro galerii.
 - 07.11.2026: nepřátelé s modelem z dat (lapkové `SK_Brigand`), bojiště dioráma pro scénáře s `look` (zkouška stylu, Most přes řeku).
 - 07.11.2026: otázka přísahy je panel UI místo okna `ConfirmationDialog`: dokud je otevřená (`ui.oath_open()`), vstup do bojiště stojí, Esc přísahu zachová (`ui.oath_keep()`).

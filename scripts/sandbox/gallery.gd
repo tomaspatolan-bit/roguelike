@@ -20,6 +20,7 @@ var outline_on := true
 var speed := 1.0
 var loop := true
 var turntable := false
+var library_anims := true        # units with `anims_own` in the data: library animations (on) or our own (off)
 var current := "idle"            # what the chosen characters do now
 var who := ""                    # "" = everyone, otherwise the unit id
 var missing: Array = []          # animations a character does not have (reported in the panel and the test)
@@ -67,6 +68,7 @@ func _build_world() -> void:
 	add_child(field_root)
 	Field.build(field_root, data["scenario"], data["units"].get("camera", {}))
 	UnitView.look_lighting = data["scenario"].has("look")
+	_clear_props()
 	if outline == null:
 		outline = Field.Diorama.attach_outline(cam)
 	outline.visible = outline_on and data["scenario"].has("look")
@@ -88,11 +90,25 @@ func _build_world() -> void:
 		v.setup(sim.by_id(id))
 		add_child(v)
 		views[id] = v
+		var own: Dictionary = sim.by_id(id).base.get("anims_own", {})
+		if not library_anims and not own.is_empty():
+			v.use_anims(own)
 		for k: String in ["attack", "ability", "hit", "death"]:
 			var nm := String(v.get("_anim_" + k))
 			if v.anim == null or not v.anim.has_animation(nm):
 				missing.append("%s: %s" % [sim.by_id(id).name, nm])
 	current = "idle"
+
+
+## Trees, bushes and rocks in front of and around the row are hidden so they never block the camera
+## (big meshes such as the terrain and water stay).
+func _clear_props() -> void:
+	for n in field_root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		var gp := mi.global_position
+		var big := mi.get_aabb().size.length() * mi.global_transform.basis.get_scale().x > 8.0
+		if not big and gp.x > -9.0 and gp.x < 9.0 and gp.z > -1.5 and gp.z < 12.0:
+			mi.visible = false
 
 
 func _place(u: Sim.Unit, p: Vector2) -> void:
@@ -275,6 +291,14 @@ func _build_panel() -> void:
 		look = String(lk.get_item_metadata(i))
 		_reset())
 	v.add_child(lk)
+	var la := CheckBox.new()
+	la.text = "Library animations (tank)"
+	la.tooltip_text = "On: animations from the Quaternius library (CC0). Off: our own animations, for comparison."
+	la.button_pressed = library_anims
+	la.toggled.connect(func(on: bool) -> void:
+		library_anims = on
+		_reset())
+	v.add_child(la)
 	var ol := CheckBox.new()
 	ol.text = "Outline"
 	ol.button_pressed = outline_on
