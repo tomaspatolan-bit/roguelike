@@ -7,7 +7,12 @@ const Sim := preload("res://scripts/sim/battle_sim.gd")
 const Field := preload("res://scripts/battle/battlefield.gd")
 const KNIGHT_SCENE := preload("res://art/knight/SK_Knight.glb")
 const PALETTE_SHADER := preload("res://art/knight/knight_palette.gdshader")
-const LOOK_SHADER := preload("res://art/look/character.gdshader")   # lit like the diorama environment
+const LOOK_SHADER := preload("res://art/chars/character.gdshader")   # one character shader: lit like the diorama, material response, rim
+const OUTLINE_SHADER := preload("res://art/chars/char_outline.gdshader")
+const CONTACT_SHADER := preload("res://art/chars/contact_shadow.gdshader")
+const Diorama := preload("res://scripts/battle/diorama.gd")
+const PAL2_ALBEDO := preload("res://art/chars/T_Char_Palette_D.png")   # palette v2 (characters built with char_kit.py, data `palette: "v2"`)
+const PAL2_ORM := preload("res://art/chars/T_Char_Palette_ORM.png")
 
 ## True on a battlefield with the diorama look (scenario `look`): characters use LOOK_SHADER, so they are not brighter than the scene.
 static var look_lighting := false
@@ -34,6 +39,14 @@ var _anim_idle := ANIM_IDLE
 var _anim_walk := ANIM_WALK
 var _anim_hit := ANIM_HIT
 var _anim_death := ANIM_DEATH
+var _anim_stance := ""        # idle while fighting (tank: shield raised); empty = the normal idle
+var _anim_block := ""         # every other hit lands on the shield instead of the hit reaction
+var _ability_anims: Dictionary = {}   # ability key -> animation (data `ability_anims`), otherwise _anim_ability
+var _walk_ref := 2.4           # speed (m/s) at which the walk loop plays at 1x, so the feet do not slide (data `anims.walk_speed`)
+var _fight_t := 0.0           # how much longer the fighting idle holds after the last blow given or taken
+var _hits := 0
+var _contact: MeshInstance3D = null
+static var _contact_mat: ShaderMaterial = null
 var _oneshot_t := 0.0      # how much longer a one-shot animation plays (attack, hit, ability)
 var _prev_atk := 0.0
 var _prev_hit := 0.0
@@ -79,6 +92,27 @@ func setup(u: Sim.Unit) -> void:
 		_build_foe(u)
 	if not is_knight and u.leader:
 		scale = Vector3.ONE * 1.3   # the enemy leader is visible from afar
+	if look_lighting:
+		_add_contact_shade(u)
+
+
+## Soft shade on the ground under the unit (diorama look): the figure sits on the land even where its sun shadow
+## falls beside it. One shared material, no shadow casting.
+func _add_contact_shade(u: Sim.Unit) -> void:
+	if _contact_mat == null:
+		_contact_mat = ShaderMaterial.new()
+		_contact_mat.shader = CONTACT_SHADER
+		_contact_mat.render_priority = -1
+	_contact = MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	var d := maxf(u.radius * 2.7, 1.15)
+	pm.size = Vector2(d, d * (1.5 if u.mounted else 1.0))
+	_contact.mesh = pm
+	_contact.material_override = _contact_mat
+	_contact.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_contact.position = Vector3(0, 0.035, 0)
+	_contact.name = "ContactShade"
+	add_child(_contact)
 
 
 func _build_knight(u: Sim.Unit) -> void:
@@ -98,11 +132,23 @@ func _build_knight(u: Sim.Unit) -> void:
 		body = figure
 		add_child(body)
 	_figure = figure
+	var v2 := String(u.base.get("palette", "")) == "v2"
+	var pal_d: Texture2D = PAL2_ALBEDO if v2 else PAL_ALBEDO
+	var pal_rows := 16.0 if v2 else 8.0
 	palette_mat = ShaderMaterial.new()
-	palette_mat.shader = LOOK_SHADER if look_lighting else PALETTE_SHADER
-	palette_mat.set_shader_parameter("palette_albedo", PAL_ALBEDO)
-	palette_mat.set_shader_parameter("palette_orm", PAL_ORM)
+	palette_mat.shader = LOOK_SHADER if (look_lighting or v2) else PALETTE_SHADER
+	palette_mat.set_shader_parameter("palette_albedo", pal_d)
+	palette_mat.set_shader_parameter("palette_orm", PAL2_ORM if v2 else PAL_ORM)
+	palette_mat.set_shader_parameter("palette_rows", pal_rows)
 	palette_mat.set_shader_parameter("role_row", float(u.palette_row))
+	if look_lighting or v2:
+		# coloured outline of the figure (and of the weapons, which share the material)
+		var ol := ShaderMaterial.new()
+		ol.shader = OUTLINE_SHADER
+		ol.set_shader_parameter("palette_albedo", pal_d)
+		ol.set_shader_parameter("palette_rows", pal_rows)
+		ol.set_shader_parameter("role_row", float(u.palette_row))
+		palette_mat.next_pass = ol
 	for n in body.find_children("*", "MeshInstance3D", true, false):
 		(n as MeshInstance3D).material_override = palette_mat
 	_anim_attack = String(u.base.get("anim_attack", ANIM_ATTACK))
@@ -114,11 +160,15 @@ func _build_knight(u: Sim.Unit) -> void:
 	_anim_death = String(anims.get("death", ANIM_DEATH))
 	_anim_attack = String(anims.get("attack", _anim_attack))
 	_anim_ability = String(anims.get("ability", _anim_ability))
+	_anim_stance = String(anims.get("stance", ""))
+	_anim_block = String(anims.get("block", ""))
+	_walk_ref = float(anims.get("walk_speed", 2.4))
+	_ability_anims = u.base.get("ability_anims", {})
 	var players := _figure.find_children("*", "AnimationPlayer", true, false)
 	if not players.is_empty():
 		anim = players[0] as AnimationPlayer
 		for a_name: String in anim.get_animation_list():
-			anim.get_animation(a_name).loop_mode = Animation.LOOP_LINEAR if a_name in [_anim_idle, _anim_walk] else Animation.LOOP_NONE
+			anim.get_animation(a_name).loop_mode = Animation.LOOP_LINEAR if a_name in [_anim_idle, _anim_walk, _anim_stance] else Animation.LOOP_NONE
 		if anim.has_animation(_anim_idle):
 			anim.play(_anim_idle)
 			anim.seek(randf() * anim.current_animation_length, true)
@@ -360,14 +410,15 @@ func _play_once(a_name: String, time_scale: float) -> void:
 
 
 ## Hero ability (called by the scene on the ability event).
-func play_ability(time_scale: float = 1.0) -> void:
-	_play_once(_anim_ability, time_scale)
+func play_ability(time_scale: float = 1.0, key: String = "") -> void:
+	var a_name := String(_ability_anims.get(key, _anim_ability))
+	_play_once(a_name if anim != null and anim.has_animation(a_name) else _anim_ability, time_scale)
 
 
 ## Character gallery (sandbox): plays one animation of the unit: attack, ability, hit, death (the animation, not the
 ## ragdoll). Returns false when the unit has no such animation (the gallery reports it).
 func play_kind(kind: String, time_scale: float = 1.0) -> bool:
-	var names := {"attack": _anim_attack, "ability": _anim_ability, "hit": _anim_hit, "death": _anim_death}
+	var names := {"attack": _anim_attack, "ability": _anim_ability, "hit": _anim_hit, "death": _anim_death, "block": _anim_block}
 	var a_name := String(names.get(kind, ""))
 	if anim == null or not anim.has_animation(a_name):
 		return false
@@ -384,10 +435,13 @@ func use_anims(d: Dictionary) -> void:
 	_anim_ability = String(d.get("ability", _anim_ability))
 	_anim_hit = String(d.get("hit", _anim_hit))
 	_anim_death = String(d.get("death", _anim_death))
+	_anim_stance = String(d.get("stance", ""))
+	_anim_block = String(d.get("block", ""))
+	_walk_ref = float(d.get("walk_speed", 2.4))
 	if anim == null:
 		return
 	for a_name: String in anim.get_animation_list():
-		anim.get_animation(a_name).loop_mode = Animation.LOOP_LINEAR if a_name in [_anim_idle, _anim_walk] else Animation.LOOP_NONE
+		anim.get_animation(a_name).loop_mode = Animation.LOOP_LINEAR if a_name in [_anim_idle, _anim_walk, _anim_stance] else Animation.LOOP_NONE
 	_oneshot_t = 0.0
 	if anim.has_animation(_anim_idle):
 		anim.play(_anim_idle, 0.1)
@@ -435,8 +489,10 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 	if u.atk > 0.0:
 		lunge = sin(u.atk / 0.25 * PI) * 0.3
 	var p := u.pos + u.face * lunge
-	position = Field.to_world(p)
+	position = Field.to_world(p, Diorama.ground_y(p) if look_lighting else 0.0)
 	rotation.y = yaw_for(u.face)
+	if _contact != null:
+		_contact.visible = u.alive()
 
 	if not u.alive():
 		if not _ragdoll and not _dead_played:
@@ -467,9 +523,16 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 		if sim_running:
 			if u.atk > _prev_atk + 0.01:
 				_play_once(_anim_attack, time_scale)
-			elif u.hit > _prev_hit + 0.01 and _oneshot_t <= 0.0:
-				_play_once(_anim_hit, time_scale)
+				_fight_t = 3.0
+			elif u.hit > _prev_hit + 0.01:
+				_fight_t = 3.0
+				if _oneshot_t <= 0.0:
+					# every other blow lands on the raised shield (tank), the rest are hit reactions
+					_hits += 1
+					var block := _anim_block != "" and anim.has_animation(_anim_block) and _hits % 2 == 0
+					_play_once(_anim_block if block else _anim_hit, time_scale)
 			_oneshot_t -= delta * time_scale
+			_fight_t -= delta * time_scale
 		_prev_atk = u.atk
 		_prev_hit = u.hit
 		if _oneshot_t > 0.0:
@@ -478,13 +541,16 @@ func sync(u: Sim.Unit, delta: float, sim_running: bool, time_scale: float) -> vo
 			else:
 				anim.speed_scale = time_scale
 		else:
-			var want := _anim_walk if u.moving and sim_running else _anim_idle
+			var idle_now := _anim_idle
+			if _anim_stance != "" and (_fight_t > 0.0 or u.locked or u.taunt_t > 0.0) and anim.has_animation(_anim_stance):
+				idle_now = _anim_stance   # fighting: the guard stays up between blows
+			var want := _anim_walk if u.moving and sim_running else idle_now
 			if anim.current_animation != want and anim.has_animation(want):
-				anim.play(want, 0.15)
+				anim.play(want, 0.2)
 			if not sim_running:
-				anim.speed_scale = 1.0 if want == _anim_idle else 0.0
+				anim.speed_scale = 1.0 if want == idle_now else 0.0
 			elif want == _anim_walk:
-				anim.speed_scale = clampf(u.speed / 2.4, 0.8, 2.2) * time_scale
+				anim.speed_scale = clampf(u.speed / _walk_ref, 0.6, 2.2) * time_scale
 			else:
 				anim.speed_scale = time_scale
 

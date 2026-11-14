@@ -8,13 +8,19 @@ const ENV_SHADER := preload("res://art/look/env.gdshader")
 const WATER_SHADER := preload("res://art/look/water.gdshader")
 const FALL_SHADER := preload("res://art/look/fall.gdshader")
 const OUTLINE_SHADER := preload("res://art/look/outline.gdshader")
+const GROUND_SHADER := preload("res://art/look/ground.gdshader")
 
 const CELL := 1.0           # terrain grid (m)
 const WATER_Y := -0.32      # water surface
 const BED_Y := -0.95        # river bed in the middle
 const CLIFF_BOTTOM := -11.0
 
+const DECK_Y := 0.18        # bridge deck (underside of the planks)
+const DECK_TOP := 0.27      # where feet stand on the bridge
+
 static var _mats := {}
+static var _river: Dictionary = {}      # river of the battlefield built last (ground_y)
+static var _rock_meshes: Array = []
 
 
 static func load_look(scenario: Dictionary) -> Dictionary:
@@ -24,8 +30,8 @@ static func load_look(scenario: Dictionary) -> Dictionary:
 		var parsed: Variant = JSON.parse_string(f.get_as_text())
 		if parsed is Dictionary:
 			looks = parsed
-	var key := String(scenario.get("look", "noon"))
-	return looks.get(key, looks.get("noon", {}))
+	var key := String(scenario.get("look", "morning"))
+	return looks.get(key, looks.get("morning", {}))
 
 
 static func c(look: Dictionary, key: String, i: int = -1, fallback: String = "#ff00ff") -> Color:
@@ -36,8 +42,8 @@ static func c(look: Dictionary, key: String, i: int = -1, fallback: String = "#f
 
 
 ## Shared environment material for a colour (flat facets, soft wrap light).
-static func env_mat(color: Color, vertex_colors: bool = false, sway: float = 0.0, ground_darken: float = 0.0) -> ShaderMaterial:
-	var key := "%s|%s|%.2f|%.2f" % [color.to_html(), vertex_colors, sway, ground_darken]
+static func env_mat(color: Color, vertex_colors: bool = false, sway: float = 0.0, ground_darken: float = 0.0, flat: bool = true) -> ShaderMaterial:
+	var key := "%s|%s|%.2f|%.2f|%s" % [color.to_html(), vertex_colors, sway, ground_darken, flat]
 	if _mats.has(key):
 		return _mats[key]
 	var m := ShaderMaterial.new()
@@ -46,6 +52,7 @@ static func env_mat(color: Color, vertex_colors: bool = false, sway: float = 0.0
 	m.set_shader_parameter("use_vertex_color", vertex_colors)
 	m.set_shader_parameter("sway", sway)
 	m.set_shader_parameter("ground_darken", ground_darken)
+	m.set_shader_parameter("flat_normals", flat)
 	_mats[key] = m
 	return m
 
@@ -75,10 +82,12 @@ static func build(root: Node3D, scenario: Dictionary, camera_defaults: Dictionar
 	_environment(root, look)
 	var area := _area(scenario, camera_defaults)
 	var river: Dictionary = scenario.get("river", {})
+	_river = river
 	var terrain := _terrain(root, scenario, look, area, river)
 	if not river.is_empty():
 		_water(root, look, area, river, terrain)
 		_crossings(root, look, river)
+		_bank_rocks(root, look, area, river)
 	_vegetation(root, scenario, look, area, river)
 	_camp(root, scenario, look)
 
@@ -114,9 +123,9 @@ static func _environment(root: Node3D, look: Dictionary) -> void:
 	env.tonemap_mode = {"agx": Environment.TONE_MAPPER_AGX, "filmic": Environment.TONE_MAPPER_FILMIC, "aces": Environment.TONE_MAPPER_ACES, "linear": Environment.TONE_MAPPER_LINEAR}.get(String(look.get("tonemap", "filmic")), Environment.TONE_MAPPER_FILMIC)
 	env.tonemap_exposure = float(look.get("exposure", 1.0))
 	env.ssao_enabled = bool(look.get("ssao", false))
-	env.ssao_radius = 0.8
-	env.ssao_intensity = 1.2
-	env.ssao_light_affect = 0.15
+	env.ssao_radius = 0.6
+	env.ssao_intensity = float(look.get("ssao_intensity", 0.9))
+	env.ssao_light_affect = 0.1
 	env.fog_enabled = true
 	env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
 	env.fog_light_color = c(look, "fog")
@@ -139,28 +148,66 @@ static func _environment(root: Node3D, look: Dictionary) -> void:
 	sun.light_color = c(look, "sun_color")
 	sun.light_energy = float(look.get("sun_energy", 1.4))
 	sun.shadow_enabled = true
-	sun.shadow_blur = 1.6
-	sun.shadow_opacity = 0.82
+	sun.shadow_blur = float(look.get("shadow_blur", 1.3))
+	sun.shadow_opacity = float(look.get("shadow_opacity", 0.62))
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-	sun.directional_shadow_max_distance = 75.0
+	sun.directional_shadow_max_distance = 60.0
+	sun.directional_shadow_blend_splits = true
 	root.add_child(sun)
 
 
-## Height of the land at a sim point (river channel with banks, gentle undulation).
+## How far the river bank is pushed into the river at x (0..~0.8 m). The simulation's river is the straight band
+## y0..y1; the visible bank only ever moves into that band (never onto the land heroes walk on), and stays straight
+## by the crossings so bridges sit on their abutments.
+static func _bank_in(x: float, river: Dictionary, seed: float) -> float:
+	var k := 1.0
+	for cr: Dictionary in river.get("crossings", []):
+		var d := maxf(float(cr["x0"]) - x, x - float(cr["x1"]))
+		k = minf(k, smoothstep(0.3, 2.6, d))
+	return _noise(x * 0.2 + seed, seed * 0.37) * 1.25 * k
+
+
+## Height of the land at a sim point: gentle undulation, a sandy beach of varying width sloping to the water line,
+## then the channel (shallow at fords).
 static func _height(p: Vector2, river: Dictionary) -> float:
 	var h := (_noise(p.x * 0.12, p.y * 0.12) - 0.5) * 0.18 + (_noise(p.x * 0.4 + 7.0, p.y * 0.4) - 0.5) * 0.025
 	if river.is_empty():
 		return h
-	var lo := float(river["y0"])
-	var hi := float(river["y1"])
-	if p.y > lo - 0.5 and p.y < hi + 0.5:
-		var t := minf(p.y - (lo - 0.5), (hi + 0.5) - p.y)   # distance into the channel from the nearest bank top
-		var bed := BED_Y
-		for cr: Dictionary in river.get("crossings", []):
-			if String(cr.get("kind", "")) == "brod" and p.x > float(cr["x0"]) - 0.5 and p.x < float(cr["x1"]) + 0.5:
-				bed = WATER_Y - 0.12   # ford: shallow
-		h = lerpf(h, bed, smoothstep(0.0, 1.3, t))
-	return h
+	var lo := float(river["y0"]) + _bank_in(p.x, river, 21.0)
+	var hi := float(river["y1"]) - _bank_in(p.x, river, 5.0)
+	var near_lo := p.y - lo < hi - p.y
+	var s := minf(p.y - lo, hi - p.y)                      # > 0 inside the river
+	var beach := 0.7 + _noise(p.x * 0.23 + (40.0 if near_lo else 80.0), 1.5) * 1.3
+	if s <= -beach:
+		return h
+	if s <= 0.0:
+		return lerpf(h, -0.27, smoothstep(-beach, 0.0, s))
+	var bed := BED_Y
+	for cr: Dictionary in river.get("crossings", []):
+		if String(cr.get("kind", "")) == "brod" and p.x > float(cr["x0"]) - 0.5 and p.x < float(cr["x1"]) + 0.5:
+			bed = WATER_Y - 0.12   # ford: shallow
+	return lerpf(-0.27, bed, smoothstep(0.0, 0.9, s))
+
+
+## Where a unit's feet are at a sim point: the land, or the deck of a bridge or footbridge (with a short ramp at
+## both ends). Purely visual; the simulation is flat.
+static func ground_y(p: Vector2) -> float:
+	var h := _height(p, _river)
+	if _river.is_empty():
+		return h
+	var lo := float(_river["y0"])
+	var hi := float(_river["y1"])
+	for cr: Dictionary in _river.get("crossings", []):
+		if String(cr.get("kind", "most")) == "brod":
+			continue
+		var half := (float(cr["x1"]) - float(cr["x0"])) / 2.0
+		var cx := (float(cr["x0"]) + float(cr["x1"])) / 2.0
+		if absf(p.x - cx) > half * 1.15 + 0.2:
+			continue
+		var inside := minf(p.y - (lo - 1.7), (hi + 1.7) - p.y)   # ramps start 1.7 m before the water
+		if inside > 0.0:
+			h = maxf(h, lerpf(h, DECK_TOP, smoothstep(0.0, 0.7, inside)))
+	return maxf(h, WATER_Y - 0.2)
 
 
 ## Terrain: a grid of flat-shaded triangles with vertex colours, edges pushed out and in by noise, corners cut,
@@ -191,51 +238,46 @@ static func _terrain(root: Node3D, scenario: Dictionary, look: Dictionary, area:
 				p += out.normalized() * (off - corner)
 			row.append(p)
 		pts.append(row)
-	var g0 := c(look, "ground", 0)
-	var g1 := c(look, "ground", 1)
-	var gd := c(look, "ground_dark")
-	var bank := c(look, "bank")
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var hf := func(p: Vector2) -> float:
 		return _height(p, river)
+	# ground: one smooth surface, coloured by the ground shader (no per-triangle colours)
+	var sg := SurfaceTool.new()
+	sg.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for j in ny + 1:
+		for i in nx + 1:
+			var p: Vector2 = pts[j][i]
+			var e := 0.5
+			var dx: float = float(hf.call(p + Vector2(e, 0))) - float(hf.call(p - Vector2(e, 0)))
+			var dy: float = float(hf.call(p + Vector2(0, e))) - float(hf.call(p - Vector2(0, e)))
+			sg.set_normal(Vector3(-dx, 2.0 * e, dy).normalized())
+			sg.add_vertex(Vector3(p.x, hf.call(p), -p.y))
 	for j in ny:
 		for i in nx:
-			var a: Vector2 = pts[j][i]
-			var b: Vector2 = pts[j][i + 1]
-			var cc: Vector2 = pts[j + 1][i + 1]
-			var d: Vector2 = pts[j + 1][i]
-			var ha: float = hf.call(a)
-			var hb: float = hf.call(b)
-			var hc: float = hf.call(cc)
-			var hd: float = hf.call(d)
-			var flip := (i + j) % 2 == 0
-			var tris := [[a, ha, b, hb, cc, hc], [a, ha, cc, hc, d, hd]] if flip else [[a, ha, b, hb, d, hd], [b, hb, cc, hc, d, hd]]
-			for t: Array in tris:
-				var ctr: Vector2 = (t[0] + t[2] + t[4]) / 3.0
-				var hmin := minf(t[1], minf(t[3], t[5]))
-				var col: Color
-				if hmin < -0.12 and ctr.y > lo - 0.9 and ctr.y < hi + 0.9:
-					col = bank.darkened(clampf((-hmin - 0.12) * 0.2, 0.0, 0.15))   # bank and bed
-				else:
-					var n := _noise(ctr.x * 0.22, ctr.y * 0.22)
-					col = g0.lerp(g1, smoothstep(0.35, 0.65, n))
-					if _noise(ctr.x * 0.6 + 11.0, ctr.y * 0.6) > 0.78:
-						col = col.lerp(gd, 0.35)
-					col = col.lightened((_hash(ctr.x, ctr.y) - 0.5) * 0.03)
-				var v0 := Vector3(t[0].x, t[1], -t[0].y)
-				var v1 := Vector3(t[2].x, t[3], -t[2].y)
-				var v2 := Vector3(t[4].x, t[5], -t[4].y)
-				var nrm := (v2 - v0).cross(v1 - v0).normalized()
-				if nrm.y < 0.0:
-					nrm = -nrm
-					var tmp := v1
-					v1 = v2
-					v2 = tmp
-				for v: Vector3 in [v0, v2, v1]:
-					st.set_color(col)
-					st.set_normal(nrm)
-					st.add_vertex(v)
+			var a := j * (nx + 1) + i
+			var b := a + 1
+			var d := a + nx + 1
+			var cc := d + 1
+			for idx: int in [a, d, cc, a, cc, b]:
+				sg.add_index(idx)
+	var ground := MeshInstance3D.new()
+	ground.mesh = sg.commit()
+	var gm := ShaderMaterial.new()
+	gm.shader = GROUND_SHADER
+	gm.set_shader_parameter("grass_a", c(look, "ground", 0))
+	gm.set_shader_parameter("grass_b", c(look, "ground", 1))
+	gm.set_shader_parameter("grass_dark", c(look, "ground_dark"))
+	gm.set_shader_parameter("bank", c(look, "bank"))
+	gm.set_shader_parameter("path", c(look, "path", -1, "#c7ad80"))
+	gm.set_shader_parameter("water_y", WATER_Y)
+	for cr: Dictionary in river.get("crossings", []):
+		if String(cr.get("kind", "most")) == "most":
+			gm.set_shader_parameter("path_x", (float(cr["x0"]) + float(cr["x1"])) / 2.0)
+			gm.set_shader_parameter("path_strength", float(look.get("path_strength", 0.5)))
+	ground.material_override = gm
+	ground.name = "Ground"
+	root.add_child(ground)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	# cliff walls along the outer ring (counter-clockwise seen from above)
 	var ring: Array = []
 	for i in nx + 1:
@@ -282,7 +324,7 @@ static func _terrain(root: Node3D, scenario: Dictionary, look: Dictionary, area:
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = env_mat(Color.WHITE, true)
-	mi.name = "Terrain"
+	mi.name = "Cliffs"
 	root.add_child(mi)
 	var edge_x := [area.position.x, area.end.x]
 	return {"edge_x": edge_x}
@@ -327,11 +369,12 @@ static func _water(root: Node3D, look: Dictionary, area: Rect2, river: Dictionar
 		root.add_child(f)
 
 
-## Bridge (planks, rails, stone piers), footbridge, ford stones.
+## Bridge (planks on stringers, trestles on stone piers, abutments, ramps, rails), footbridge, ford stones.
 static func _crossings(root: Node3D, look: Dictionary, river: Dictionary) -> void:
 	var lo := float(river["y0"])
 	var hi := float(river["y1"])
 	var wood := c(look, "trunk").lightened(0.08)
+	var plank_c := c(look, "planks", -1, "#b48a5c")
 	var stone := c(look, "rock")
 	for cr: Dictionary in river.get("crossings", []):
 		var x0 := float(cr["x0"])
@@ -348,36 +391,91 @@ static func _crossings(root: Node3D, look: Dictionary, river: Dictionary) -> voi
 				_rock(root, p, rng.randf_range(0.25, 0.45), stone, rng, WATER_Y)
 				y += rng.randf_range(0.35, 0.6)
 			continue
-		var length := hi - lo + 2.0
-		var deck_y := 0.18
-		# planks across the river, each a little different
-		var n := int(length / 0.42)
+		var br := Node3D.new()
+		br.name = "Bridge"
+		root.add_child(br)
+		var y_a := lo - 1.0            # deck ends
+		var y_b := hi + 1.0
+		var length := y_b - y_a
+		var mid := -(y_a + y_b) / 2.0
+		var deck_w := half * 2.3
+		var beam_m := env_mat(wood.darkened(0.28))
+		var post_m := env_mat(wood.darkened(0.14))
+		var rail_m := env_mat(wood.lightened(0.04))
+		# planks across, three tones only (a calm deck), small gaps
+		var n := int(length / 0.36)
 		for k in n:
-			var y := lo - 1.0 + (k + 0.5) * (length / n)
-			var pc := c(look, "planks", -1, "#b48a5c").darkened(_hash(float(k), 3.0) * 0.18)
-			var plank := _box(root, Vector3(half * 2.3, 0.1, length / n - 0.05), Vector3(cx, deck_y + (_hash(float(k), 9.0) - 0.5) * 0.03, -y), env_mat(pc))
-			plank.rotation.y = (_hash(float(k), 5.0) - 0.5) * 0.05
-		for sx: float in [-1.0, 1.0]:
-			# beams under the planks, rails and posts
-			_box(root, Vector3(0.22, 0.22, length), Vector3(cx + sx * half * 0.85, deck_y - 0.15, -(lo + hi) / 2.0), env_mat(wood.darkened(0.25)))
-			if kind == "most":
-				_box(root, Vector3(0.1, 0.1, length - 0.4), Vector3(cx + sx * half * 1.12, deck_y + 0.75, -(lo + hi) / 2.0), env_mat(wood))
-				var yy := lo - 0.8
-				while yy <= hi + 0.85:
-					_box(root, Vector3(0.14, 0.85, 0.14), Vector3(cx + sx * half * 1.12, deck_y + 0.4, -yy), env_mat(wood.darkened(0.12)))
-					yy += (length - 0.4) / 4.0
-			# stone piers in the water
-			for py: float in [lo + 1.2, hi - 1.2]:
-				var pier := MeshInstance3D.new()
-				var cm := CylinderMesh.new()
-				cm.top_radius = 0.38
-				cm.bottom_radius = 0.48
-				cm.height = 1.3
-				cm.radial_segments = 7
-				pier.mesh = cm
-				pier.position = Vector3(cx + sx * half * 0.85, WATER_Y - 0.25, -py)
-				pier.material_override = env_mat(stone)
-				root.add_child(pier)
+			var y := y_a + (k + 0.5) * (length / n)
+			var tone := floorf(_hash(float(k), 3.0) * 3.0) * 0.045
+			var plank := _box(br, Vector3(deck_w + (_hash(float(k), 7.0) - 0.5) * 0.08, 0.09, length / n - 0.035),
+				Vector3(cx, DECK_Y + 0.045, -y), env_mat(plank_c.darkened(tone)))
+			plank.rotation.y = (_hash(float(k), 5.0) - 0.5) * 0.02
+		# ramps down to the land at both ends
+		for end: float in [-1.0, 1.0]:
+			var ye := y_a if end < 0.0 else y_b
+			var ramp := _box(br, Vector3(deck_w, 0.09, 0.95), Vector3(cx, DECK_Y - 0.08, -(ye + end * 0.42)), env_mat(plank_c.darkened(0.09)))
+			ramp.rotation.x = end * 0.3
+		# stringers under the planks
+		for sx: float in ([-1.0, 0.0, 1.0] if kind == "most" else [-1.0, 1.0]):
+			_box(br, Vector3(0.2, 0.2, length), Vector3(cx + sx * half * 0.9, DECK_Y - 0.1, mid), beam_m)
+		# stone abutments on both banks
+		for ye: float in [lo - 0.55, hi + 0.55]:
+			_block(br, Vector3(deck_w + 0.5, 0.75, 1.0), Vector3(cx, DECK_Y - 0.55, -ye), env_mat(stone.darkened(0.06)), 0.12)
+			_block(br, Vector3(deck_w + 0.2, 0.2, 0.8), Vector3(cx, DECK_Y - 0.13, -ye), env_mat(stone), 0.06)
+		# trestles on stone piers in the water
+		for py: float in [lo + 1.25, hi - 1.25]:
+			_box(br, Vector3(deck_w + 0.3, 0.2, 0.24), Vector3(cx, DECK_Y - 0.3, -py), beam_m)          # cap beam
+			for sx: float in [-1.0, 1.0]:
+				var px := cx + sx * half * 0.9
+				_box(br, Vector3(0.2, 0.75, 0.2), Vector3(px, DECK_Y - 0.72, -py), post_m)
+				var brace := _box(br, Vector3(0.1, 0.75, 0.1), Vector3(px - sx * 0.3, DECK_Y - 0.66, -py), post_m)
+				brace.rotation.z = sx * 0.75
+				_block(br, Vector3(0.75, 0.75, 0.85), Vector3(px, WATER_Y - 0.2, -py), env_mat(stone), 0.14)
+				_block(br, Vector3(0.95, 0.3, 1.05), Vector3(px, WATER_Y - 0.55, -py), env_mat(stone.darkened(0.08)), 0.1)
+		if kind == "most":
+			# rails: posts with caps, a top rail and a lower rail; taller posts at the ends
+			for sx: float in [-1.0, 1.0]:
+				var rx := cx + sx * (deck_w * 0.5 - 0.06)
+				var posts := 5
+				for k in posts:
+					var y := y_a + 0.25 + (length - 0.5) * k / float(posts - 1)
+					var end_post := k == 0 or k == posts - 1
+					var ph := 1.05 if end_post else 0.85
+					_box(br, Vector3(0.16, ph, 0.16), Vector3(rx, DECK_Y + 0.09 + ph / 2.0, -y), post_m)
+					_box(br, Vector3(0.22, 0.07, 0.22), Vector3(rx, DECK_Y + 0.09 + ph + 0.03, -y), rail_m)
+				_box(br, Vector3(0.11, 0.11, length - 0.5), Vector3(rx, DECK_Y + 0.84, mid), rail_m)
+				_box(br, Vector3(0.07, 0.09, length - 0.5), Vector3(rx, DECK_Y + 0.48, mid), post_m)
+
+
+## A stone block with chamfered top and bottom edges (bridge piers and abutments), flat shaded by the env shader.
+static func _block(parent: Node3D, size: Vector3, pos: Vector3, m: Material, chamfer: float) -> MeshInstance3D:
+	var hx := size.x / 2.0
+	var hy := size.y / 2.0
+	var hz := size.z / 2.0
+	var ch := minf(chamfer, minf(hx, minf(hy, hz)) * 0.6)
+	var rings: Array = []
+	for r: Array in [[hx - ch, -hy, hz - ch], [hx, -hy + ch, hz], [hx, hy - ch, hz], [hx - ch, hy, hz - ch]]:
+		var ring: Array = []
+		for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+			ring.append(Vector3(corner.x * float(r[0]), float(r[1]), corner.y * float(r[2])))
+		rings.append(ring)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var quads: Array = [[rings[0][3], rings[0][2], rings[0][1], rings[0][0]], [rings[3][0], rings[3][1], rings[3][2], rings[3][3]]]
+	for i in 3:
+		for k in 4:
+			var k2 := (k + 1) % 4
+			quads.append([rings[i][k], rings[i][k2], rings[i + 1][k2], rings[i + 1][k]])
+	for q: Array in quads:
+		for idx: int in [0, 1, 2, 0, 2, 3]:
+			st.add_vertex(q[idx])
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = m
+	mi.position = pos
+	parent.add_child(mi)
+	return mi
 
 
 static func _box(parent: Node3D, size: Vector3, pos: Vector3, m: Material) -> MeshInstance3D:
@@ -406,14 +504,75 @@ static func _sphere(parent: Node3D, r: float, pos: Vector3, m: Material, segs: i
 	return mi
 
 
+## Boulder meshes: an icosphere (one subdivision) pushed in and out by noise and flattened underneath;
+## five variants, built once. Flat shaded by the env shader, so the facets are few and deliberate.
+static func _rock_mesh(variant: int) -> ArrayMesh:
+	if _rock_meshes.is_empty():
+		var t := (1.0 + sqrt(5.0)) / 2.0
+		var base: Array = [Vector3(-1, t, 0), Vector3(1, t, 0), Vector3(-1, -t, 0), Vector3(1, -t, 0), Vector3(0, -1, t), Vector3(0, 1, t),
+			Vector3(0, -1, -t), Vector3(0, 1, -t), Vector3(t, 0, -1), Vector3(t, 0, 1), Vector3(-t, 0, -1), Vector3(-t, 0, 1)]
+		var faces: Array = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+			[3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]]
+		for v in 5:
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			var shape := func(d: Vector3) -> Vector3:
+				var n: Vector3 = d.normalized()
+				var k: float = 0.78 + _hash(roundf(n.x * 3.0) + float(v) * 7.0, roundf(n.y * 3.0) + roundf(n.z * 3.0) * 5.0) * 0.36
+				var q: Vector3 = n * k
+				q.y = maxf(q.y, -0.38)            # sits on the ground
+				return q
+			for f: Array in faces:
+				var a: Vector3 = base[f[0]]
+				var b: Vector3 = base[f[1]]
+				var cc: Vector3 = base[f[2]]
+				var ab := (a + b) / 2.0
+				var bc := (b + cc) / 2.0
+				var ca := (cc + a) / 2.0
+				for tri: Array in [[a, ab, ca], [ab, b, bc], [ca, bc, cc], [ab, bc, ca]]:
+					for pnt: Vector3 in tri:
+						st.add_vertex(shape.call(pnt))
+			st.generate_normals()
+			_rock_meshes.append(st.commit())
+	return _rock_meshes[variant % _rock_meshes.size()]
+
+
 static func _rock(parent: Node3D, p: Vector2, size: float, col: Color, rng: RandomNumberGenerator, base_y: float = 0.0) -> void:
 	# a boulder and sometimes a smaller one leaning on it
 	for k in (2 if rng.randf() < 0.5 else 1):
 		var sz := size * (1.0 if k == 0 else 0.55)
-		var off := Vector3.ZERO if k == 0 else Vector3(rng.randf_range(-1, 1), 0, rng.randf_range(-1, 1)).normalized() * size * 0.9
-		var r := _sphere(parent, sz, Vector3(p.x, base_y + sz * 0.42, -p.y) + off, env_mat(col.darkened(rng.randf() * 0.1)), 7, 4,
-			Vector3(rng.randf_range(1.0, 1.3), rng.randf_range(0.75, 1.0), rng.randf_range(0.9, 1.2)))
-		r.rotation = Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3))
+		var off := Vector3.ZERO if k == 0 else Vector3(rng.randf_range(-1, 1), 0, rng.randf_range(-1, 1)).normalized() * size * 0.95
+		var r := MeshInstance3D.new()
+		r.mesh = _rock_mesh(rng.randi_range(0, 4))
+		r.material_override = env_mat(col.darkened(rng.randf() * 0.08))
+		r.position = Vector3(p.x, base_y + sz * 0.3, -p.y) + off
+		r.scale = Vector3(rng.randf_range(1.0, 1.3), rng.randf_range(0.7, 0.95), rng.randf_range(0.9, 1.2)) * sz
+		r.rotation.y = rng.randf() * TAU
+		parent.add_child(r)
+
+
+## Boulders at the water line of both banks, in loose groups, none by the crossings. They sit inside the
+## simulation's river band, where no unit walks.
+static func _bank_rocks(root: Node3D, look: Dictionary, area: Rect2, river: Dictionary) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var stone := c(look, "rock")
+	for side in 2:
+		var x := area.position.x + 2.0 + rng.randf_range(0.0, 3.0)
+		while x < area.end.x - 2.0:
+			var near_crossing := false
+			for cr: Dictionary in river.get("crossings", []):
+				if x > float(cr["x0"]) - 2.2 and x < float(cr["x1"]) + 2.2:
+					near_crossing = true
+			if not near_crossing:
+				for k in rng.randi_range(1, 3):
+					var px := x + rng.randf_range(-0.7, 0.7)
+					var y := float(river["y0"]) + _bank_in(px, river, 21.0) + rng.randf_range(0.05, 0.5)
+					if side == 1:
+						y = float(river["y1"]) - _bank_in(px, river, 5.0) - rng.randf_range(0.05, 0.5)
+					var p := Vector2(px, y)
+					_rock(root, p, rng.randf_range(0.28, 0.6), stone, rng, _height(p, river))
+			x += rng.randf_range(3.5, 7.5)
 
 
 ## A round deciduous tree (trunk and two or three crowns) or a conifer (stacked cones).
@@ -478,6 +637,12 @@ static func _vegetation(root: Node3D, scenario: Dictionary, look: Dictionary, ar
 			x += step
 			if p.y > lo - 1.4 and p.y < hi + 1.4:
 				continue
+			var on_way := false   # nothing grows on the way to a bridge or ford
+			for cr: Dictionary in river.get("crossings", []):
+				if p.x > float(cr["x0"]) - 1.3 and p.x < float(cr["x1"]) + 1.3 and p.y > lo - 5.0 and p.y < hi + 5.0:
+					on_way = true
+			if on_way:
+				continue
 			var dx := maxf(play.position.x - p.x, p.x - play.end.x)
 			var dy := maxf(play.position.y - p.y, p.y - play.end.y)
 			var dist := maxf(dx, dy)
@@ -529,7 +694,7 @@ static func _grass(root: Node3D, look: Dictionary, area: Rect2, river: Dictionar
 		var p := Vector2(rng.randf_range(area.position.x + 1.0, area.end.x - 1.0), rng.randf_range(area.position.y + 1.0, area.end.y - 1.0))
 		if p.y > lo - 0.9 and p.y < hi + 0.9:
 			continue
-		if play.has_point(p) and rng.randf() < 0.55:
+		if play.has_point(p) and rng.randf() < 0.85:
 			continue
 		var tr := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.7, 1.4)), Vector3(p.x, _height(p, river) + 0.12, -p.y))
 		xs.append(tr)

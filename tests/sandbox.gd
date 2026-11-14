@@ -76,13 +76,13 @@ func _run() -> void:
 	# every map with the diorama look and without it
 	for sid: String in Sim.scenario_list():
 		b.call("_sandbox_request", "scenario", sid)
-		b.call("_sandbox_request", "look", "noon")
+		b.call("_sandbox_request", "look", "morning")
 		await _frames(4)
 		await _shot("mapa_%s" % sid)
 		b.call("_sandbox_request", "look", "off")
 		await _frames(2)
 	b.call("_sandbox_request", "scenario", "most_pres_reku")
-	for lk: String in ["dawn", "dusk", ""]:
+	for lk: String in ["morning", "afternoon", ""]:
 		b.call("_sandbox_request", "look", lk)
 		await _frames(4)
 		await _shot("vzhled_%s" % (lk if lk != "" else "mapy"))

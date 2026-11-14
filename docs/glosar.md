@@ -7,7 +7,7 @@ Tenhle soubor drží názvy jednotně. Nový název ve hře = zapsat sem.
 ## Svět a rod
 | Česky | Anglicky |
 | --- | --- |
-| Rytíři (pracovní název) | Knights (pracovní název) |
+| Název hry | Oathline (schváleno 14.11.2026; dříve pracovně Rytíři / Knights) |
 | Rod Vlka | House of the Wolf |
 | rod | house |
 | Hraběcí les (akt 1) | The Count's Forest |

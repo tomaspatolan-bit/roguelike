@@ -21,7 +21,17 @@ CLIPS = {   # our action: (library action, loop)
     "A_Tank_UAL_Ability": ("Sword_Block", False),
     "A_Tank_UAL_Hit": ("Hit_Chest", False),
     "A_Tank_UAL_Death": ("Death01", False),
+    # visual prototype (phase 2, 14.11.2026): the tank carries a shield
+    "A_Tank_UAL_Stance": ("Idle_Shield_Loop", True),        # defensive stance, shield raised
+    "A_Tank_UAL_Block": ("Idle_Shield_Break", False),       # a blow lands on the raised shield
+    "A_Tank_UAL_Bash": ("Shield_OneShot", False),           # shield strike
+    "A_Tank_UAL_Dash": ("Shield_Dash", False),
+    "A_Tank_UAL_Knockback": ("Hit_Knockback", False),
+    "A_Tank_UAL_Jog": ("Jog_Fwd_Loop", True),               # the tank moves at 2.2 m/s: a walk loop would slide
 }
+ONLY = globals().get("ONLY")   # optional list of our action names: retarget just these
+if ONLY:
+    CLIPS = {k: v for k, v in CLIPS.items() if k in ONLY}
 NAME_MAP = {"Head": "head"}
 
 tgt = bpy.data.objects["Armature"]

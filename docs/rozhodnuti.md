@@ -1,6 +1,16 @@
-# Deník rozhodnutí – rytířský roguelike
+# Deník rozhodnutí – Oathline
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
+
+## 14.11.2026 – Název, vizuální směr a prototyp (fáze 2)
+- **Hra se jmenuje Oathline** (Tom). V projektu se mění viditelná identita (název projektu a okna, titulek menu, README, dokumentace); vnitřní identifikátory, cesty a názvy starých buildů (`Knights_test_*`, `Rytiri_test_*`) zůstávají.
+- **Vizuální směr** (Tom, zadání 14.11.2026; dokument „Oathline – vizuální audit a stylový průvodce“ je zdroj pravdy): čitelnost a klid bojiště podle Bad North, řemeslo postav podle The Valiant, stylizace a rostliny podle Northgard. Světlý, lehce hrdinský svět; žádný fotorealismus, karikatura ani temná fantasy.
+- **Barva třídy zabírá aspoň 40 % plochy postavy viděné z bitevní kamery** (Tom). Ruší rozhodnutí z 30.10.2026 „stříbrná zbroj pro všechny, barva hrdiny jen na látce“. Ocel zůstává společným materiálem, ale nesmí převládat. Barvy: tank královská modrá, kněz slonová, lučištník lesní zelená, jezdec okrová, asasín tlumená fialová. Měří se z herní kamery maskou, ne odhadem.
+- **Jeden vzhled pro všechny mapy** (Tom): směr dioráma. Staré světlo a shader se převedou nebo odstraní tam, kde s novým standardem kolidují, ale až po kontrole závislostí (fáze 3); v prototypu se nic naslepo nemazalo.
+- **Dvě denní doby: jasné ráno a pozdní odpoledne** (Tom). Svítání a soumrak jsou zrušené (soumrak byl hnědofialový a hrdinové v něm splývali).
+- **Animace: Quaternius UAL jako hlavní zdroj, Mixamo jen na konkrétní mezery** (Tom). Před každým importem se ověří licence a zapíše do evidence v `docs/context/grafika.md`. UAL 1 a 2 Standard: CC0 podle `License.txt` v balíku (ověřeno 14.11.2026). Mixamo zatím použité není.
+- **Prototyp = tank a Most přes řeku** (Tom). Jsou měřítkem pro další postavy a mapy; ostatní třídy se nevyrábějí, dokud Tom prototyp nevyhodnotí a nerozhodne, jestli postavy vznikají dál interně, nebo u externích grafiků.
+- Rozhodl Claude v rámci prototypu (Tom může vrátit): štít tanka je součást sítě na předloktí, ne samostatný model; střeh se štítem a blok jsou jen obraz (klid v boji a každý druhý zásah), pravidla boje se nemění; výška jednotek se bere z terénu a z paluby mostu jen v obraze, simulace zůstává plochá; břeh řeky se vlní jen dovnitř pásu řeky, aby hrdinové nestáli ve vodě; k mostu vede vyšlapaná cesta.
 
 ## 08.11.2026 – Sandbox před pilotem hladkých modelů
 - **Nejdřív sandbox, pak pilot** (Tom): testovací sandbox se vším (schopnosti, komba, přísahy, pouta, znamení, nepřátelé, vzhled) a galerie postav, aby se okrajové případy daly najít bez procházení běhu. Po Tomově potvrzení pilot hladkých modelů na tankovi a koni (zkosení, měkké látky a váhy, úchop zbraně, proporce).

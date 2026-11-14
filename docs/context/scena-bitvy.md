@@ -35,6 +35,7 @@ Zobrazit simulaci a předat jí příkazy hráče. Žádná pravidla hry.
 - Limity testů počítej v čase bitvy, ne ve snímcích (monitor může mít 144 Hz).
 
 ## Historie významných změn
+- 14.11.2026: vizuální prototyp fáze 2. `UnitView`: hrdina s `"palette": "v2"` dostane paletu v2; na mapách dioráma (a u modelů v2 vždy) shader `art/chars/character.gdshader` a obrys jako `next_pass`; pod jednotkou kontaktní stín (`_add_contact_shade`); výška jednotky z `Diorama.ground_y` (terén, paluba mostu), simulace zůstává plochá. Animace z dat `anims`: `stance` = klid v boji (3 s po posledním úderu daném nebo přijatém, při zámku Nikdy neustoupí a při Výzvě), `block` = každý druhý zásah místo `hit`; `walk_speed` = rychlost (m/s), při které smyčka chůze hraje 1× (tank má poklus z knihovny 2,7 m/s, aby při 2,2 m/s neklouzal; výchozí 2,4); `ability_anims` = animace podle klíče schopnosti (`play_ability(speed, key)`), jinak `anims.ability`. Vše jen obraz, časování boje se nemění.
 - 08.11.2026: `UnitView.use_anims(d)` přepne sadu animací jednotky (galerie: knihovní a naše animace tanka).
 - 08.11.2026: režim sandbox (`sandbox`, `_sandbox_request`, `_rebuild_field` společné s výběrem bitvy), `UnitView.play_kind` pro galerii.
 - 07.11.2026: nepřátelé s modelem z dat (lapkové `SK_Brigand`), bojiště dioráma pro scénáře s `look` (zkouška stylu, Most přes řeku).

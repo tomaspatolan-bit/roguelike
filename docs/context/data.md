@@ -44,6 +44,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 - Při exportu hry musí být `*.json` ve filtru exportovaných souborů (`include_filter` v `export_presets.cfg`, viz `testy.md`, Export).
 
 ## Historie významných změn
+- 14.11.2026: tank: `model` `res://art/tank/SK_Tank.glb`, `weapon_model` `SM_Tank_Sword.glb`, `"palette": "v2"` (nová paleta postav), `anims.stance` a `anims.block`, `ability_anims` (klíč schopnosti → animace). `looks.json`: vzhledy `morning` a `afternoon` (zrušeny `noon`, `dawn`, `dusk`), nové klíče `path_strength`, `shadow_opacity`, `shadow_blur`, `ssao`, `ssao_intensity`; Most přes řeku má `look: morning`.
 - 08.11.2026: tank má `anims` z knihovny Quaternius (`A_Tank_UAL_*`) a naše původní v `anims_own` (test knihovních animací).
 - 08.11.2026: tank má `model` SK_Knight_Smooth, `weapon_model` SM_Knight_Sword a `weapon_grip` (pilot hladkých modelů).
 - 07.11.2026: `units.json` → `relics` (8 znamení rodu, popis polí v `_info`); `akt_1.json` `elite_relic_offers`; události `relic_choice`; sláva rodu `per_kill` 4, `per_hit` 0,2, `oath_per_second` 0,4; Úder štítem 16 a omráčení 2,5 s, Ochranný kruh 3,5 m a 6 za sekundu.

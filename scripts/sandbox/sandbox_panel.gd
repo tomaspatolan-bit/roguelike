@@ -8,7 +8,7 @@ const UI := preload("res://scripts/ui/ui_theme.gd")
 
 signal request(kind: String, arg: Variant)
 
-const LOOKS := [["", "Map default"], ["off", "Off (placeholder)"], ["noon", "Noon"], ["dawn", "Dawn"], ["dusk", "Dusk"]]
+const LOOKS := [["", "Map default"], ["off", "Off (placeholder)"], ["morning", "Morning"], ["afternoon", "Late afternoon"]]
 const SWITCHES := [
 	["god", "Heroes cannot fall", "Health never drops below 1."],
 	["free_uses", "Unlimited abilities", "Abilities and combos never run out and do not recharge."],

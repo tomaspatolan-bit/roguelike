@@ -11,11 +11,11 @@ const UI := preload("res://scripts/ui/ui_theme.gd")
 signal back_pressed
 
 const SCENARIO := "most_pres_reku"
-const LOOKS := [["noon", "Noon"], ["dawn", "Dawn"], ["dusk", "Dusk"], ["off", "Off (placeholder)"]]
+const LOOKS := [["morning", "Morning"], ["afternoon", "Late afternoon"], ["off", "Off (placeholder)"]]
 const ANIMS := [["idle", "Idle"], ["walk", "Walk"], ["attack", "Attack"], ["ability", "Ability"], ["hit", "Hit"], ["death", "Death (animation)"], ["ragdoll", "Fall (ragdoll)"]]
 const SPEEDS := [0.25, 0.5, 1.0]
 
-var look := "noon"
+var look := "morning"
 var outline_on := true
 var speed := 1.0
 var loop := true

@@ -1,6 +1,6 @@
-# Rytíři – instrukce pro Clauda
+# Oathline – instrukce pro Clauda
 
-Rytířský roguelike pro Steam. Tým: **Tom** (ředitel, designér, tester, art direction, business) a **Claude** (kód, data, simulace balancu, 3D v Blenderu, dokumentace). Engine **Godot 4.7** (GDScript). Texty ve hře, data a komentáře v kódu jsou anglicky (trh je anglický, rozhodnutí 07.11.2026); dokumentace, deník rozhodnutí, commity a naše komunikace česky. Identifikátory v kódu anglicky, klíče v datech zůstávají (`vyzva`, `knez`…). Anglické názvy drží `docs/glosar.md`.
+Oathline (dříve pracovně Rytíři / Knights): rytířský taktický roguelike pro Steam. Tým: **Tom** (ředitel, designér, tester, art direction, business) a **Claude** (kód, data, simulace balancu, 3D v Blenderu, dokumentace). Engine **Godot 4.7** (GDScript). Texty ve hře, data a komentáře v kódu jsou anglicky (trh je anglický, rozhodnutí 07.11.2026); dokumentace, deník rozhodnutí, commity a naše komunikace česky. Identifikátory v kódu anglicky, klíče v datech zůstávají (`vyzva`, `knez`…). Anglické názvy drží `docs/glosar.md`.
 
 ## Na začátku každého sezení
 

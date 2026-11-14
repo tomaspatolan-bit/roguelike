@@ -6,7 +6,7 @@ render_mode unshaded, depth_draw_never, depth_test_disabled, cull_disabled, blen
 uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
 uniform sampler2D normal_tex : hint_normal_roughness_texture, filter_nearest;
 uniform vec4 line_color : source_color = vec4(0.10, 0.11, 0.13, 1.0);
-uniform float strength : hint_range(0.0, 1.0) = 0.75;
+uniform float strength : hint_range(0.0, 1.0) = 0.42;   // characters carry their own coloured outline (art/chars/char_outline.gdshader)
 uniform float depth_threshold = 0.035;   // relative depth jump that counts as an edge
 uniform float normal_threshold = 0.8;   // normals more different than this (1 - dot) count as a crease
 uniform float thickness = 1.0;           // in pixels (at 1080p)
@@ -38,7 +38,7 @@ void fragment() {
 		}
 		vec3 nn = texture(normal_tex, o).xyz * 2.0 - 1.0;
 		if (abs(dn - dc) < 0.5 && 1.0 - dot(nc, nn) > normal_threshold) {
-			edge = max(edge, 0.45);
+			edge = max(edge, 0.3);
 		}
 	}
 	float fade = 1.0 - smoothstep(far_fade * 0.6, far_fade, dc);

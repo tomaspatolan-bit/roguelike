@@ -1209,7 +1209,7 @@ func _flush_events() -> void:
 				_tut_mark("ability")
 				var av: UnitView = views.get(String(ev.get("id", "")))
 				if av != null:
-					av.play_ability(speed)
+					av.play_ability(speed, String(ev["key"]))
 			"wake", "warn":
 				ui.flash_hint(String(ev.get("text", "")))
 			"oath_broken":

@@ -77,7 +77,7 @@ func _hide_screen() -> void:
 
 func show_start() -> void:
 	var v := _new_screen()
-	v.add_child(UI.title("Knights", 56))
+	v.add_child(UI.title("Oathline", 56))
 	v.add_child(UI.eyebrow("Prototype · phase 2", GLORY, 12))
 	v.add_child(_rule())
 	v.add_child(UI.label("Run: the House of the Wolf marches through %s. On the act map you pick your way on each floor: battle, elite (harder, better reward), event or camp (rest). Captain Kuno waits at the top. Wounds carry over between battles, the fallen stay fallen and successors take their place. Enemies who flee will return in the fight with the Captain." % String(Run.Sim._read_json("res://data/akt_1.json").get("name", "")), 19, UI.TEXT_2, true, "lore"))

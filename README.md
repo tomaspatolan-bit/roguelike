@@ -1,8 +1,8 @@
-# Rytíři (pracovní název, ve hře „Knights“)
+# Oathline
 
 Taktický roguelike pro Steam ve středověku. Vedeš pět hrdinů jednoho rodu na výpravě. Hrdinové skládají přísahy, které dávají sílu za cenu, a kdo padne, zůstává padlý: jeho místo zaujme nástupce a přísahu po něm může převzít další hrdina.
 
-Hra je v angličtině, dokumentace česky. Engine: Godot 4.7. Návrh názvu a identity (Oathline a další) je ve Figmě a čeká na rozhodnutí. Vzhled obrazovek je světlý „Royal Court Enamel“ (Figma → hra, písma Cinzel, EB Garamond a Inter).
+Hra je v angličtině, dokumentace česky. Engine: Godot 4.7. Název Oathline je schválený (14.11.2026), dřívější pracovní názvy byly Rytíři a Knights; identita je ve Figmě. Vzhled obrazovek je světlý „Royal Court Enamel“ (Figma → hra, písma Cinzel, EB Garamond a Inter).
 
 Aktualizováno 07.11.2026 (krok 2.3e, nový vzhled UI).
 
