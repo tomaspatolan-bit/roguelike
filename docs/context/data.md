@@ -9,7 +9,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 ## Invarianty
 1. **Klíče, na které se odkazuje kód, se nepřejmenovávají** bez úpravy kódu: hrdinové `tank`, `knez`, `lucistnik`, `jezdec`, `asasin`; nepřátelé `lapka`, `strelec`, `kopinik`; schopnosti `vyzva`, `pozehnani`, `salva`, `najezd`, `uder`; vlastnosti `zoufalec`, `fanatik`, `zbabelec`; scénáře `most_pres_reku`, `brod_a_les`; pasivky a přísahy podle `passives` (klíče, na které se odkazuje kód: `ochrance`, `druhy_dech`, `posledni_pomazani`, `probodnuti`, `rozbeh`, `ze_stinu`, `ukryt`, `mstitel`; přísahy kód pozná podle efektů, ne podle klíče).
 2. **Jednotky:** vzdálenosti v metrech, čas v sekundách, rychlost v m/s, `armor` je podíl 0–1, bonusy jsou podíly (0.5 = +50 %).
-3. **`palette_row`** odpovídá řádku paletové textury: 0 rod Vlka, 1 tank, 2 lučištník, 3 kněz, 4 jezdec, 5 asasín, 6 lapkové, 7 velitelé lapků. Nepřítel s `model` (lapkové: `SK_Brigand`) se vykreslí jako postava se zbraní a animacemi z dat stejně jako hrdina (`weapon_model`, `weapon_bone`, `bow_string`, `projectile_model`, `anims`); bez `model` zůstane kostička.
+3. **`palette_row`** odpovídá řádku paletové textury: 0 rod Vlka, 1 tank, 2 lučištník, 3 kněz, 4 jezdec, 5 asasín, 6 lapkové, 7 velitelé lapků. Nepřítel s `model` (lapkové: `SK_Brigand2`, `SK_Spearman2`, `SK_Bowman2`, velitelé `SK_BrigandBoss2`, všichni `"palette": "v2"`) se vykreslí jako postava se zbraní a animacemi z dat stejně jako hrdina (`weapon_model`, `weapon_bone`, `bow_string`, `projectile_model`, `anims`); bez `model` zůstane kostička.
 4. **Každá změna čísla v bitvě = spustit test balancu** a výsledek zapsat do commitu.
 5. Texty jsou anglicky, jak je uvidí hráč (od 07.11.2026); názvy podle `docs/glosar.md`. `_info` je anglický popis pro vývojáře. Klíče zůstávají česky.
 6. **Hrdina** (`knights.<klíč>`): statistiky, `ability` (klíč z `abilities`). Bonusy rodu se zapékají přímo do hodnot hrdinů, žádné bonusy pro celý oddíl.
@@ -44,6 +44,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 - Při exportu hry musí být `*.json` ve filtru exportovaných souborů (`include_filter` v `export_presets.cfg`, viz `testy.md`, Export).
 
 ## Historie významných změn
+- 15.11.2026: lapkové: `lapka` `SK_Brigand2` se `SM_Brigand2_Axe`, `kopinik` `SK_Spearman2` se `SM_Brigand2_Spear`, `strelec` `SK_Bowman2` se `SM_Brigand2_Bow` a šípem `SM_Archer2_Arrow`, velitelé `SK_BrigandBoss2` (zbraně podle typu), všichni `"palette": "v2"`; řádky 6 a 7 beze změny. Čísla a animace beze změny.
 - 15.11.2026: kněz, lučištník, asasín a jezdec mají nové modely (`SK_Priest`, `SK_Archer2`, `SK_Assassin2`, `SK_Cavalier2`, kůň `SK_Horse2`) se zbraněmi v2 a `"palette": "v2"`; animace (`anims`) beze změny. Lapkové střelci dál používají starý luk a šíp.
 - 14.11.2026: tank: `model` `res://art/tank/SK_Tank.glb`, `weapon_model` `SM_Tank_Sword.glb`, `"palette": "v2"` (nová paleta postav), `anims.stance` a `anims.block`, `ability_anims` (klíč schopnosti → animace). `looks.json`: vzhledy `morning` a `afternoon` (zrušeny `noon`, `dawn`, `dusk`), nové klíče `path_strength`, `shadow_opacity`, `shadow_blur`, `ssao`, `ssao_intensity`; Most přes řeku má `look: morning`.
 - 08.11.2026: tank má `anims` z knihovny Quaternius (`A_Tank_UAL_*`) a naše původní v `anims_own` (test knihovních animací).

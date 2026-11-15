@@ -85,6 +85,7 @@ func _run() -> void:
 # ------------------------------------------------------------------ tank up close, animation frames, colour test
 
 const HEROES := ["tank", "knez", "lucistnik", "jezdec", "asasin"]
+const FOES := ["lapka", "kopinik", "strelec", "vudce"]
 
 
 func _gallery_part() -> void:
@@ -115,6 +116,28 @@ func _gallery_part() -> void:
 			g.call("_apply_cam")
 			await _frames(12)
 			await _shot("01_%s_%s" % [id, side[0]])
+	# close-ups of the brigands (one of each model: axe, spear, bow, commander), front and back, and the whole row
+	var gsim: Sim = g.get("sim")
+	for id: String in views.keys():
+		var fu: Sim.Unit = gsim.by_id(id)
+		if fu == null or not (fu.key in FOES):
+			continue
+		g.set("who", id)
+		g.call("view_close")
+		for side: Array in [["front", 25.0, 10.0], ["back", 200.0, 30.0]]:
+			g.set("_yaw", deg_to_rad(side[1]))
+			g.set("_pitch", deg_to_rad(side[2]))
+			g.set("_dist", 5.2 if fu.key == "vudce" else 4.3)
+			g.call("_apply_cam")
+			await _frames(12)
+			await _shot("01_%s_%s" % [fu.key, side[0]])
+		if fu.key == "vudce":
+			g.set("_yaw", 0.0)
+			g.set("_pitch", deg_to_rad(30.0))
+			g.set("_dist", 11.0)
+			g.call("_apply_cam")
+			await _frames(12)
+			await _shot("01_lapkove_rada")
 	# animation frames of the tank: the gallery stops driving the units, the player is set to an exact moment
 	g.set("who", "tank")
 	g.call("view_close")

@@ -1,6 +1,6 @@
 extends Node3D
 ## Visuals of one unit. Hero = GLB model with the role colour. Enemy = GLB model when the data give `model`
-## (brigands: SK_Brigand on the knight skeleton, palette row 6 or 7), otherwise a blocky figure.
+## (brigands: SK_Brigand2 and its siblings on the knight skeleton, palette v2 row 6 or 7), otherwise a blocky figure.
 ## Takes position and state from the simulation every frame (sync).
 
 const Sim := preload("res://scripts/sim/battle_sim.gd")

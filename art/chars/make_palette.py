@@ -23,6 +23,18 @@ ROLES = {
     3: ("#EDE3C6", "#C7B994", "#FBF6E4", "#E4D9B8"),   # priest: ivory
     4: ("#D9A02C", "#98691A", "#F0C766", "#CC9426"),   # cavalier: ochre gold
     5: ("#7257A6", "#463470", "#A58FD2", "#694F9C"),   # assassin: muted violet
+    6: ("#8A4A30", "#5B3022", "#AE7A57", "#7A4430"),   # brigands: rust and mud (no hero colour is near)
+    7: ("#962620", "#561512", "#C2554A", "#84201B"),   # brigand commanders: blood red with blackened iron
+}
+# Enemy rows (brigands are not of the order): they override whole cells, not only the role columns
+# (dull iron instead of polished steel, brass instead of gold, dirty wool instead of linen). Name -> colour.
+OVERRIDES = {
+    6: {"STEEL": "#85847E", "STEEL_DARK": "#585852", "STEEL_LIGHT": "#A3A198", "GOLD": "#9E8649", "GOLD_DARK": "#6C5B31",
+        "LEATHER": "#6B4A31", "LEATHER_DARK": "#3F2C1F", "MAIL": "#5A5852", "LINEN": "#B3A584", "IVORY": "#C4B794",
+        "CRIMSON": "#7E2E22", "NAVY": "#4B4A3A", "HAIR": "#4A3424"},
+    7: {"STEEL": "#6E727A", "STEEL_DARK": "#41444B", "STEEL_LIGHT": "#8E939C", "GOLD": "#B08B3E", "GOLD_DARK": "#77602C",
+        "LEATHER": "#4A3427", "LEATHER_DARK": "#2C211B", "MAIL": "#4C4F56", "LINEN": "#8F8574", "IVORY": "#A99E88",
+        "CRIMSON": "#6E1A16", "NAVY": "#26262B", "HAIR": "#2E2420"},
 }
 COLS, ROWS, PX = 32, 16, 8
 
@@ -41,6 +53,7 @@ for row in range(ROWS):
         if colour is None:
             colour = role[k]
             k += 1
+        colour = OVERRIDES.get(row, {}).get(name, colour)
         d.paste(rgb(colour), (col * PX, row * PX, col * PX + PX, row * PX + PX))
         o.paste((255, int(round(rough * 255)), int(round(metal * 255))), (col * PX, row * PX, col * PX + PX, row * PX + PX))
 here = os.path.dirname(os.path.abspath(__file__))

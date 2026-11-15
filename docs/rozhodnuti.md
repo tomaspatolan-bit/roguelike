@@ -2,6 +2,12 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 15.11.2026 – Lapkové podle standardu hrdinů
+- **Lapkové se staví stejnou stavebnicí jako hrdinové** (Tom: „jdi na ty lapky nejdřív, ať máme podklady“). Stejné tělo a kostra, takže animace rytíře a lučištníka platí beze změny.
+- **Každý typ nepřítele má vlastní model a obrys shora:** lapka se sekerou (kápě s roztřepeným límcem), kopiník (železný klobouk s krempou, prošívanice, kulatý štít na zádech), střelec (kápě s dlouhým cípem, toulec u boku), velitel (nosová přilba s kroužkovým závěsem, kožešina, kroužková košile, roztrhaný rudý varkoč). Všichni čtyři velitelé zatím sdílejí jeden model a liší se zbraní.
+- **Lapkové nemají barvu žádného hrdiny ani lesk řádu:** řádek palety 6 (rez, bláto, nebarvená vlna, matné železo a mosaz místo oceli a zlata) a 7 pro velitele (krvavě červená, černěné železo). Řádky nepřátel přepisují celé buňky, ne jen sloupce barvy role (jako ve staré paletě). Kopiník má hnědou prošívanici, protože slonová kost patří knězi.
+- Rozhodl Claude (Tom může vrátit): konkrétní oblečení a barvy výše; staré `SK_Brigand` a jeho zbraně zůstávají v repozitáři (nic je už nenačítá).
+
 ## 15.11.2026 – Ostatní třídy podle tanka
 - **Tank je měřítko** (Tom: „vypadá to naprosto topově, použij stejný přístup pro další třídy“). Kněz, lučištník, asasín a jezdec s koněm jsou postavení stejnou stavebnicí, se stejným tělem a proporcemi; každá třída splňuje 40 % barvy třídy z bitevní kamery (měří `tests/prototype_shots.gd`). Postavy dál vznikají interně, externí grafik zatím není potřeba.
 - **Animace tříd se teď neřeší** (Tom): nové modely jsou na stejných kostrách a používají dosavadní animace. Řetězení úderů do komba je zapsané v `docs/napady.md` na později.
