@@ -2,6 +2,11 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 15.11.2026 – Ostatní třídy podle tanka
+- **Tank je měřítko** (Tom: „vypadá to naprosto topově, použij stejný přístup pro další třídy“). Kněz, lučištník, asasín a jezdec s koněm jsou postavení stejnou stavebnicí, se stejným tělem a proporcemi; každá třída splňuje 40 % barvy třídy z bitevní kamery (měří `tests/prototype_shots.gd`). Postavy dál vznikají interně, externí grafik zatím není potřeba.
+- **Animace tříd se teď neřeší** (Tom): nové modely jsou na stejných kostrách a používají dosavadní animace. Řetězení úderů do komba je zapsané v `docs/napady.md` na později.
+- Rozhodl Claude (Tom může vrátit): kněz má otevřenou vousatou tvář, slonový šat a navy štólu, hůl se zlatým kruhem; lučištník zelenou kápi s perem a zelený toulec; asasín pláštěnku přes levé rameno, fialový nárameník a šátek přes ústa; jezdec okrovou přilbu s karmínovým chocholem; kůň je hnědák s okrovou čabrakou přes záď, hruď a krk (bez ní by srst srazila barvu třídy jezdce pod 40 %) a lakovanou čelenkou.
+
 ## 14.11.2026 – Název, vizuální směr a prototyp (fáze 2)
 - **Hra se jmenuje Oathline** (Tom). V projektu se mění viditelná identita (název projektu a okna, titulek menu, README, dokumentace); vnitřní identifikátory, cesty a názvy starých buildů (`Knights_test_*`, `Rytiri_test_*`) zůstávají.
 - **Vizuální směr** (Tom, zadání 14.11.2026; dokument „Oathline – vizuální audit a stylový průvodce“ je zdroj pravdy): čitelnost a klid bojiště podle Bad North, řemeslo postav podle The Valiant, stylizace a rostliny podle Northgard. Světlý, lehce hrdinský svět; žádný fotorealismus, karikatura ani temná fantasy.

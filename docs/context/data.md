@@ -44,6 +44,7 @@ Veškerý obsah a čísla. Přidat obsah má znamenat přidat data, ne kód.
 - Při exportu hry musí být `*.json` ve filtru exportovaných souborů (`include_filter` v `export_presets.cfg`, viz `testy.md`, Export).
 
 ## Historie významných změn
+- 15.11.2026: kněz, lučištník, asasín a jezdec mají nové modely (`SK_Priest`, `SK_Archer2`, `SK_Assassin2`, `SK_Cavalier2`, kůň `SK_Horse2`) se zbraněmi v2 a `"palette": "v2"`; animace (`anims`) beze změny. Lapkové střelci dál používají starý luk a šíp.
 - 14.11.2026: tank: `model` `res://art/tank/SK_Tank.glb`, `weapon_model` `SM_Tank_Sword.glb`, `"palette": "v2"` (nová paleta postav), `anims.stance` a `anims.block`, `ability_anims` (klíč schopnosti → animace). `looks.json`: vzhledy `morning` a `afternoon` (zrušeny `noon`, `dawn`, `dusk`), nové klíče `path_strength`, `shadow_opacity`, `shadow_blur`, `ssao`, `ssao_intensity`; Most přes řeku má `look: morning`.
 - 08.11.2026: tank má `anims` z knihovny Quaternius (`A_Tank_UAL_*`) a naše původní v `anims_own` (test knihovních animací).
 - 08.11.2026: tank má `model` SK_Knight_Smooth, `weapon_model` SM_Knight_Sword a `weapon_grip` (pilot hladkých modelů).

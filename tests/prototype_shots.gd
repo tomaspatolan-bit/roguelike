@@ -2,9 +2,10 @@ extends SceneTree
 ## Visual prototype (phase 2): screenshots of the tank and of The River Bridge from the real game, the class-colour
 ## coverage test and a frame-time measurement. Checks only that everything loads; the pictures are judged by eye.
 ## Run (with a window): godot --path . --script res://tests/prototype_shots.gd -- <folder>
-## Pictures (prefix proto_): 01 tank close-up (front, back), 02 tank from the battle camera, 03 colour test
-## (the tank from the battle camera angle in four facings, normal and as a mask: blue = class colour cells,
-## red = the rest of the figure, black = not the figure), 04 animation frames, 05 river crossing in the morning,
+## Pictures (prefix proto_): 01 close-up of every hero (front, back), 02 tank from the battle camera, 03 colour test
+## (every hero from the battle camera angle in four facings, the tank also in the guard; normal and as a mask:
+## blue = class colour cells, red = the rest of the figure incl. weapons and the horse, black = not the figure),
+## 04 animation frames of the tank, 05 river crossing in the morning,
 ## 06 the same in the late afternoon, 07 environment detail. The coverage and the measurement go to
 ## proto_report.json in the same folder.
 
@@ -83,11 +84,15 @@ func _run() -> void:
 
 # ------------------------------------------------------------------ tank up close, animation frames, colour test
 
+const HEROES := ["tank", "knez", "lucistnik", "jezdec", "asasin"]
+
+
 func _gallery_part() -> void:
 	var g: Node3D = Gallery.new()
 	root.add_child(g)
 	await _frames(10)
-	var v: Node3D = (g.get("views") as Dictionary).get("tank")
+	var views: Dictionary = g.get("views")
+	var v: Node3D = views.get("tank")
 	_check(v != null, "galerie nemá tanka")
 	if v == null:
 		return
@@ -96,16 +101,23 @@ func _gallery_part() -> void:
 	var names: Dictionary = tank_data.get("anims", {})
 	for k: String in ["idle", "walk", "attack", "hit", "death", "stance", "block"]:
 		_check(anim != null and anim.has_animation(String(names.get(k, ""))), "tank nemá animaci %s" % k)
+	# close-ups of every hero, front and back
+	for id: String in HEROES:
+		g.set("who", id)
+		g.call("view_close")
+		var big := id == "jezdec"
+		for side: Array in [["front", 25.0, 10.0], ["back", 200.0, 30.0]]:
+			g.set("_yaw", deg_to_rad(side[1]))
+			g.set("_pitch", deg_to_rad(side[2]))   # from behind a bit higher, over the enemies standing in the row
+			g.set("_dist", 6.2 if big else 4.3)
+			if big:
+				g.set("_target", (g.get("_target") as Vector3) + Vector3(0, 0.6, 0))
+			g.call("_apply_cam")
+			await _frames(12)
+			await _shot("01_%s_%s" % [id, side[0]])
+	# animation frames of the tank: the gallery stops driving the units, the player is set to an exact moment
 	g.set("who", "tank")
 	g.call("view_close")
-	for side: Array in [["front", 25.0], ["back", 200.0]]:
-		g.set("_yaw", deg_to_rad(side[1]))
-		g.set("_pitch", deg_to_rad(10.0))
-		g.set("_dist", 4.3)
-		g.call("_apply_cam")
-		await _frames(12)
-		await _shot("01_tank_%s" % side[0])
-	# animation frames: the gallery stops driving the units, the player is set to an exact moment
 	g.set_process(false)
 	g.set("_yaw", deg_to_rad(38.0))
 	g.set("_pitch", deg_to_rad(14.0))
@@ -121,8 +133,7 @@ func _gallery_part() -> void:
 		var length := anim.get_animation(a_name).length
 		anim.seek(length - 0.02 if t < 0.0 else minf(t, length - 0.02), true)
 		await _shot("04_anim_%s" % fr[0])
-	# colour test from the battle camera angle (pitch 48), four facings, relaxed idle and the guard
-	var coverage := {}
+	# colour test of every hero from the battle camera angle (pitch 48), four facings
 	var mask := ShaderMaterial.new()
 	var sh := Shader.new()
 	sh.code = MASK_SHADER
@@ -136,61 +147,79 @@ func _gallery_part() -> void:
 	pm.size = Vector2(400, 400)
 	floor_mi.mesh = pm
 	floor_mi.material_override = black
-	floor_mi.position = v.position + Vector3(0, 0.5, 0)   # above the land, hidden for the normal picture
 	floor_mi.visible = false
 	g.add_child(floor_mi)
-	g.set("_pitch", deg_to_rad(48.0))
-	g.set("_yaw", 0.0)
-	g.set("_dist", 6.5)
-	g.call("_apply_cam")
-	for other: Node3D in (g.get("views") as Dictionary).values():
-		other.visible = other == v      # only the tank is measured
-	var meshes: Array = v.find_children("*", "MeshInstance3D", true, false)
-	var originals := {}
-	for m: MeshInstance3D in meshes:
-		originals[m] = m.material_override
-	var base_y := v.position.y
-	for pose: String in ["idle", "stance"]:
-		var a_name := String(names.get(pose, ""))
-		if anim.has_animation(a_name):
-			anim.play(a_name)
-			anim.speed_scale = 0.0
-			anim.seek(0.5, true)
-		for facing: int in [0, 90, 180, 270]:
-			v.rotation.y = deg_to_rad(float(facing))
-			var tag := "%s_%03d" % [pose, facing]
-			await _shot("03_colour_%s" % tag)
-			# mask: the figure lifted above a black sheet, flat colours, no outline, no shade on the ground
-			floor_mi.visible = true
-			v.position.y = base_y + 0.6
-			(g.get("outline") as Node3D).visible = false
-			for m: MeshInstance3D in meshes:
-				m.material_override = mask if m.name != "ContactShade" else null
-				if m.name == "ContactShade":
-					m.visible = false
-			var img: Image = await _shot("03_mask_%s" % tag)
-			var blue := 0
-			var red := 0
-			for y in range(0, img.get_height(), 2):
-				for x in range(0, img.get_width(), 2):
-					var px := img.get_pixel(x, y)
-					if px.b > 0.5 and px.r < 0.35:
-						blue += 1
-					elif px.r > 0.5 and px.b < 0.35:
-						red += 1
-			coverage[tag] = snappedf(100.0 * blue / maxf(1.0, float(blue + red)), 0.1)
-			floor_mi.visible = false
-			v.position.y = base_y
-			(g.get("outline") as Node3D).visible = true
-			for m: MeshInstance3D in meshes:
-				m.material_override = originals[m]
-				m.visible = true
-	report["class_colour_coverage_percent"] = coverage
-	var lowest := 100.0
-	for k: String in coverage:
-		lowest = minf(lowest, float(coverage[k]))
-	report["class_colour_coverage_min"] = lowest
-	_check(lowest >= 40.0, "barva třídy pokrývá jen %.1f %% postavy (cíl 40 %%)" % lowest)
+	var all_cov := {}
+	var lowest_by := {}
+	for id: String in HEROES:
+		var hv: Node3D = views.get(id)
+		if hv == null:
+			_check(false, "galerie nemá %s" % id)
+			continue
+		for other: Node3D in views.values():
+			other.visible = other == hv
+		g.set("who", id)
+		g.call("view_close")
+		g.set("_pitch", deg_to_rad(48.0))
+		g.set("_yaw", 0.0)
+		g.set("_dist", 8.5 if id == "jezdec" else 6.5)
+		g.call("_apply_cam")
+		var hanim: AnimationPlayer = hv.get("anim")
+		var hnames: Dictionary = (g.get("sim") as Sim).by_id(id).base.get("anims", {})
+		var poses: Array = ["idle", "stance"] if id == "tank" else ["idle"]
+		var meshes: Array = hv.find_children("*", "MeshInstance3D", true, false)
+		var originals := {}
+		for m: MeshInstance3D in meshes:
+			originals[m] = m.material_override
+		var base_y := hv.position.y
+		var base_rot := hv.rotation.y
+		floor_mi.position = hv.position + Vector3(0, 0.5, 0)
+		var cov := {}
+		for pose: String in poses:
+			var a_name := String(hnames.get(pose, ""))
+			if hanim != null and hanim.has_animation(a_name):
+				hanim.play(a_name)
+				hanim.speed_scale = 0.0
+				hanim.seek(0.5, true)
+			for facing: int in [0, 90, 180, 270]:
+				hv.rotation.y = deg_to_rad(float(facing))
+				var tag := "%s_%s_%03d" % [id, pose, facing]
+				await _shot("03_colour_%s" % tag)
+				floor_mi.visible = true
+				hv.position.y = base_y + 0.6
+				(g.get("outline") as Node3D).visible = false
+				for m: MeshInstance3D in meshes:
+					m.material_override = mask if m.name != "ContactShade" else null
+					if m.name == "ContactShade":
+						m.visible = false
+				var img: Image = await _shot("03_mask_%s" % tag)
+				var blue := 0
+				var red := 0
+				for y in range(0, img.get_height(), 2):
+					for x in range(0, img.get_width(), 2):
+						var px := img.get_pixel(x, y)
+						if px.b > 0.5 and px.r < 0.35:
+							blue += 1
+						elif px.r > 0.5 and px.b < 0.35:
+							red += 1
+				cov["%s_%03d" % [pose, facing]] = snappedf(100.0 * blue / maxf(1.0, float(blue + red)), 0.1)
+				floor_mi.visible = false
+				hv.position.y = base_y
+				(g.get("outline") as Node3D).visible = true
+				for m: MeshInstance3D in meshes:
+					m.material_override = originals[m]
+					m.visible = true
+		hv.rotation.y = base_rot
+		var lowest := 100.0
+		for k: String in cov:
+			lowest = minf(lowest, float(cov[k]))
+		all_cov[id] = cov
+		lowest_by[id] = lowest
+		_check(lowest >= 40.0, "%s: barva třídy pokrývá jen %.1f %% postavy (cíl 40 %%)" % [id, lowest])
+	for other: Node3D in views.values():
+		other.visible = true
+	report["class_colour_coverage_percent"] = all_cov
+	report["class_colour_coverage_min"] = lowest_by
 	g.queue_free()
 	await _frames(3)
 
