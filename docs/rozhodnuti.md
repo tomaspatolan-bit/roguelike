@@ -2,6 +2,13 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 17.11.2026 – Velitelé podle postavy
+- **Každý velitel má vlastní postavu a profil, který z ní plyne** (Tom: „rozlišíme ty bosse, klidně i hmotností, šířkou, výškou, stats“; „budeme se muset lišit hlavně v gameplayi“). Obrys má hráči napovědět, jak s velitelem bojovat, dřív než si přečte kartu. Podporuje pilíř Velíš rodu: hráč volí, kterého hrdinu na koho pošle.
+- **Hejtman Kuno je těžký:** největší, nejvíc zdraví a zbroje, pomalé silné údery, pomalý krok; odhození ho posune o třetinu a omráčení trvá poloviční dobu (přerušit chystaný Rozmach jde dál). **Pálič Vok je rychlý a křehký:** bez zbroje, nejrychlejší krok i údery, pochodeň v ruce. **Ostrostřelec Jíra je daleko:** nejdelší dostřel (11 m), silné pomalé rány, couvá od hrdiny, který se přiblíží, ale nejvýš 7 m od svého místa (pak stojí a střílí; jinak by vznikl pat). **Setník Bořivoj je zeď:** velký štít zepředu zachytí část zásahu (oblouk 110°, ×0,55), ze strany a zezadu ne; podsaditý a pomalý, těžší, kratší omráčení.
+- **Pravidla jsou obecná a z dat** (`mass`, `stun_mult`, `front_guard`, `kite`, `scale`), takže je může dostat i další nepřítel. Bez nich se nic nemění (stejná hmotnost = strkání těl půl na půl jako dřív).
+- **Rozlišitelnost se měří:** obrysy velitelů a lapky z bitevní kamery se porovnávají v testu (překryv IoU nejvýš 0,8).
+- Rozhodl Claude (Tom může vrátit): konkrétní vzhled (rohatá přilba a kožešina Kuna, holá hlava a ohořelá zástěra Voka, plášť po kotníky a maska Jíry, klobouk s krempou a štít s křížem Bořivoje) a čísla profilů. Most přes řeku je se schopnostmi o něco těžší (34/40 místo 40/40), protože rychlý Vok dřív dobíhá; v mezích invariantu, nechávám, dokud playtest neřekne jinak. Hejtman je proti tankovi bez Výzvy těžší než dřív (Hradba 3/6 místo 5/6), test chce aspoň třetinu.
+
 ## 15.11.2026 – Lapkové podle standardu hrdinů
 - **Lapkové se staví stejnou stavebnicí jako hrdinové** (Tom: „jdi na ty lapky nejdřív, ať máme podklady“). Stejné tělo a kostra, takže animace rytíře a lučištníka platí beze změny.
 - **Každý typ nepřítele má vlastní model a obrys shora:** lapka se sekerou (kápě s roztřepeným límcem), kopiník (železný klobouk s krempou, prošívanice, kulatý štít na zádech), střelec (kápě s dlouhým cípem, toulec u boku), velitel (nosová přilba s kroužkovým závěsem, kožešina, kroužková košile, roztrhaný rudý varkoč). Všichni čtyři velitelé zatím sdílejí jeden model a liší se zbraní.

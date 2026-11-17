@@ -52,6 +52,7 @@ func _init() -> void:
 	_test_spears_and_traits(brod)
 	_test_pods(brod)
 	_test_sandbox(data)
+	_test_commanders(data)
 
 	if failures.is_empty():
 		print("OK: všechny testy prošly")
@@ -1474,3 +1475,75 @@ func _test_sandbox(data: Dictionary) -> void:
 		if found:
 			n += 1
 	print("Sandbox: přepínače OK, předvolby komb %d" % n)
+
+
+## Commanders differ by build and the build shows in the rules (decision 17.11.2026): the heavy one is pushed and
+## stunned less, the shield catches blows from the front, the marksman backs away from a near hero (only so far).
+func _test_commanders(data: Dictionary) -> void:
+	var foes: Dictionary = data["units"]["foes"]
+	var kuno: Dictionary = foes["vudce"]
+	for k: String in ["vudce", "palic", "ostrostrelec", "setnik"]:
+		var sc: Array = foes[k].get("scale", [])
+		_check(sc.size() == 2, "%s: velitel má postavu (scale [šířka, výška])" % k)
+	# the profile follows the build: heaviest = most health, slowest blows and steps; the burner fastest
+	for k: String in ["palic", "ostrostrelec", "setnik"]:
+		_check(float(kuno["hp"]) > float(foes[k]["hp"]) and float(kuno["mass"]) > float(foes[k].get("mass", 1.0)), "Hejtman je nejtěžší: nejvíc zdraví, nejvyšší hmotnost (proti %s)" % k)
+		_check(float(foes["palic"]["speed"]) >= float(foes[k]["speed"]) and float(foes["palic"]["cd"]) <= float(foes[k]["cd"]), "Pálič je nejrychlejší (proti %s)" % k)
+	for k: String in ["palic", "setnik"]:   # blows: only the melee commanders (the marksman's shots are slow anyway)
+		_check(float(kuno["cd"]) > float(foes[k]["cd"]), "Hejtman má nejpomalejší údery z velitelů na blízko (proti %s)" % k)
+	_check(float(foes["setnik"]["speed"]) <= float(kuno["speed"]) and float(kuno["speed"]) < float(foes["palic"]["speed"]), "Setník (zeď) a Hejtman chodí nejpomaleji")
+	_check(float(foes["ostrostrelec"]["reach"]) > float(foes["strelec"]["reach"]), "Ostrostřelec střílí dál než střelec")
+	var s := Sim.new(data, Sim.default_setup(data), 77)
+	var tank := s.by_id("tank")
+	var b := s.by_id("knez").pos + Vector2(0, -6)   # dry ground behind the squad, away from the river
+	tank.pos = b
+	for k in s.knights():
+		if k != tank:
+			k.pos = b + Vector2(-30, -10)   # the others out of the way
+	var heavy := s.by_id(s.sandbox_spawn("vudce", b + Vector2(0, 1.2)))
+	var light := s.by_id(s.sandbox_spawn("lapka", b + Vector2(3, 1.2)))
+	_check(heavy != null and light != null, "Velitel a lapka se dají postavit na souš")
+	if heavy == null or light == null:
+		return
+	# push: the same blow moves him 1/mass as far
+	var p0 := heavy.pos
+	s._push(heavy, Vector2(0, 3))
+	var p1 := light.pos
+	s._push(light, Vector2(0, 3))
+	_check(is_equal_approx(heavy.pos.distance_to(p0) * float(kuno["mass"]), light.pos.distance_to(p1)), "Hmotnost: těžkého velitele odhodí úder méně (1/mass)")
+	# stun: Shield Bash stuns him for stun_mult as long
+	heavy.pos = tank.pos + Vector2(0, 1.0)
+	light.pos = tank.pos + Vector2(0.4, 1.1)
+	tank.face = Vector2(0, 1)
+	var bash: Dictionary = data["units"]["abilities"]["uder_stitem"]
+	var hit := s._shield_bash(tank, bash)
+	_check(hit.has(heavy) and hit.has(light) and is_equal_approx(heavy.stun_t, float(bash["stun"]) * float(kuno["stun_mult"])) and is_equal_approx(light.stun_t, float(bash["stun"])), "Odolnost proti omráčení: Hejtman omráčený na stun_mult, lapka celý čas")
+	# bodies: the lighter one gives way more
+	heavy.pos = b + Vector2(8, 0)
+	light.pos = b + Vector2(8.3, 0)
+	var hp0 := heavy.pos
+	var lp0 := light.pos
+	s._separate()
+	_check(light.pos.distance_to(lp0) > heavy.pos.distance_to(hp0) * 2.0, "Těla: lehčí uhne víc než těžký")
+	# shield from the front: Sergeant takes mult of a blow from the front, all of it from behind
+	var sg := s.by_id(s.sandbox_spawn("setnik", b + Vector2(-8, 0)))
+	sg.face = Vector2(0, -1)
+	tank.pos = sg.pos + Vector2(0, -1.0)
+	var h0 := sg.hp
+	s._hurt(tank, sg, 100.0, false)
+	var front := h0 - sg.hp
+	tank.pos = sg.pos + Vector2(0, 1.0)
+	h0 = sg.hp
+	s._hurt(tank, sg, 100.0, false)
+	var back := h0 - sg.hp
+	_check(is_equal_approx(front, back * float(foes["setnik"]["front_guard"]["mult"])), "Štít: zepředu %.0f, zezadu %.0f" % [front, back])
+	# marksman: backs away from a near hero, never further than kite.limit from his post
+	var mk := s.by_id(s.sandbox_spawn("ostrostrelec", b + Vector2(16, -4)))
+	mk.asleep = false
+	var lim := float(foes["ostrostrelec"]["kite"]["limit"])
+	var start := mk.pos
+	for i in 300:
+		tank.pos = mk.pos + Vector2(0, 2.0)   # the hero keeps pressing him
+		s._foe_shoot_or_walk(mk, tank, 1.0 / 30.0)
+	_check(mk.pos.distance_to(start) > 2.0 and mk.pos.distance_to(mk.home) <= lim + 2.5, "Ostrostřelec ustupuje (%.1f m) a nejvýš do %.0f m od postu" % [mk.pos.distance_to(start), lim])
+

@@ -90,7 +90,10 @@ func setup(u: Sim.Unit) -> void:
 		_build_knight(u)   # skinned model with animations (heroes and enemies with a model alike)
 	else:
 		_build_foe(u)
-	if not is_knight and u.leader:
+	var sc: Array = u.base.get("scale", [])
+	if sc.size() == 2:
+		scale = Vector3(float(sc[0]), float(sc[1]), float(sc[0]))   # build of the figure (data `scale` [width, height])
+	elif not is_knight and u.leader:
 		scale = Vector3.ONE * 1.3   # the enemy leader is visible from afar
 	if look_lighting:
 		_add_contact_shade(u)
@@ -105,12 +108,12 @@ func _add_contact_shade(u: Sim.Unit) -> void:
 		_contact_mat.render_priority = -1
 	_contact = MeshInstance3D.new()
 	var pm := PlaneMesh.new()
-	var d := maxf(u.radius * 2.7, 1.15)
+	var d := maxf(u.radius * 2.7, 1.15) / maxf(scale.x, 0.1)   # the view is already scaled by the build (`scale`)
 	pm.size = Vector2(d, d * (1.5 if u.mounted else 1.0))
+	_contact.position = Vector3(0, 0.035 / maxf(scale.y, 0.1), 0)
 	_contact.mesh = pm
 	_contact.material_override = _contact_mat
 	_contact.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_contact.position = Vector3(0, 0.035, 0)
 	_contact.name = "ContactShade"
 	add_child(_contact)
 

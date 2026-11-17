@@ -60,6 +60,10 @@ class Unit:
 	var combat_t: float = -INF    # when he last attacked or was hit
 	var taunt_t: float = 0.0      # Challenge: while running, enemies in range attack him
 	var stun_t: float = 0.0       # stun: does nothing
+	var mass: float = 1.0         # body weight: pushes (abilities, bodies) move him 1/mass as far (data `mass`)
+	var stun_mult: float = 1.0    # stuns last this many times as long (data `stun_mult`, heavy commanders < 1)
+	var front_guard: Dictionary = {}  # shield: damage from the front arc × mult (data `front_guard` {arc, mult})
+	var kite: Dictionary = {}     # enemy shooter backs away from a near hero (data `kite` {dist, limit})
 	var dashing: bool = false     # Charge: rides to dash_to and knocks down whoever he meets
 	var dash_to: Vector2
 	var dash_hit: Array = []
@@ -421,6 +425,10 @@ func _make_unit(key: String, side: String, d: Dictionary) -> Unit:
 	u.cd = d["cd"]
 	u.armor = d["armor"]
 	u.radius = d["radius"]
+	u.mass = float(d.get("mass", 1.0))
+	u.stun_mult = float(d.get("stun_mult", 1.0))
+	u.front_guard = d.get("front_guard", {})
+	u.kite = d.get("kite", {})
 	u.ranged = d.get("ranged", false)
 	u.heal = d.get("heal", 0.0)
 	u.heal_cd = d.get("heal_cd", 0.0)
@@ -1330,6 +1338,8 @@ func ability_hint(id: String) -> Array:
 				var n := _attackers_on(k)
 				if u.ability == "kour" and k.hp > k.maxhp * 0.6:
 					continue
+				if u.ability == "kour" and n >= 1 and k.hp < k.maxhp * 0.35:
+					n = maxi(n, 2)   # a hero about to fall: smoke him even with one attacker
 				if n > best_n:
 					best_n = n
 					best = k
@@ -1565,7 +1575,7 @@ func _shield_bash(u: Unit, a: Dictionary) -> Array[Unit]:
 			continue
 		hits.append(f)
 		_ability_hit(u, f)
-		f.stun_t = maxf(f.stun_t, float(a["stun"]))
+		f.stun_t = maxf(f.stun_t, float(a["stun"]) * f.stun_mult)
 		_hurt(u, f, float(a["dmg"]) * _dmg_mult(u, f, true))
 		if float(a.get("push", 0.0)) > 0.0 and f.alive():
 			_push(f, rel.normalized() * float(a["push"]))
@@ -1574,6 +1584,7 @@ func _shield_bash(u: Unit, a: Dictionary) -> Array[Unit]:
 
 ## Pushes a unit by `v` (not into the water: then a shorter push, or none).
 func _push(f: Unit, v: Vector2) -> void:
+	v /= maxf(f.mass, 0.1)   # a heavy body flies less far
 	for k: float in [1.0, 0.6, 0.3]:
 		var p := f.pos + v * k
 		if not _in_water(p):
@@ -2495,6 +2506,11 @@ func _hurt(att: Unit, tg: Unit, raw: float, glory_hit: bool = true) -> void:
 			raw *= 1.0 - share
 			if guard.hp <= 0.0:
 				guard.hp = 0.01   # does not die for his ward, the damage just stops being shared
+	if not tg.front_guard.is_empty() and att != null and att.pos.distance_to(tg.pos) > 0.01:
+		# shield: a blow or an arrow from the front arc is mostly caught
+		var cosa := cos(deg_to_rad(float(tg.front_guard.get("arc", 120.0)) * 0.5))
+		if (att.pos - tg.pos).normalized().dot(tg.face) >= cosa:
+			raw *= float(tg.front_guard.get("mult", 1.0))
 	tg.hp -= raw * _taken_mult(tg)
 	if tg.side == SIDE_KNIGHT and bool(sandbox.get("god", false)):
 		tg.hp = maxf(tg.hp, 1.0)   # sandbox: heroes cannot fall
@@ -2933,7 +2949,7 @@ func _dash(u: Unit, dt: float, foes: Array[Unit]) -> void:
 			u.dash_hit.append(f.id)
 			var stun := float(a.get("stun", 0.0)) * (u.dash_stun if f.blind_t > 0.0 else 1.0)
 			if stun > 0.0:
-				f.stun_t = maxf(f.stun_t, stun)
+				f.stun_t = maxf(f.stun_t, stun * f.stun_mult)
 			_dash_oath(u, f)
 			_hurt(u, f, float(a["dmg"]) * u.dash_mult * _dmg_mult(u, f, true))
 			if float(a.get("push", 0.0)) > 0.0 and f.alive():
@@ -3156,6 +3172,8 @@ func _foe_pick(u: Unit, ks: Array[Unit]) -> Unit:
 ## Bowman: shoots from range but advances to 60 % of range so no stalemate arises.
 func _foe_shoot_or_walk(u: Unit, tg: Unit, dt: float) -> void:
 	var d := u.pos.distance_to(tg.pos)
+	if not u.kite.is_empty() and _kite_away(u, dt):
+		return
 	if d <= u.reach:
 		_attack(u, tg)
 	if d > u.reach * 0.6:
@@ -3164,6 +3182,23 @@ func _foe_shoot_or_walk(u: Unit, tg: Unit, dt: float) -> void:
 		u.moving = false
 	if d <= u.reach:
 		_face_to(u, tg)
+
+
+## Marksman: a hero closer than kite.dist makes him back away (at most kite.limit m from his post `home`, never
+## into the water); at the limit he stands and shoots, so the battle cannot stall. Returns true while backing away.
+func _kite_away(u: Unit, dt: float) -> bool:
+	var near: Unit = null
+	for k in living(SIDE_KNIGHT):
+		if near == null or k.pos.distance_to(u.pos) < near.pos.distance_to(u.pos):
+			near = k
+	if near == null or near.pos.distance_to(u.pos) > float(u.kite.get("dist", 4.0)):
+		return false
+	var away := (u.pos - near.pos).normalized()
+	var to := u.pos + away * 2.0
+	if to.distance_to(u.home) > float(u.kite.get("limit", 6.0)) or _in_water(to):
+		return false
+	_walk(u, to, dt)
+	return true
 
 
 ## Heroes the enemy can target (without those in Vanish; when all are hidden, all of them).
@@ -3199,13 +3234,15 @@ func _separate() -> void:
 			var d := maxf(dv.length(), 0.01)
 			var m := (a.radius + b.radius) * _ord("body_gap", 1.0)
 			if d < m:
-				var push := (m - d) / 2.0
 				var n := dv / d
-				for pair: Array in [[a, -1.0], [b, 1.0]]:
+				# the lighter body gives way more (equal mass: half each, as before)
+				var wa := b.mass / (a.mass + b.mass)
+				for pair: Array in [[a, -1.0, wa], [b, 1.0, 1.0 - wa]]:
 					var u: Unit = pair[0]
 					var sg: float = pair[1]
+					var share: float = pair[2]
 					var old := u.pos
-					u.pos += n * push * sg
+					u.pos += n * (m - d) * share * sg
 					if _in_water(u.pos):
 						u.pos = old
 

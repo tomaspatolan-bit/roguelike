@@ -104,7 +104,11 @@ func _check_models() -> void:
 # ------------------------------------------------------------------ tank up close, animation frames, colour test
 
 const HEROES := ["tank", "knez", "lucistnik", "jezdec", "asasin"]
-const FOES := ["lapka", "kopinik", "strelec", "vudce"]
+const FOES := ["lapka", "kopinik", "strelec", "vudce", "palic", "ostrostrelec", "setnik"]
+const COMMANDERS := ["vudce", "palic", "ostrostrelec", "setnik"]
+## Two figures count as told apart from the battle camera when their outlines (same camera distance, aligned on the
+## centre) overlap less than this (intersection over union).
+const SILHOUETTE_MAX_IOU := 0.8
 
 
 func _gallery_part() -> void:
@@ -143,13 +147,17 @@ func _gallery_part() -> void:
 			continue
 		g.set("who", id)
 		g.call("view_close")
+		for other: Node3D in views.values():
+			other.visible = other == views[id]   # nobody in front of him
 		for side: Array in [["front", 25.0, 10.0], ["back", 200.0, 30.0]]:
 			g.set("_yaw", deg_to_rad(side[1]))
 			g.set("_pitch", deg_to_rad(side[2]))
-			g.set("_dist", 5.2 if fu.key == "vudce" else 4.3)
+			g.set("_dist", 6.0 if fu.key in COMMANDERS else 4.3)
 			g.call("_apply_cam")
 			await _frames(12)
 			await _shot("01_%s_%s" % [fu.key, side[0]])
+		for other: Node3D in views.values():
+			other.visible = true
 		if fu.key == "vudce":
 			g.set("_yaw", 0.0)
 			g.set("_pitch", deg_to_rad(30.0))
@@ -262,6 +270,7 @@ func _gallery_part() -> void:
 		other.visible = true
 	report["class_colour_coverage_percent"] = all_cov
 	report["class_colour_coverage_min"] = lowest_by
+	await _silhouettes(g, views, mask, floor_mi)
 	g.queue_free()
 	await _frames(3)
 
@@ -315,3 +324,111 @@ func _battle_part(look: String) -> void:
 	await _shot("07_env_detail_%s" % look)
 	scene.queue_free()
 	await _frames(5)
+
+
+## Outline test (decision 17.11.2026): every commander and a plain brigand from the battle camera (pitch 48, the same
+## distance for all, so the size counts too), two facings, as a mask; pairwise intersection over union of the outlines.
+func _silhouettes(g: Node3D, views: Dictionary, mask: ShaderMaterial, floor_mi: MeshInstance3D) -> void:
+	var gsim: Sim = g.get("sim")
+	var who := {}
+	for id: String in views.keys():
+		var fu: Sim.Unit = gsim.by_id(id)
+		if fu != null and (fu.key in COMMANDERS or fu.key == "lapka") and not who.has(fu.key):
+			who[fu.key] = id
+	var outl: Dictionary = {}   # key -> {facing: PackedByteArray}
+	var size: Dictionary = {}
+	const STEP := 3
+	for key: String in who.keys():
+		var hv: Node3D = views[who[key]]
+		for other: Node3D in views.values():
+			other.visible = other == hv
+		g.set("who", who[key])
+		g.call("view_close")
+		g.set("_pitch", deg_to_rad(48.0))
+		g.set("_yaw", 0.0)
+		g.set("_dist", 9.0)
+		g.call("_apply_cam")
+		var hanim: AnimationPlayer = hv.get("anim")
+		var idle := String(gsim.by_id(who[key]).base.get("anims", {}).get("idle", "A_Knight_Idle"))
+		if hanim != null and hanim.has_animation(idle):
+			hanim.play(idle)
+			hanim.speed_scale = 0.0
+			hanim.seek(0.5, true)
+		var meshes: Array = hv.find_children("*", "MeshInstance3D", true, false)
+		var originals := {}
+		for m: MeshInstance3D in meshes:
+			originals[m] = m.material_override
+		var base_y := hv.position.y
+		var base_rot := hv.rotation.y
+		floor_mi.position = hv.position + Vector3(0, 0.5, 0)
+		outl[key] = {}
+		for facing: int in [0, 90]:
+			hv.rotation.y = deg_to_rad(float(facing))
+			floor_mi.visible = true
+			hv.position.y = base_y + 0.6
+			(g.get("outline") as Node3D).visible = false
+			for m: MeshInstance3D in meshes:
+				m.material_override = mask if m.name != "ContactShade" else null
+				m.visible = m.name != "ContactShade"
+			var img: Image = await _shot("08_silhouette_%s_%03d" % [key, facing])
+			var w := img.get_width() / STEP
+			var h := img.get_height() / STEP
+			var bits := PackedByteArray()
+			bits.resize(w * h)
+			var cx := 0.0
+			var cy := 0.0
+			var n := 0
+			for y in h:
+				for x in w:
+					var px := img.get_pixel(x * STEP, y * STEP)
+					# only the pure mask colours (the gallery panel, trees and fences stay out)
+					if (px.b > 0.55 and px.r < 0.3 and px.g < 0.3) or (px.r > 0.55 and px.g < 0.3 and px.b < 0.3):
+						bits[y * w + x] = 1
+						cx += x
+						cy += y
+						n += 1
+			outl[key][facing] = {"bits": bits, "w": w, "h": h, "cx": cx / maxf(n, 1), "cy": cy / maxf(n, 1), "n": n}
+			size["%s_%03d" % [key, facing]] = n
+			floor_mi.visible = false
+			hv.position.y = base_y
+			(g.get("outline") as Node3D).visible = true
+			for m: MeshInstance3D in meshes:
+				m.material_override = originals[m]
+				m.visible = true
+		hv.rotation.y = base_rot
+	for other: Node3D in views.values():
+		other.visible = true
+	var ious := {}
+	var keys: Array = outl.keys()
+	for i in keys.size():
+		for j in range(i + 1, keys.size()):
+			var worst := 0.0
+			for facing: int in [0, 90]:
+				worst = maxf(worst, _iou(outl[keys[i]][facing], outl[keys[j]][facing]))
+			ious["%s~%s" % [keys[i], keys[j]]] = snappedf(worst, 0.01)
+			_check(worst <= SILHOUETTE_MAX_IOU, "obrysy %s a %s se z bitevní kamery skoro kryjí (IoU %.2f, nejvýš %.2f)" % [keys[i], keys[j], worst, SILHOUETTE_MAX_IOU])
+	report["silhouette_iou"] = ious
+	report["silhouette_area_px"] = size
+	print("Obrysy velitelů (IoU, nejhorší natočení): ", JSON.stringify(ious))
+
+
+## Intersection over union of two outlines aligned on their centres.
+func _iou(a: Dictionary, b: Dictionary) -> float:
+	var w: int = a["w"]
+	var h: int = a["h"]
+	var dx := roundi(float(b["cx"]) - float(a["cx"]))
+	var dy := roundi(float(b["cy"]) - float(a["cy"]))
+	var ab: PackedByteArray = a["bits"]
+	var bb: PackedByteArray = b["bits"]
+	var inter := 0
+	for y in h:
+		for x in w:
+			if ab[y * w + x] == 0:
+				continue
+			var x2 := x + dx
+			var y2 := y + dy
+			if x2 >= 0 and x2 < w and y2 >= 0 and y2 < h and bb[y2 * w + x2] == 1:
+				inter += 1
+	var uni := int(a["n"]) + int(b["n"]) - inter
+	return float(inter) / maxf(1.0, float(uni))
+
