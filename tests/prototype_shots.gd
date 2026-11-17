@@ -68,6 +68,7 @@ func _check(cond: bool, what: String) -> void:
 
 func _run() -> void:
 	await _frames(5)
+	_check_models()
 	await _gallery_part()
 	for look: String in ["morning", "afternoon"]:
 		await _battle_part(look)
@@ -80,6 +81,24 @@ func _run() -> void:
 	print("Zpráva: ", JSON.stringify(report))
 	print("VÝSLEDEK: ", "OK" if ok else "CHYBA")
 	quit(0 if ok else 1)
+
+
+## Every model a unit refers to must exist (the scene skips a missing weapon silently: 15.11.2026 the bow, lance and
+## daggers were missing from the repository and the tests did not notice).
+func _check_models() -> void:
+	var units: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/units.json"))
+	var n := 0
+	for group: String in ["knights", "foes"]:
+		var d: Dictionary = units.get(group, {})
+		for key: String in d.keys():
+			var u: Dictionary = d[key]
+			for field: String in ["model", "weapon_model", "offhand_model", "projectile_model", "mount_model"]:
+				var path := String(u.get(field, ""))
+				if path == "":
+					continue
+				n += 1
+				_check(ResourceLoader.exists(path), "%s.%s: model %s chybí" % [key, field, path])
+	print("Modely jednotek: zkontrolováno %d" % n)
 
 
 # ------------------------------------------------------------------ tank up close, animation frames, colour test

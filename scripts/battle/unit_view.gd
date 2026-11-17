@@ -180,7 +180,7 @@ func _build_knight(u: Sim.Unit) -> void:
 			_setup_bow_string(w, bs)
 		var om := String(u.base.get("offhand_model", ""))
 		if om != "" and ResourceLoader.exists(om):
-			_attach_weapon_model(om, String(u.base.get("offhand_bone", "hand_l")))   # second weapon (assassin: dagger in the left hand)
+			_attach_weapon_model(om, String(u.base.get("offhand_bone", "hand_l")), u.base.get("offhand_grip", {}))   # second weapon (assassin: dagger in the left hand)
 	else:
 		_attach_weapon(String(u.base.get("weapon", "")))
 
