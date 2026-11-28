@@ -412,6 +412,10 @@ func k2_10b() -> void:
 	var b := await _staged_bridge(_env_f("PF_T", 1.5), false)
 	L.pause_battle(b)
 	_clean_hint(b)
+	# the tank selected, as in the Figma screen "Battle · A Normal"
+	b.set("selection", ["tank"])
+	b.set("selected", "tank")
+	b.call("_refresh_panel")
 	await L.frames(20)
 	var u: Object = b.get("ui")
 	var row: HBoxContainer = u.get("cards_row")

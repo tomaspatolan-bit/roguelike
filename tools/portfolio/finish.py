@@ -51,10 +51,14 @@ def cursor(im, x, y, s=1.0):
     return im
 
 
-def card_canvas(card, scale_note=""):
-    """A card centred on a 2560x1440 canvas in the UI's light colour."""
+def card_canvas(card, radius=0):
+    """A card centred on a 2560x1440 canvas in the UI's light colour; corners outside `radius` px are masked."""
     c = Image.new("RGB", (W, H), BG)
-    c.paste(card, ((W - card.width) // 2, (H - card.height) // 2), card if card.mode == "RGBA" else None)
+    mask = None
+    if radius > 0:
+        mask = Image.new("L", card.size, 0)
+        ImageDraw.Draw(mask).rounded_rectangle((0, 0, card.width - 1, card.height - 1), radius=radius, fill=255)
+    c.paste(card.convert("RGB"), ((W - card.width) // 2, (H - card.height) // 2), mask)
     return c
 
 
@@ -111,19 +115,32 @@ def main():
         ImageDraw.Draw(split).line([(W // 2, 0), (W // 2, H)], fill=BG, width=6)
         save(split, out, "K2-09-split")
 
-    # K2-10b: the game's card cut from the 2x frame (3.2 px per UI point, like the Figma export at 3.2x)
+    # K2-10a/b: the tank's hero card in Figma (screen "Battle · A Normal", 1600x900 frame, exported at any scale)
+    # and in the game, both cut with the same margin (room for the selection marker above) and brought to
+    # 3.2 px per UI point, centred on the same canvas. Plus the whole screens side by side at one scale.
+    PAD_TOP, PAD = 0, 0             # UI points (the card only; the selection shows in its gilt frame)
+    RADIUS = 9                      # card corner radius, UI points (the background outside is masked away)
+    SCALE = 3.2                     # px per UI point in the delivered cards (the game's 2x render)
+    FIGMA_CARD = (192, 735, 188, 149)   # node 40:170 in the frame, UI points
     fr = load(raw, "K2-10b_frame")
     if fr is not None:
         m = meta(raw, "K2-10b_frame")
-        x, y, w, h = m["rect"]
-        pad = 0  # the card's own outline is inside the rect
-        card = fr.crop((round(x) - pad, round(y) - pad, round(x + w) + pad, round(y + h) + pad))
-        save(card_canvas(card), out, "K2-10b")
-        print("   game card at", round(m.get("scale", 0), 2), "px/pt:", card.size)
+        k = m.get("scale", fr.height / 900)
+        x, y, w, h = [v / k for v in m["rect"]]
+        card = fr.crop((round((x - PAD) * k), round((y - PAD_TOP) * k), round((x + w + PAD) * k), round((y + h + PAD) * k)))
+        if abs(k - SCALE) > 0.01:
+            card = card.resize((round(card.width * SCALE / k), round(card.height * SCALE / k)), Image.LANCZOS)
+        save(card_canvas(card, round(RADIUS * SCALE)), out, "K2-10b")
+        save(fit(fr), out, "K2-10b-obrazovka")
     if figma and os.path.exists(figma):
-        fc = Image.open(figma).convert("RGBA")
-        save(card_canvas(fc), out, "K2-10a")
-        print("   figma card:", fc.size)
+        fs = Image.open(figma).convert("RGB")
+        k = fs.width / 1600
+        x, y, w, h = FIGMA_CARD
+        card = fs.crop((round((x - PAD) * k), round((y - PAD_TOP) * k), round((x + w + PAD) * k), round((y + h + PAD) * k)))
+        card = card.resize((round(card.width * SCALE / k), round(card.height * SCALE / k)), Image.LANCZOS)
+        save(card_canvas(card, round(RADIUS * SCALE)), out, "K2-10a")
+        save(fit(fs), out, "K2-10a-obrazovka")
+        print("   figma export at %.1fx" % k)
 
     # K2-11a/b: detail of the top bar, the same window for both (42 % of the width from the top edge)
     for name in ["K2-11a", "K2-11b"]:
