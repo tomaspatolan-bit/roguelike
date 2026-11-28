@@ -1,6 +1,6 @@
 # Stav projektu
 
-Aktualizováno: 15.11.2026
+Aktualizováno: 28.11.2026
 
 ## Aktuální cíl
 **14.11.2026: vizuální prototyp (fáze 2 vizuálního směru, krok 2.0v).** Hra se jmenuje Oathline. Podle dokumentu „Oathline – vizuální audit a stylový průvodce“ je postavený nový tank a přepracovaný Most přes řeku jako měřítko pro další postavy a mapy. Čeká se na Tomovo vyhodnocení prototypu a rozhodnutí, jestli další postavy vznikají interně, nebo externě. Dokud nerozhodne, nezačíná fáze 3 (sjednocení vykreslování všech map, další třídy).
@@ -9,6 +9,7 @@ Aktualizováno: 15.11.2026
 **Fáze 2: jeden celý run.** Hotová mapa aktu 1 (2.1): menu Nový běh → mapa Hraběcího lesa (7 pater, bitvy, elity, události, tábory, boss Hejtman Kuno). Hotové všechny tři typy bitev (útok, střet, obrana s Lesní vsí) a animace boje hrdinů. Hotové rozkazy pro hrdiny (2.2c). Další: karta stage a volitelné úkoly (2.2). Otevřené: playtest s hráčem mimo nás (1.8).
 
 ## Hotovo
+- **Snímky a videa pro portfolio** (28.11.2026, větev `portfolio-snimky`): nástroj `tools/portfolio/` (snímky aktuálního buildu, archivní snímky ze starých commitů, videa, dokončení v Pythonu), kontext `docs/context/portfolio.md`. Renderuje se i v cloudu (Godot 4.7.2 pro Linux, Vulkan přes lavapipe, xvfb). Hotové snímky a videa ve větvi `portfolio-mam-hru`. Při tom opravená karta komba na stránce rodu (název se zalamoval po písmenech).
 - **Velitelé podle postavy** (17.11.2026): Hejtman Kuno (těžký: největší, nejvíc zdraví, pomalé silné údery, hůř se odhazuje a omračuje), Pálič Vok (rychlý a křehký, pochodeň), Ostrostřelec Jíra (dlouhý luk na 11 m, couvá nejvýš 7 m od místa), Setník Bořivoj (štít zachytí část zásahů zepředu). Vlastní modely a zbraně, velikost z dat (`scale`), nová obecná pravidla `mass`, `stun_mult`, `front_guard`, `kite`. Obrysy z bitevní kamery měřené: nejpodobnější lapka a Vok (IoU 0,39), plocha Kuna 2,3× lapky. Balanc ve všech scénářích v mezích, Most přes řeku 34/40 (dřív 40/40).
 - **Zbraně v rukou** (17.11.2026, Tomův playtest galerie): lučištník, jezdec a asasín neměli zbraně, protože jejich GLB nebyly v commitu (doplněné). Meč tanka a sekera lapků trčely šikmo do strany: každá zbraň má teď úchop spočítaný z póz animací. Test hlídá, že žádný model jednotky nechybí.
 - **Lapkové podle standardu hrdinů** (15.11.2026, větev `oathline-prototyp`). Čtyři modely ze stejné stavebnice a těla jako hrdinové: lapka se sekerou (rezavá kápě s roztřepeným límcem, vlněná tunika, kožená vesta), kopiník (železný klobouk s krempou, hnědá prošívanice, kulatý štít na zádech), střelec (kápě s dlouhým cípem, rezavá tunika, toulec u boku) a velitel (nosová přilba s kroužkovým závěsem, kožešina, kroužková košile, roztrhaný rudý varkoč, plášť); nové sekera, kopí a luk. Paleta v2 řádky 6 (rez, bláto, matné železo) a 7 (krvavě červená, černěné železo) přepisují i ocel a zlato, takže se lapkové od hrdinů liší na první pohled. Animace beze změny. Všichni čtyři velitelé mají zatím jeden model. Snímky `godot_shots\proto3` (`proto_01_lapka_*`, `kopinik`, `strelec`, `vudce`, `lapkove_rada`).

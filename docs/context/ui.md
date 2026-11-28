@@ -32,6 +32,7 @@ Vykreslit stav a poslat úmysly hráče signálem. Nerozhoduje o pravidlech.
 - Místní proměnná se nesmí jmenovat jako metoda `CanvasLayer` (`hide`, `show`).
 
 ## Historie významných změn
+- 28.11.2026: stránka rodu: název komba na kartě komba se zalamoval po písmenech (popisek se zalamováním v HBoxu bez roztažení měl nulovou šířku); popisek teď vyplní řádek. Našlo se při snímcích pro portfolio.
 - 07.11.2026: přenesen vzhled Royal Court Enamel (`ui_theme.gd`, písma, SVG ikony), morálka nepřítele a All In! ve stavech A–E, vlastní dialog přísahy s POWER / RESTRICTION / IF BROKEN.
 - 07.11.2026: menu Schopnost ve volné bitvě, ikony nových schopností (zástupné podle třídy).
 - 07.11.2026: texty a komentáře přeložené do angličtiny (`docs/glosar.md`).

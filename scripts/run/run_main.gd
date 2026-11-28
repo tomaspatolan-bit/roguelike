@@ -1074,7 +1074,9 @@ func _combo_card(c: Dictionary) -> PanelContainer:
 	var ch := HBoxContainer.new()
 	ch.add_theme_constant_override("separation", 6)
 	ch.add_child(Icon.make("status_bond", UI.BOND[1] if c["ready"] else MUTED, 20))
-	ch.add_child(UI.label(String(c["name"]), 17, INK if c["ready"] else UI.TEXT_2, true, "ui", 700))
+	var name_l := UI.label(String(c["name"]), 17, INK if c["ready"] else UI.TEXT_2, true, "ui", 700)
+	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL   # a wrapping label without width wrapped letter by letter
+	ch.add_child(name_l)
 	v.add_child(ch)
 	v.add_child(_label("%s (%s) + %s (%s)" % [run.hero_name(c["a"]), run.ability_name(c["a_ability"]), run.hero_name(c["b"]), run.ability_name(c["b_ability"])], 13, MUTED, true))
 	v.add_child(_label(String(c["desc"]), 13, INK, true))

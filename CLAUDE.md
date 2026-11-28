@@ -27,6 +27,7 @@ Přečti `docs/stav.md` (co se teď dělá), `docs/plan.md` (kde jsme ve stepper
 | `scripts/run/`, `scenes/run/`, `data/akt_*.json`, `data/udalosti.json` | `docs/context/beh.md`, `docs/context/simulace.md` (rozhraní) |
 | `scripts/sandbox/`, sandbox v `battle.gd` a `run_main.gd` | `docs/context/sandbox.md`, `docs/context/simulace.md` (rozhraní) |
 | `tests/` | `docs/context/testy.md` |
+| `tools/portfolio/` (snímky a videa pro portfolio) | `docs/context/portfolio.md` |
 | nová oblast | založ pro ni kontextový soubor podle vzoru ostatních a přidej ji sem |
 
 ## Ostatní dokumenty
