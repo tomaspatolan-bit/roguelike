@@ -1,0 +1,259 @@
+{
+  "_info": "Postavy Oathline pro otáčecí prohlížeč (<model-viewer>). Metry, osa Y nahoru, počátek mezi nohama na zemi, čelem k +Z, všechny ve stejném měřítku. Jediná animace `Idle` (smyčka). Barva třídy = hlavní látka hrdiny; podíl = kolik plochy postavy viděné z bitevní kamery má barvu třídy.",
+  "hrdinove": [
+    {
+      "id": "tank",
+      "jmeno": "Sir Bořek",
+      "trida": "Tank",
+      "trida_cz": "tank",
+      "schopnost": {
+        "nazev": "Challenge",
+        "popis": "For 4 s draws the attacks of enemies within 6 m and takes 50 % less damage."
+      },
+      "barva_tridy": "#4d66a6",
+      "podil_barvy_tridy_pct": {
+        "min": 40.8,
+        "prumer": 48.8,
+        "cil": 40,
+        "mereni": "maska z bitevní kamery, 8 póz × 4 natočení (tests/prototype_shots.gd)"
+      },
+      "soubory": {
+        "model": "hrdina-tank.glb",
+        "nahled": "hrdina-tank.png",
+        "maska": "hrdina-tank-maska.glb"
+      },
+      "velikost": {
+        "vyska_m": 1.81,
+        "sirka_m": 1.73,
+        "trojuhelniky": 5890,
+        "idle_s": 2.5
+      }
+    },
+    {
+      "id": "knez",
+      "jmeno": "Father Jan",
+      "trida": "Priest",
+      "trida_cz": "kněz",
+      "schopnost": {
+        "nazev": "Blessing",
+        "popis": "Heals heroes in a circle (4 m) by 30 % of their health. Aimed up to 10 m from the priest."
+      },
+      "barva_tridy": "#d9d1b3",
+      "podil_barvy_tridy_pct": {
+        "min": 44.8,
+        "prumer": 47.4,
+        "cil": 40,
+        "mereni": "maska z bitevní kamery, 8 póz × 4 natočení (tests/prototype_shots.gd)"
+      },
+      "soubory": {
+        "model": "hrdina-knez.glb",
+        "nahled": "hrdina-knez.png",
+        "maska": "hrdina-knez-maska.glb"
+      },
+      "velikost": {
+        "vyska_m": 2.2,
+        "sirka_m": 1.63,
+        "trojuhelniky": 4040,
+        "idle_s": 2.54
+      }
+    },
+    {
+      "id": "lucistnik",
+      "jmeno": "Matěj",
+      "trida": "Archer",
+      "trida_cz": "lučištník",
+      "schopnost": {
+        "nazev": "Volley",
+        "popis": "5 arrows into a 2 m circle at the chosen spot, 9 damage each."
+      },
+      "barva_tridy": "#4d8c4d",
+      "podil_barvy_tridy_pct": {
+        "min": 42.7,
+        "prumer": 45.8,
+        "cil": 40,
+        "mereni": "maska z bitevní kamery, 8 póz × 4 natočení (tests/prototype_shots.gd)"
+      },
+      "soubory": {
+        "model": "hrdina-lucistnik.glb",
+        "nahled": "hrdina-lucistnik.png",
+        "maska": "hrdina-lucistnik-maska.glb"
+      },
+      "velikost": {
+        "vyska_m": 1.84,
+        "sirka_m": 1.63,
+        "trojuhelniky": 4250,
+        "idle_s": 2.54
+      }
+    },
+    {
+      "id": "jezdec",
+      "jmeno": "Sir Radek",
+      "trida": "Cavalier",
+      "trida_cz": "jezdec",
+      "schopnost": {
+        "nazev": "Charge",
+        "popis": "Rides to the chosen spot (up to 10 m), hits enemies in the way for 17 and stuns them for 1.5 s."
+      },
+      "barva_tridy": "#bf8c26",
+      "podil_barvy_tridy_pct": {
+        "min": 40.6,
+        "prumer": 46.4,
+        "cil": 40,
+        "mereni": "maska z bitevní kamery, 8 póz × 4 natočení (tests/prototype_shots.gd)"
+      },
+      "soubory": {
+        "model": "hrdina-jezdec.glb",
+        "nahled": "hrdina-jezdec.png",
+        "maska": "hrdina-jezdec-maska.glb"
+      },
+      "velikost": {
+        "vyska_m": 3.79,
+        "sirka_m": 3.04,
+        "trojuhelniky": 9994,
+        "idle_s": 2.54
+      }
+    },
+    {
+      "id": "asasin",
+      "jmeno": "Kryštof",
+      "trida": "Assassin",
+      "trida_cz": "asasín",
+      "schopnost": {
+        "nazev": "Shadow Strike",
+        "popis": "Leaps behind the chosen enemy (up to 8 m) and strikes for triple damage."
+      },
+      "barva_tridy": "#6a5a8c",
+      "podil_barvy_tridy_pct": {
+        "min": 44.5,
+        "prumer": 47.8,
+        "cil": 40,
+        "mereni": "maska z bitevní kamery, 8 póz × 4 natočení (tests/prototype_shots.gd)"
+      },
+      "soubory": {
+        "model": "hrdina-asasin.glb",
+        "nahled": "hrdina-asasin.png",
+        "maska": "hrdina-asasin-maska.glb"
+      },
+      "velikost": {
+        "vyska_m": 1.79,
+        "sirka_m": 1.63,
+        "trojuhelniky": 4292,
+        "idle_s": 2.04
+      }
+    }
+  ],
+  "velitele": [
+    {
+      "id": "vok",
+      "jmeno": "Vok the Burner",
+      "jmeno_cz": "Pálič Vok",
+      "role": "Commander",
+      "schopnost": {
+        "nazev": "Torch",
+        "popis": "The Burner throws a torch! Get out of the circle"
+      },
+      "profil": "rychlý a křehký: bez zbroje, nejrychlejší krok i údery, pochodeň v ruce",
+      "postava_scale": [
+        1.05,
+        1.15
+      ],
+      "barva_tridy": null,
+      "podil_barvy_tridy_pct": null,
+      "poznamka": "nepřátelé nemají barvu žádného hrdiny (rozhodnutí 15.11.2026), proto bez masky",
+      "soubory": {
+        "model": "hrdina-vok.glb",
+        "nahled": "hrdina-vok.png"
+      },
+      "velikost": {
+        "vyska_m": 1.96,
+        "sirka_m": 1.76,
+        "trojuhelniky": 3924,
+        "idle_s": 2.54
+      }
+    },
+    {
+      "id": "kuno",
+      "jmeno": "Captain Kuno",
+      "jmeno_cz": "Hejtman Kuno",
+      "role": "Leader",
+      "schopnost": {
+        "nazev": "Sweep",
+        "popis": "The Captain winds up a sweep! Step away from him"
+      },
+      "profil": "těžký: největší, nejvíc zdraví a zbroje, pomalé silné údery, odhození a omráčení na něj platí míň",
+      "postava_scale": [
+        1.45,
+        1.4
+      ],
+      "barva_tridy": null,
+      "podil_barvy_tridy_pct": null,
+      "poznamka": "nepřátelé nemají barvu žádného hrdiny (rozhodnutí 15.11.2026), proto bez masky",
+      "soubory": {
+        "model": "hrdina-kuno.glb",
+        "nahled": "hrdina-kuno.png"
+      },
+      "velikost": {
+        "vyska_m": 2.86,
+        "sirka_m": 2.48,
+        "trojuhelniky": 6680,
+        "idle_s": 2.54
+      }
+    },
+    {
+      "id": "borivoj",
+      "jmeno": "Sergeant Bořivoj",
+      "jmeno_cz": "Setník Bořivoj",
+      "role": "Commander",
+      "schopnost": {
+        "nazev": "At them!",
+        "popis": "The Sergeant rallies his men! Stun him or hold on"
+      },
+      "profil": "zeď: velký štít zepředu zachytí část zásahu (110°, ×0,55), ze strany a zezadu ne",
+      "postava_scale": [
+        1.3,
+        1.15
+      ],
+      "barva_tridy": null,
+      "podil_barvy_tridy_pct": null,
+      "poznamka": "nepřátelé nemají barvu žádného hrdiny (rozhodnutí 15.11.2026), proto bez masky",
+      "soubory": {
+        "model": "hrdina-borivoj.glb",
+        "nahled": "hrdina-borivoj.png"
+      },
+      "velikost": {
+        "vyska_m": 2.05,
+        "sirka_m": 3.58,
+        "trojuhelniky": 5628,
+        "idle_s": 2.54
+      }
+    },
+    {
+      "id": "jira",
+      "jmeno": "Jíra the Marksman",
+      "jmeno_cz": "Ostrostřelec Jíra",
+      "role": "Commander",
+      "schopnost": {
+        "nazev": "Aimed Shot",
+        "popis": "The Marksman aims at!"
+      },
+      "profil": "daleko: nejdelší dostřel, silné pomalé rány, couvá od hrdiny, který se přiblíží",
+      "postava_scale": [
+        1.0,
+        1.3
+      ],
+      "barva_tridy": null,
+      "podil_barvy_tridy_pct": null,
+      "poznamka": "nepřátelé nemají barvu žádného hrdiny (rozhodnutí 15.11.2026), proto bez masky",
+      "soubory": {
+        "model": "hrdina-jira.glb",
+        "nahled": "hrdina-jira.png"
+      },
+      "velikost": {
+        "vyska_m": 2.42,
+        "sirka_m": 1.63,
+        "trojuhelniky": 4232,
+        "idle_s": 2.54
+      }
+    }
+  ]
+}
