@@ -106,7 +106,12 @@ def main():
         cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
         hw = max(x1 - x0, (y1 - y0) * 8 / 9) * 0.62   # half width with a margin; each half is 8:9
         hh = hw * 9 / 8
-        box = (int(cx - hw), int(cy - hh), int(cx + hw), int(cy + hh))
+        # keep the crop inside the picture (otherwise the outside comes out black); shrink if it cannot fit
+        hh = min(hh, a.height / 2)
+        hw = hh * 8 / 9
+        cx = min(max(cx, hw), a.width - hw)
+        cy = min(max(cy, hh), a.height - hh)
+        box = (int(round(cx - hw)), int(round(cy - hh)), int(round(cx + hw)), int(round(cy + hh)))
         left = a.crop(box).resize((W // 2, H), Image.LANCZOS)
         right = b.crop(box).resize((W // 2, H), Image.LANCZOS)
         split = Image.new("RGB", (W, H))

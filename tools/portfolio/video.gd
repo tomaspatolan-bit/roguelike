@@ -309,3 +309,131 @@ func v3_order() -> void:
 	b.call("_command_click", _cur_pos)
 	await rec(int(1.0 * FPS))
 	await move(_px(Vector2(1050, 640)), 0.6)
+
+
+# ================================================================ round 2: long explainer videos, the film loop
+
+var _events: Array = []
+
+
+## Notes an event at the current frame (seconds from the start of the segment).
+func mark(what: String) -> void:
+	_events.append({"t": snappedf(float(n) / FPS, 0.01), "event": what})
+	print("EVENT %.2f %s" % [float(n) / FPS, what])
+
+
+func _save_events() -> void:
+	var f := FileAccess.open(out.path_join(seg + "_events.json"), FileAccess.WRITE)
+	f.store_string(JSON.stringify(_events, "  "))
+
+
+## V2-02 long: the camera still, Challenge and Blessing at about 3 s, recorded until the Challenge ring is gone.
+func v2_long() -> void:
+	var b: Node = await L.battle("most_pres_reku")
+	L.ui(b, false)
+	L.run_battle(b)
+	var sim: Object = b.get("sim")
+	_place(sim, "tank", Vector2(0.0, 0.8))
+	_place(sim, "knez", Vector2(-2.2, -2.6))
+	_place(sim, "lucistnik", Vector2(-4.6, -1.0))
+	_place(sim, "asasin", Vector2(2.4, -0.2))
+	_place(sim, "jezdec", Vector2(4.4, -2.2))
+	sim.call("set_order", "tank", "point", Vector2(0.0, 0.8))
+	await L.ff(b, 3.0, Callable(), 10)
+	L.cam(b, 0.0, 3.2, 25, 50, 17)
+	_cur_pos = Vector2(-100, -100)
+	var tank: Object = sim.call("by_id", "tank")
+	var fx: Array = b.get("_fx")
+	var state := {"taunt": false, "fx": false}
+	var watch := func(_i: int) -> void:
+		var t_on: bool = float(tank.get("taunt_t")) > 0.0
+		var f_on: bool = not fx.is_empty()
+		if t_on != state["taunt"]:
+			mark("Výzva: kruh " + ("se objeví" if t_on else "zmizí"))
+			state["taunt"] = t_on
+		if f_on != state["fx"]:
+			mark("Požehnání: kruh " + ("se objeví" if f_on else "zmizí"))
+			state["fx"] = f_on
+	await rec(int(3.0 * FPS), watch)
+	for id: String in ["tank", "knez"]:
+		var h: Array = sim.call("ability_hint", id)
+		var tgt: Variant = h[1] if h.size() > 1 and h[1] != null else tank.get("pos")
+		sim.call("use_ability", id, tgt)
+	b.call("_flush_events")
+	mark("Výzva a Požehnání spuštěny")
+	await rec(int(6.0 * FPS), watch)
+	_save_events()
+
+
+## V2-03 long: paused battle; a slow cursor to the cavalier, select, a slow move to the bowmen, a moment over the
+## target (preview), right click (order), Space, the cavalier rides out.
+func v3_long() -> void:
+	var b := await _staged_bridge(2.0)
+	L.ui(b, true)
+	_cam(b)
+	var sim: Object = b.get("sim")
+	L.pause_battle(b)
+	(b.get("ui") as Object).set("_hint_t", 0.01)
+	var jezdec: Object = sim.call("by_id", "jezdec")
+	_cur_pos = _px(Vector2(1050, 640))
+	await rec(int(1.0 * FPS))
+	await move(_screen_of(b, "jezdec"), 1.6)
+	click()
+	b.call("_select", "jezdec")
+	mark("výběr jezdce")
+	await rec(int(0.8 * FPS))
+	var foe := ""
+	for u: Variant in sim.call("living", "e"):
+		if String(u.get("key")) == "strelec":
+			foe = u.get("id")
+			break
+	await move(_screen_of(b, foe), 1.8, func(_i: int) -> void: b.call("_pointer_move", _cur_pos))
+	mark("cíl rozkazu: kurzor nad střelci, náhled")
+	await rec(int(1.2 * FPS))
+	click()
+	b.call("_command_click", _cur_pos)
+	mark("potvrzení rozkazu pravým tlačítkem")
+	await rec(int(0.6 * FPS))
+	b.call("_toggle_pause")
+	mark("puštění času (mezerník)")
+	var p0: Vector2 = jezdec.get("pos")
+	var moved := [false]  # lambdas capture locals by value; an array is shared
+	await move(_px(Vector2(1180, 760)), 2.4, func(_i: int) -> void:
+		if not moved[0] and ((jezdec.get("pos") as Vector2) - p0).length() > 0.15:
+			moved[0] = true
+			mark("jezdec vyrazí"))
+	await rec(int(0.6 * FPS))
+	_save_events()
+
+
+## V2-10: the film loop. A slow camera sway over the bridge battle (no UI, no cursor); the action is kept at a fixed
+## spot of the frame (FOCUS_X) by shifting the camera sideways, so one render gives both the 21:9 crop with the
+## action in the right 60 % and the 16:9 crop with it in the middle. Run in a 2730x1080 window.
+const FOCUS_X := 1764.0 / 2730.0
+const FILM_S := 10.0
+
+
+func v10_film() -> void:
+	var b := await _staged_bridge(4.0)
+	L.ui(b, false)
+	cursor.visible = false
+	b.set("speed", 0.8)
+	var c: Camera3D = b.get("cam")
+	var sim: Object = b.get("sim")
+	var each := func(i: int) -> void:
+		var ph := TAU * float(i) / (FILM_S * FPS)
+		# closed path: yaw sways and the distance breathes, both back where they started at the end
+		L.cam(b, 0.3, 4.6, 52.0 + 10.0 * sin(ph), 25.0 + 1.5 * (1.0 - cos(ph)) * 0.5, 15.5 - 0.8 * sin(ph), 48)
+		# keep the action (middle of the fight on the bridge) at FOCUS_X of the frame
+		var focus := Vector3(0.0, 0.5, -4.6)
+		var w := float(c.get_viewport().get_visible_rect().size.x)
+		var h0 := 0.0
+		c.h_offset = h0
+		for k in 3:
+			var x := c.unproject_position(focus).x / w
+			var err := x - FOCUS_X
+			c.h_offset = h0 + err * 30.0
+			h0 = c.h_offset
+		# abilities as the automatic commander would use them, so the fight has life
+		Lib.auto_abilities(sim)
+	await rec(int(FILM_S * FPS), each)

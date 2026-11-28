@@ -32,4 +32,31 @@ loop() {
 }
 [ -f "$F/v2_ability.mp4" ] && loop v2_ability V2-02
 [ -f "$F/v3_order.mp4" ] && loop v3_order V2-03
+
+# Round 2. V2-02-dlouhe, V2-03-dlouhe: 2560x1440, same loop crossfade.
+for s in v2_long v3_long; do [ -d "$F/$s" ] && seg $s; done
+[ -f "$F/v2_long.mp4" ] && loop v2_long V2-02-dlouhe
+[ -f "$F/v3_long.mp4" ] && loop v3_long V2-03-dlouhe
+
+# V2-10 film loop: one 2730x1080 render with the action at x=1764. Desktop crop 0..2520 (action in the right
+# ~60-70 %), mobile crop 804..2724 (action in the middle). 0.8 s loop crossfade, the camera flies a closed path.
+if [ -d "$F/v10_film" ]; then
+  # The loop starts at K = 1.4 s (no hit flash on the first frame = poster); the seam at the render's end/start
+  # is hidden in the crossfade.
+  XF=0.8; K=1.4
+  seg v10_film
+  d=$(dur v10_film); o=$(echo "$d - $K - $XF" | bc)
+  lp="[0]split[m][h];[h]trim=0:$K,setpts=PTS-STARTPTS[head];[m]trim=$K:$d,setpts=PTS-STARTPTS[body];[body][head]xfade=transition=fade:duration=$XF:offset=$o"
+  for crf in 23 25 27 29; do
+    ffmpeg -y -v error -i "$F/v10_film.mp4" -filter_complex "$lp,crop=2520:1080:0:0[v]" -map "[v]" \
+      -c:v libx264 -preset slow -crf $crf -pix_fmt yuv420p -movflags +faststart -an "$O/V2-10.mp4"
+    [ $(stat -c %s "$O/V2-10.mp4") -le 4000000 ] && break
+  done
+  for crf in 23 25 27 29; do
+    ffmpeg -y -v error -i "$F/v10_film.mp4" -filter_complex "$lp,crop=1920:1080:804:0[v]" -map "[v]" \
+      -c:v libx264 -preset slow -crf $crf -pix_fmt yuv420p -movflags +faststart -an "$O/V2-10-m.mp4"
+    [ $(stat -c %s "$O/V2-10-m.mp4") -le 4000000 ] && break
+  done
+  ffmpeg -y -v error -i "$O/V2-10.mp4" -frames:v 1 "$O/V2-10-poster.png"
+fi
 ls -la "$O"/*.mp4
