@@ -20,8 +20,9 @@ Všechny snímky jsou PNG 2560 × 1440 (16 : 9) bez debug výpisů a FPS. K2-01 
 | `K2-09.png` | pět hrdinů před bitvou z běžné bitevní kamery (pevný úhel, nejbližší zoom) | aktuální build |
 | `K2-09-maska.png` | stejný záběr jako maska: barva třídy, zbytek postavy šedě (stejné pravidlo jako test 40 %) | aktuální build |
 | `K2-09-split.png` | doporučená verze pro web: vlevo hra, vpravo maska, stejný výřez | z obou výše |
-| `K2-10a.png` | **chybí**: karta hrdiny z Figmy (viz níže) | Figma |
-| `K2-10b.png` | karta tanka ve hře uprostřed plátna 2560 × 1440, měřítko 3,2 px na bod UI | aktuální build |
+| `K2-10a.png` | karta tanka z Figmy (frame „Battle · A Normal“, vybraná) uprostřed plátna 2560 × 1440, 3,2 px na bod UI | Figma, export 3× |
+| `K2-10b.png` | stejná karta ve hře, vybraná, stejné plátno, měřítko i umístění | aktuální build |
+| `K2-10a-obrazovka.png`, `K2-10b-obrazovka.png` | navíc: celá obrazovka bitvy ve Figmě a ve hře, obě 2560 × 1440 ve stejném měřítku | Figma / aktuální build |
 | `K2-11a.png`, `K2-11a-detail.png` | lišta bez morálky (čas a pauza); detail = horní část obrazovky přiblížená | build 7.11. před vzhledem Royal Court (`e8f8882`) |
 | `K2-11b.png`, `K2-11b-detail.png` | lišta s morálkou nepřítele 63 / 70 % a hranicí zlomu; detail se stejným výřezem jako 11a | aktuální build |
 | `K2-12.png` | stránka rodu: komba pout, znamení a „The Fallen“ s pamětními deskami a nástupci | aktuální build |
@@ -42,10 +43,6 @@ Všechny snímky jsou PNG 2560 × 1440 (16 : 9) bez debug výpisů a FPS. K2-01 
 | `V2-01.mp4` | výběr odměny → bitva, pauza a rozkaz jezdci → All In! a vítězství bez padlých → zápis „Victory“ po bitvě; konec navazuje na začátek (stejná obrazovka a kurzor), mezi scénami prolínačky, bez černé | 1920 × 1080, 25 s, H.264, 4,1 MB, bez zvuku |
 | `V2-02.mp4` | spuštění Výzvy a Požehnání (k K2-06b), bez UI | 1920 × 1080, 4,6 s smyčka |
 | `V2-03.mp4` | rozkaz v pauze: výběr jezdce a poslání na střelce (k K2-07b) | 1920 × 1080, 4,6 s smyčka |
-
-## K2-10a (karta z Figmy)
-
-Z cloudu nejde Figma stáhnout jako soubor. Export: Figma soubor Roguelike, stránka „Oathline UI · Screens“, frame „Battle · A Normal“ → „Hero cards“ → první „Hero card“ (node `40:170`, https://www.figma.com/design/ac4cRXkaZhJ0qwnMuhiO6p/?node-id=40-170). Export PNG **3.2x**. Pak buď `python3 tools/portfolio/finish.py <raw> <out> karta.png`, nebo ručně: karta uprostřed plátna 2560 × 1440 v barvě `#F3EFE4`, bez změny měřítka. Tím sedí s K2-10b (obě 3,2 px na bod).
 
 ## Pro Clauda, který staví web portfolia
 
