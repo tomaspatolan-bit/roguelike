@@ -52,6 +52,7 @@ const ZONE_COLORS := {
 	"hradba": Color(0.55, 0.7, 1.0, 0.25),
 }
 var _zone_meshes: Array = []      # burning ground from the simulation (sim.zones)
+var _taunt_rings: Dictionary = {}  # hero id → ring of the Challenge reach while it lasts
 var select_ring: MeshInstance3D
 var hold_marker: MeshInstance3D
 var hover_ring: MeshInstance3D
@@ -1314,6 +1315,7 @@ func _sync_markers() -> void:
 		if float(fx[1]) <= 0.0:
 			mi.queue_free()
 			_fx.remove_at(i)
+	_sync_taunt_rings()
 	# burning ground (Fire Volley)
 	while _zone_meshes.size() < sim.zones.size():
 		var zd := Field.disc(1.0, Color(1.0, 0.45, 0.1, 0.35))
@@ -1480,6 +1482,27 @@ func _sync_order_marks() -> void:
 
 
 ## A short ability effect: a circle on the ground that fades.
+
+## Challenge (Výzva): a ring of its reach around the hero for as long as it draws the attacks (u.taunt_t), fading
+## out in the last 0.6 s. Only a picture: it follows the hero's view (so it stays visible on the bridge deck).
+func _sync_taunt_rings() -> void:
+	for u in sim.units:
+		var on: bool = u.side == Sim.SIDE_KNIGHT and u.alive() and u.taunt_t > 0.0 and views.has(u.id)
+		var ring: MeshInstance3D = _taunt_rings.get(u.id)
+		if not on:
+			if ring != null:
+				ring.visible = false
+			continue
+		if ring == null:
+			var r := float(sim.ability_of(u.id).get("radius", 6.0))
+			ring = Field.ring(r, 0.16, Color(0.55, 0.7, 1.0, 0.8))
+			add_child(ring)
+			_taunt_rings[u.id] = ring
+		ring.visible = true
+		var vp: Vector3 = (views[u.id] as Node3D).global_position
+		ring.position = Vector3(vp.x, vp.y + 0.08, vp.z)
+		(ring.material_override as StandardMaterial3D).albedo_color.a = clampf(u.taunt_t / 0.6, 0.0, 1.0) * 0.75
+
 func _spawn_fx(key: String, pos: Vector2) -> void:
 	var a: Dictionary = sim.units_data["abilities"].get(key, {})
 	var r := float(a.get("radius", 1.2))

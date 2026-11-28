@@ -2,6 +2,9 @@
 
 Nejnovější nahoře. Každé rozhodnutí: datum (formát DD.MM.RRRR), co, proč. Kopie je v projektu Roguelike v Claude (`claude/rozhodnuti.md`).
 
+## 28.11.2026 – Kruh Výzvy po celou dobu účinku
+- **Výzva ukazuje kruh svého dosahu (6 m) kolem hrdiny, dokud účinkuje** (4 s), a na konci dohasne (Tom: „se vším souhlasím“, návrh Clauda při videích pro portfolio). Dřív jen záblesk 0,6 s, i když Výzva trvá 4 s; hráč neviděl, koho tank právě provokuje. Pilíř Velíš rodu. Jen obraz ve scéně, pravidla se nemění. Požehnání je okamžité léčení, záblesk je celý jeho účinek.
+
 ## 17.11.2026 – Velitelé podle postavy
 - **Každý velitel má vlastní postavu a profil, který z ní plyne** (Tom: „rozlišíme ty bosse, klidně i hmotností, šířkou, výškou, stats“; „budeme se muset lišit hlavně v gameplayi“). Obrys má hráči napovědět, jak s velitelem bojovat, dřív než si přečte kartu. Podporuje pilíř Velíš rodu: hráč volí, kterého hrdinu na koho pošle.
 - **Hejtman Kuno je těžký:** největší, nejvíc zdraví a zbroje, pomalé silné údery, pomalý krok; odhození ho posune o třetinu a omráčení trvá poloviční dobu (přerušit chystaný Rozmach jde dál). **Pálič Vok je rychlý a křehký:** bez zbroje, nejrychlejší krok i údery, pochodeň v ruce. **Ostrostřelec Jíra je daleko:** nejdelší dostřel (11 m), silné pomalé rány, couvá od hrdiny, který se přiblíží, ale nejvýš 7 m od svého místa (pak stojí a střílí; jinak by vznikl pat). **Setník Bořivoj je zeď:** velký štít zepředu zachytí část zásahu (oblouk 110°, ×0,55), ze strany a zezadu ne; podsaditý a pomalý, těžší, kratší omráčení.
